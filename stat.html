@@ -53,20 +53,26 @@
             margin-bottom: 0.25rem;
             display: block;
         }
-        .input-fields input {
-            width: 100%;
+        .input-fields input[type="file"] {
             padding: 0.75rem;
             border: 1px solid #d1d5db;
             border-radius: 0.5rem;
             font-size: 1rem;
             color: #374151;
-            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
-            transition: border-color 0.2s, box-shadow 0.2s;
+            background-color: white;
+            cursor: pointer;
         }
-        .input-fields input:focus {
-            outline: none;
-            border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        .input-fields input[type="file"]::-webkit-file-upload-button {
+            background-color: #e2e8f0;
+            color: #374151;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .input-fields input[type="file"]::-webkit-file-upload-button:hover {
+            background-color: #cbd5e1;
         }
         .button-group {
             display: flex;
@@ -83,20 +89,28 @@
             transition: background-color 0.2s, transform 0.2s;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        .button-group .add-btn {
-            background-color: #10b981; /* Green for add */
+        .button-group .load-btn {
+            background-color: #3b82f6; /* Blue for load */
             color: white;
         }
-        .button-group .add-btn:hover {
+        .button-group .load-btn:hover {
+            background-color: #2563eb;
+            transform: translateY(-1px);
+        }
+        .button-group .process-btn {
+            background-color: #10b981; /* Green for process */
+            color: white;
+        }
+        .button-group .process-btn:hover {
             background-color: #059669;
             transform: translateY(-1px);
         }
-        .button-group .calculate-btn {
-            background-color: #3b82f6; /* Blue for calculate */
+        .button-group .download-btn {
+            background-color: #6366f1; /* Indigo for download */
             color: white;
         }
-        .button-group .calculate-btn:hover {
-            background-color: #2563eb;
+        .button-group .download-btn:hover {
+            background-color: #4f46e5;
             transform: translateY(-1px);
         }
         .button-group .clear-btn {
@@ -125,6 +139,12 @@
             list-style: none;
             padding: 0;
             margin: 0;
+            max-height: 150px; /* Limit height for long lists */
+            overflow-y: auto; /* Add scroll for long lists */
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            background-color: #f9fafb;
         }
         .user-list li {
             padding: 0.25rem 0;
@@ -271,27 +291,26 @@
 
         <div class="input-section">
             <div class="input-fields">
-                <div class="w-full md:w-1/2">
-                    <label for="handleInput">Codeforces Handle:</label>
-                    <input type="text" id="handleInput" placeholder="e.g., tourist">
-                </div>
-                <div class="w-full md:w-1/2">
-                    <label for="internalContestPerformanceScoreInput">Internal Contest Performance Score (0-200):</label>
-                    <input type="number" id="internalContestPerformanceScoreInput" placeholder="e.g., 150" min="0" max="200">
+                <div class="w-full">
+                    <label for="csvFileInput">Upload CSV (handle,internal_score):</label>
+                    <input type="file" id="csvFileInput" accept=".csv">
                     <p class="text-xs text-gray-500 mt-1">
-                        *This score must be entered manually as private contest data cannot be accessed automatically.
+                        *CSV should contain 'handle' and 'internal_score' columns.
                     </p>
                 </div>
             </div>
             <div class="button-group">
-                <button id="addToListBtn" class="add-btn">
-                    Add User to List
+                <button id="loadCsvBtn" class="load-btn">
+                    Load CSV
                 </button>
                 <button id="clearListBtn" class="clear-btn">
                     Clear List
                 </button>
-                <button id="calculateAllStatsBtn" class="calculate-btn">
-                    Calculate Stats for All
+                <button id="processCsvBtn" class="process-btn">
+                    Process CSV
+                </button>
+                <button id="downloadCsvBtn" class="download-btn" disabled>
+                    Download Results CSV
                 </button>
             </div>
         </div>
@@ -302,9 +321,9 @@
         <div id="userListContainer" class="user-list-container">
             <h3>Users to Analyze:</h3>
             <ul id="userList" class="user-list">
-                <!-- Added users will appear here -->
+                <!-- Loaded users will appear here -->
             </ul>
-            <p id="noUsersMessage" class="text-gray-500 text-sm mt-2">No users added yet.</p>
+            <p id="noUsersMessage" class="text-gray-500 text-sm mt-2">No users loaded yet.</p>
         </div>
 
         <div id="resultsTableContainer" class="results-table-container hidden">
@@ -365,11 +384,11 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const handleInput = document.getElementById('handleInput');
-            const internalContestPerformanceScoreInput = document.getElementById('internalContestPerformanceScoreInput');
-            const addToListBtn = document.getElementById('addToListBtn');
+            const csvFileInput = document.getElementById('csvFileInput');
+            const loadCsvBtn = document.getElementById('loadCsvBtn');
             const clearListBtn = document.getElementById('clearListBtn');
-            const calculateAllStatsBtn = document.getElementById('calculateAllStatsBtn');
+            const processCsvBtn = document.getElementById('processCsvBtn');
+            const downloadCsvBtn = document.getElementById('downloadCsvBtn');
             const userList = document.getElementById('userList');
             const noUsersMessage = document.getElementById('noUsersMessage');
             const resultsTableContainer = document.getElementById('resultsTableContainer');
@@ -377,41 +396,104 @@
             const errorMessageDiv = document.getElementById('errorMessage');
             const loadingIndicator = document.getElementById('loadingIndicator');
 
-            let usersToAnalyze = []; // Array to store { handle, score } objects added by the user
+            let usersToAnalyze = []; // Array to store { handle, score } objects loaded from CSV
             let cachedUserData = []; // Array to store fetched and calculated data for caching
 
             // --- Event Listeners ---
-            addToListBtn.addEventListener('click', addUserToList);
+            loadCsvBtn.addEventListener('click', loadCSVFile);
             clearListBtn.addEventListener('click', clearUserList);
-            calculateAllStatsBtn.addEventListener('click', processAllUsers);
+            processCsvBtn.addEventListener('click', processAllUsers);
+            downloadCsvBtn.addEventListener('click', downloadCSV);
 
             // --- Functions ---
 
-            function addUserToList() {
-                const handle = handleInput.value.trim().toLowerCase(); // Normalize handle to lowercase
-                const score = parseFloat(internalContestPerformanceScoreInput.value);
-
-                if (!handle) {
-                    displayError('Please enter a Codeforces handle.');
-                    return;
-                }
-                if (isNaN(score) || score < 0 || score > 200) {
-                    displayError('Please enter a valid Internal Contest Performance Score between 0 and 200.');
+            function loadCSVFile() {
+                const file = csvFileInput.files[0];
+                if (!file) {
+                    displayError('Please select a CSV file.');
                     return;
                 }
 
-                // Check for duplicate handle in the list to analyze (using normalized handle)
-                if (usersToAnalyze.some(user => user.handle.toLowerCase() === handle)) {
-                    displayError(`User "${handle}" is already in the list.`);
-                    return;
-                }
-
-                usersToAnalyze.push({ handle: handle, score: score });
-                updateUserListDisplay();
-                handleInput.value = ''; // Clear input fields
-                internalContestPerformanceScoreInput.value = '';
-                hideError();
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const csvContent = e.target.result;
+                        parseCSV(csvContent);
+                        hideError();
+                    } catch (error) {
+                        displayError(`Error parsing CSV: ${error.message}`);
+                        console.error('CSV parsing error:', error);
+                    }
+                };
+                reader.onerror = () => {
+                    displayError('Error reading file.');
+                };
+                reader.readAsText(file);
             }
+
+            function parseCSV(csvString) {
+                const lines = csvString.trim().split('\n');
+                if (lines.length === 0) {
+                    throw new Error('CSV file is empty.');
+                }
+
+                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+                const handleIndex = headers.indexOf('handle');
+                const scoreIndex = headers.indexOf('internal_score');
+
+                let dataLines = lines;
+                // If headers are found, skip the first line
+                if (handleIndex !== -1 && scoreIndex !== -1) {
+                    dataLines = lines.slice(1);
+                } else if (lines[0].split(',').length < 2) {
+                     throw new Error('CSV must have at least two columns: handle and internal_score, or be structured as such.');
+                }
+
+                const newUsers = [];
+                const seenHandles = new Set(); // For uniqueness check
+
+                dataLines.forEach((line, index) => {
+                    const parts = line.split(',');
+                    let handle, score;
+
+                    if (handleIndex !== -1 && scoreIndex !== -1) {
+                        handle = parts[handleIndex]?.trim();
+                        score = parseFloat(parts[scoreIndex]?.trim());
+                    } else {
+                        // Assume first column is handle, second is score if headers not found
+                        handle = parts[0]?.trim();
+                        score = parseFloat(parts[1]?.trim());
+                    }
+
+                    if (!handle) {
+                        console.warn(`Skipping row ${index + 1}: Missing handle.`);
+                        return;
+                    }
+                    if (isNaN(score) || score < 0 || score > 200) {
+                        console.warn(`Skipping row ${index + 1} (${handle}): Invalid score "${parts[scoreIndex] || parts[1]}". Score must be between 0 and 200.`);
+                        return;
+                    }
+
+                    const normalizedHandle = handle.toLowerCase();
+                    if (seenHandles.has(normalizedHandle)) {
+                        console.warn(`Skipping duplicate handle "${handle}" on row ${index + 1}.`);
+                        return;
+                    }
+
+                    newUsers.push({ handle: handle, score: score });
+                    seenHandles.add(normalizedHandle);
+                });
+
+                if (newUsers.length === 0) {
+                    throw new Error('No valid users found in the CSV file. Please check format.');
+                }
+
+                usersToAnalyze = newUsers;
+                updateUserListDisplay();
+                displayError(`Loaded ${usersToAnalyze.length} users from CSV.`);
+                downloadCsvBtn.disabled = true; // Disable download until processing is done
+            }
+
 
             function updateUserListDisplay() {
                 userList.innerHTML = ''; // Clear current list display
@@ -421,7 +503,6 @@
                     noUsersMessage.classList.add('hidden');
                     usersToAnalyze.forEach(user => {
                         const listItem = document.createElement('li');
-                        // Display the handle as entered by the user, but store/check normalized
                         listItem.textContent = `${user.handle} (Score: ${user.score})`;
                         userList.appendChild(listItem);
                     });
@@ -435,6 +516,8 @@
                 resultsTableBody.innerHTML = '';
                 resultsTableContainer.classList.add('hidden');
                 hideError();
+                downloadCsvBtn.disabled = true;
+                csvFileInput.value = ''; // Clear file input selection
             }
 
             // Helper function to introduce a delay
@@ -444,7 +527,7 @@
 
             async function processAllUsers() {
                 if (usersToAnalyze.length === 0) {
-                    displayError('Please add at least one user to the list before calculating stats.');
+                    displayError('Please load users from a CSV file first.');
                     return;
                 }
 
@@ -452,6 +535,9 @@
                 resultsTableContainer.classList.remove('hidden'); // Show table container immediately
                 hideError();
                 showLoading();
+                downloadCsvBtn.disabled = true; // Disable download during processing
+
+                const currentProcessedData = []; // To store data for this specific run
 
                 for (let i = 0; i < usersToAnalyze.length; i++) {
                     const user = usersToAnalyze[i];
@@ -473,6 +559,11 @@
                             console.error(`Error fetching stats for ${user.handle}:`, error);
                             userData = {
                                 handle: user.handle,
+                                maxRating: 'N/A', avgRating: 'N/A', contests: 'N/A', skippedSubmissionsCount: 'N/A',
+                                rawWeightedSolvedProblemScore: 'N/A', problemRatingFrequencies: 'N/A',
+                                lastAttemptedProblem: 'N/A', lastAttemptedDate: 'N/A', daysSinceLastAttempt: 'N/A',
+                                internalContestPerformanceScore: user.score,
+                                drScore: 'N/A',
                                 error: `Error: ${error.message.substring(0, 50)}...`
                             };
                         }
@@ -491,10 +582,12 @@
                             await sleep(10000); // 10 seconds delay
                         }
                     }
+                    currentProcessedData.push(userData); // Add to the data for this run
                     appendUserRowToTable(userData); // Append the row as soon as data is ready
                 }
 
                 hideLoading();
+                downloadCsvBtn.disabled = false; // Enable download after processing
             }
 
             async function fetchStatsForHandle(handle, internalContestPerformanceScore) {
@@ -680,20 +773,61 @@
 
             function showLoading() {
                 loadingIndicator.style.display = 'block';
-                addToListBtn.disabled = true;
+                loadCsvBtn.disabled = true;
                 clearListBtn.disabled = true;
-                calculateAllStatsBtn.disabled = true;
-                handleInput.disabled = true;
-                internalContestPerformanceScoreInput.disabled = true;
+                processCsvBtn.disabled = true;
+                csvFileInput.disabled = true;
             }
 
             function hideLoading() {
                 loadingIndicator.style.display = 'none';
-                addToListBtn.disabled = false;
+                loadCsvBtn.disabled = false;
                 clearListBtn.disabled = false;
-                calculateAllStatsBtn.disabled = false;
-                handleInput.disabled = false;
-                internalContestPerformanceScoreInput.disabled = false;
+                processCsvBtn.disabled = false;
+                csvFileInput.disabled = false;
+            }
+
+            function downloadCSV() {
+                if (cachedUserData.length === 0) {
+                    displayError('No data to download. Please process users first.');
+                    return;
+                }
+
+                const headers = [
+                    "Handle", "Max Rating", "Avg Rating", "Contests", "Skipped Submissions",
+                    "Weighted Solved Problem Score", "Problem Rating Frequencies",
+                    "Last Attempted Question", "Date Last Attempted", "Days Inactive",
+                    "Internal Contest Score", "DR Score / 200"
+                ];
+
+                const rows = [headers.join(',')]; // Start with header row
+
+                cachedUserData.forEach(data => {
+                    const rowData = [
+                        data.handle,
+                        data.maxRating,
+                        data.averageContestRating,
+                        data.contestCount,
+                        data.skippedSubmissionsCount,
+                        data.rawWeightedSolvedProblemScore,
+                        `"${data.problemRatingFrequencies.replace(/"/g, '""')}"`, // Quote and escape frequencies
+                        `"${data.lastAttemptedProblem.replace(/"/g, '""')}"`, // Quote and escape problem name
+                        `"${data.lastAttemptedDate.replace(/"/g, '""')}"`, // Quote and escape date
+                        data.daysSinceLastAttempt,
+                        data.internalContestPerformanceScore,
+                        data.drScore
+                    ];
+                    rows.push(rowData.join(','));
+                });
+
+                const csvString = rows.join('\n');
+                const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `codeforces_stats_${new Date().toISOString().slice(0,10)}.csv`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             }
 
             // Initial display update
