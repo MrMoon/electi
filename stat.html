@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codeforces Users Stats Table</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to start to prevent content from being too high */
+            min-height: 100vh;
+            padding: 2rem;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 8xl; /* Increased max-width for the table */
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .input-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 1.5rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.75rem;
+            background-color: #f9fafb;
+        }
+        .input-fields {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+        .input-fields div {
+            flex-grow: 1;
+        }
+        .input-fields label {
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.25rem;
+            display: block;
+        }
+        .input-fields input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            color: #374151;
+            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .input-fields input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+        }
+        .button-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .button-group button {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .button-group .add-btn {
+            background-color: #10b981; /* Green for add */
+            color: white;
+        }
+        .button-group .add-btn:hover {
+            background-color: #059669;
+            transform: translateY(-1px);
+        }
+        .button-group .calculate-btn {
+            background-color: #3b82f6; /* Blue for calculate */
+            color: white;
+        }
+        .button-group .calculate-btn:hover {
+            background-color: #2563eb;
+            transform: translateY(-1px);
+        }
+        .button-group .clear-btn {
+            background-color: #ef4444; /* Red for clear */
+            color: white;
+        }
+        .button-group .clear-btn:hover {
+            background-color: #dc2626;
+            transform: translateY(-1px);
+        }
+
+        .user-list-container {
+            margin-top: 1rem;
+            padding: 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            background-color: #ffffff;
+            min-height: 50px;
+        }
+        .user-list-container h3 {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+        .user-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .user-list li {
+            padding: 0.25rem 0;
+            border-bottom: 1px dashed #e5e7eb;
+            color: #4b5563;
+        }
+        .user-list li:last-child {
+            border-bottom: none;
+        }
+        .error-message {
+            color: #dc2626;
+            font-weight: 500;
+            text-align: center;
+            margin-top: 1rem;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+            margin: 2rem auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .results-table-container {
+            overflow-x: auto; /* Enable horizontal scrolling for small screens */
+            margin-top: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1600px; /* Adjusted min-width for new columns */
+        }
+        .results-table th, .results-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .results-table th {
+            background-color: #eff6ff;
+            color: #1e40af;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            position: sticky; /* Make header sticky for horizontal scroll */
+            top: 0;
+            z-index: 10;
+        }
+        .results-table tbody tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        .results-table tbody tr:hover {
+            background-color: #f3f4f6;
+        }
+        .results-table td {
+            color: #4b5563;
+            font-size: 0.9rem;
+        }
+        .results-table .dr-score-cell {
+            font-weight: 700;
+            color: #10b981; /* Green for good score */
+        }
+        .results-table .dr-score-cell.low-score {
+            color: #ef4444; /* Red for low score */
+        }
+        .results-table .dr-score-cell.medium-score {
+            color: #f59e0b; /* Orange for medium score */
+        }
+        .equation-section {
+            background-color: #ffffff;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 2rem;
+            margin-top: 1.5rem;
+            text-align: center;
+        }
+        .equation-section h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 1rem;
+        }
+        .equation-section .formula-line {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #1e40af;
+            margin: 1.5rem 0;
+            line-height: 1.8;
+            display: block;
+            font-family: 'Fira Code', 'Cascadia Code', monospace; /* Monospace for clarity */
+        }
+        .equation-section .variable {
+            font-style: italic;
+            font-weight: 600;
+            color: #0d6efd; /* A distinct blue for variables */
+        }
+        .equation-section .operator {
+            font-weight: 700;
+            color: #374151;
+        }
+        .equation-section .constant {
+            color: #6c757d; /* A subtle color for constants */
+        }
+        .equation-section .function {
+            font-weight: 600;
+            color: #20c997; /* Green for functions like min */
+        }
+        .equation-section .explanation-list {
+            list-style: none;
+            padding: 0;
+            margin: 1rem auto;
+            max-width: 45rem; /* Adjust width for readability */
+            text-align: left;
+        }
+        .equation-section .explanation-list li {
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+            color: #4b5563;
+        }
+        .equation-section .explanation-list li .term {
+            font-weight: 600;
+            color: #374151;
+        }
+        .equation-section .explanation-list li .formula-part {
+            font-family: 'Fira Code', 'Cascadia Code', monospace;
+            background-color: #e2e8f0;
+            padding: 0.1em 0.3em;
+            border-radius: 0.25em;
+            font-size: 0.95em;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="container">
+        <h1 class="text-3xl font-bold text-gray-800 text-center mb-6">Codeforces User Eligibility Analyzer</h1>
+
+        <div class="input-section">
+            <div class="input-fields">
+                <div class="w-full md:w-1/2">
+                    <label for="handleInput">Codeforces Handle:</label>
+                    <input type="text" id="handleInput" placeholder="e.g., tourist">
+                </div>
+                <div class="w-full md:w-1/2">
+                    <label for="internalContestPerformanceScoreInput">Internal Contest Performance Score (0-200):</label>
+                    <input type="number" id="internalContestPerformanceScoreInput" placeholder="e.g., 150" min="0" max="200">
+                    <p class="text-xs text-gray-500 mt-1">
+                        *This score must be entered manually as private contest data cannot be accessed automatically.
+                    </p>
+                </div>
+            </div>
+            <div class="button-group">
+                <button id="addToListBtn" class="add-btn">
+                    Add User to List
+                </button>
+                <button id="clearListBtn" class="clear-btn">
+                    Clear List
+                </button>
+                <button id="calculateAllStatsBtn" class="calculate-btn">
+                    Calculate Stats for All
+                </button>
+            </div>
+        </div>
+
+        <div id="errorMessage" class="error-message hidden"></div>
+        <div id="loadingIndicator" class="loading-spinner"></div>
+
+        <div id="userListContainer" class="user-list-container">
+            <h3>Users to Analyze:</h3>
+            <ul id="userList" class="user-list">
+                <!-- Added users will appear here -->
+            </ul>
+            <p id="noUsersMessage" class="text-gray-500 text-sm mt-2">No users added yet.</p>
+        </div>
+
+        <div id="resultsTableContainer" class="results-table-container hidden">
+            <table id="resultsTable" class="results-table">
+                <thead>
+                    <tr>
+                        <th>Handle</th>
+                        <th>Max Rating</th>
+                        <th>Avg Rating</th>
+                        <th>Contests</th>
+                        <th>Skipped Subs</th>
+                        <th>Weighted Solved Problem Score</th>
+                        <th>Problem Rating Freq (Rating:Count)</th>
+                        <th>Last Attempted Q</th>
+                        <th>Date Attempted</th>
+                        <th>Days Inactive</th>
+                        <th>Internal Contest Score</th>
+                        <th>DR Score / 200</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Results will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="equation-section">
+            <h2>Div. 2 Readiness Score ($D_R$) Equation</h2>
+            <p class="formula-line">
+                <span class="variable">D<sub>R</sub></span> <span class="operator">=</span>
+                <span class="term">Score from Max Rating</span>
+                <span class="operator">+</span> <span class="term">Score from Avg Contest Rating</span>
+                <span class="operator">+</span> <span class="term">Score from Contest Count</span>
+                <span class="operator">+</span> <span class="term">Score from Internal Contest</span>
+                <span class="operator">+</span> <span class="term">Score from Weighted Solved Problems</span>
+                <span class="operator">-</span> <span class="term">Recency Penalty</span>
+                <span class="operator">-</span> <span class="term">Skipped Penalty</span>
+            </p>
+            <p>Where:</p>
+            <ul class="explanation-list">
+                <li><span class="term">Score from Max Rating</span>: <span class="formula-part"><span class="function">min</span>(<span class="constant">60</span>, (<span class="variable">UserMaxRating</span> / <span class="constant">2000</span>) ⋅ <span class="constant">60</span>)</span></li>
+                <li><span class="term">Score from Avg Contest Rating</span>: <span class="formula-part"><span class="function">min</span>(<span class="constant">50</span>, (<span class="variable">AverageContestRating</span> / <span class="constant">1800</span>) ⋅ <span class="constant">50</span>)</span></li>
+                <li><span class="term">Score from Contest Count</span>: <span class="formula-part"><span class="function">min</span>(<span class="constant">20</span>, (<span class="variable">ContestParticipationCount</span> / <span class="constant">100</span>) ⋅ <span class="constant">20</span>)</span></li>
+                <li><span class="term">Score from Internal Contest</span>: <span class="formula-part">(<span class="variable">InternalContestPerformanceScore</span> / <span class="constant">200</span>) ⋅ <span class="constant">30</span></span></li>
+                <li><span class="term">Score from Weighted Solved Problems</span>: <span class="formula-part"><span class="function">min</span>(<span class="constant">40</span>, (<span class="variable">RawWeightedSolvedProblemScore</span> / <span class="constant">200</span>) ⋅ <span class="constant">40</span>)</span><br>
+                    <span class="text-sm text-gray-600 ml-4">
+                        *Raw score is calculated as: (Problems &lt; 1400 rating ⋅ 1) + (Problems 1400-1799 rating ⋅ 2) + (Problems &ge; 1800 rating ⋅ 3)
+                    </span>
+                </li>
+                <li><span class="term">Recency Penalty</span>: <span class="formula-part"><span class="function">min</span>(<span class="constant">40</span>, (<span class="variable">DaysSinceLastAttempt</span> / <span class="constant">90</span>) ⋅ <span class="constant">40</span>)</span></li>
+                <li><span class="term">Skipped Penalty</span>: <span class="formula-part"><span class="function">min</span>(<span class="constant">20</span>, (<span class="variable">SkippedSubmissionsCount</span> / <span class="constant">50</span>) ⋅ <span class="constant">20</span>)</span></li>
+            </ul>
+            <p class="mt-4 text-sm text-gray-600">
+                *The final $D_R$ score is capped between 0 and 200. Penalties are always non-negative.
+            </p>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const handleInput = document.getElementById('handleInput');
+            const internalContestPerformanceScoreInput = document.getElementById('internalContestPerformanceScoreInput');
+            const addToListBtn = document.getElementById('addToListBtn');
+            const clearListBtn = document.getElementById('clearListBtn');
+            const calculateAllStatsBtn = document.getElementById('calculateAllStatsBtn');
+            const userList = document.getElementById('userList');
+            const noUsersMessage = document.getElementById('noUsersMessage');
+            const resultsTableContainer = document.getElementById('resultsTableContainer');
+            const resultsTableBody = document.querySelector('#resultsTable tbody');
+            const errorMessageDiv = document.getElementById('errorMessage');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+
+            let usersToAnalyze = []; // Array to store { handle, score } objects added by the user
+            let cachedUserData = []; // Array to store fetched and calculated data for caching
+
+            // --- Event Listeners ---
+            addToListBtn.addEventListener('click', addUserToList);
+            clearListBtn.addEventListener('click', clearUserList);
+            calculateAllStatsBtn.addEventListener('click', processAllUsers);
+
+            // --- Functions ---
+
+            function addUserToList() {
+                const handle = handleInput.value.trim().toLowerCase(); // Normalize handle to lowercase
+                const score = parseFloat(internalContestPerformanceScoreInput.value);
+
+                if (!handle) {
+                    displayError('Please enter a Codeforces handle.');
+                    return;
+                }
+                if (isNaN(score) || score < 0 || score > 200) {
+                    displayError('Please enter a valid Internal Contest Performance Score between 0 and 200.');
+                    return;
+                }
+
+                // Check for duplicate handle in the list to analyze (using normalized handle)
+                if (usersToAnalyze.some(user => user.handle.toLowerCase() === handle)) {
+                    displayError(`User "${handle}" is already in the list.`);
+                    return;
+                }
+
+                usersToAnalyze.push({ handle: handle, score: score });
+                updateUserListDisplay();
+                handleInput.value = ''; // Clear input fields
+                internalContestPerformanceScoreInput.value = '';
+                hideError();
+            }
+
+            function updateUserListDisplay() {
+                userList.innerHTML = ''; // Clear current list display
+                if (usersToAnalyze.length === 0) {
+                    noUsersMessage.classList.remove('hidden');
+                } else {
+                    noUsersMessage.classList.add('hidden');
+                    usersToAnalyze.forEach(user => {
+                        const listItem = document.createElement('li');
+                        // Display the handle as entered by the user, but store/check normalized
+                        listItem.textContent = `${user.handle} (Score: ${user.score})`;
+                        userList.appendChild(listItem);
+                    });
+                }
+            }
+
+            function clearUserList() {
+                usersToAnalyze = [];
+                cachedUserData = []; // Clear cached data as well
+                updateUserListDisplay();
+                resultsTableBody.innerHTML = '';
+                resultsTableContainer.classList.add('hidden');
+                hideError();
+            }
+
+            // Helper function to introduce a delay
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            async function processAllUsers() {
+                if (usersToAnalyze.length === 0) {
+                    displayError('Please add at least one user to the list before calculating stats.');
+                    return;
+                }
+
+                resultsTableBody.innerHTML = ''; // Clear previous results
+                resultsTableContainer.classList.remove('hidden'); // Show table container immediately
+                hideError();
+                showLoading();
+
+                for (let i = 0; i < usersToAnalyze.length; i++) {
+                    const user = usersToAnalyze[i];
+                    let userData;
+                    // Find cached user using the normalized handle
+                    const cachedUser = cachedUserData.find(data => data.handle.toLowerCase() === user.handle.toLowerCase());
+
+                    if (cachedUser && !cachedUser.error) {
+                        // If user data is cached and no error occurred previously, reuse it
+                        // Update the internal contest score from the current input, as it might have changed
+                        userData = { ...cachedUser, internalContestPerformanceScore: user.score };
+                        console.log(`Reusing cached data for ${user.handle}`);
+                    } else {
+                        // Otherwise, fetch new data
+                        try {
+                            userData = await fetchStatsForHandle(user.handle, user.score);
+                            console.log(`Fetched new data for ${user.handle}`);
+                        } catch (error) {
+                            console.error(`Error fetching stats for ${user.handle}:`, error);
+                            userData = {
+                                handle: user.handle,
+                                error: `Error: ${error.message.substring(0, 50)}...`
+                            };
+                        }
+
+                        // Update cache with the newly fetched/error data
+                        const cacheIndex = cachedUserData.findIndex(data => data.handle.toLowerCase() === user.handle.toLowerCase());
+                        if (cacheIndex > -1) {
+                            cachedUserData[cacheIndex] = userData;
+                        } else {
+                            cachedUserData.push(userData);
+                        }
+
+                        // Introduce a 10-second delay before the next API call,
+                        // but only if we actually made an API call and it's not the last user.
+                        if (i < usersToAnalyze.length - 1) {
+                            await sleep(10000); // 10 seconds delay
+                        }
+                    }
+                    appendUserRowToTable(userData); // Append the row as soon as data is ready
+                }
+
+                hideLoading();
+            }
+
+            async function fetchStatsForHandle(handle, internalContestPerformanceScore) {
+                // Fetch user info for max rating
+                const userInfoResponse = await fetch(`https://codeforces.com/api/user.info?handles=${handle}`);
+                const userInfoData = await userInfoResponse.json();
+
+                if (userInfoData.status === 'FAILED') {
+                    throw new Error(userInfoData.comment || 'Failed to fetch user info.');
+                }
+                const userInfo = userInfoData.result[0];
+                const maxRating = userInfo.maxRating || 0;
+
+                // Fetch user rating for contest participation and rating history
+                const userRatingResponse = await fetch(`https://codeforces.com/api/user.rating?handle=${handle}`);
+                const userRatingData = await userRatingResponse.json();
+
+                if (userRatingData.status === 'FAILED') {
+                    throw new Error(userRatingData.comment || 'Failed to fetch user rating.');
+                }
+                const ratingChanges = userRatingData.result;
+                const contestCount = ratingChanges.length;
+                const allRatings = ratingChanges.map(entry => entry.newRating);
+
+                // Calculate Average Contest Rating
+                const sumRatings = allRatings.reduce((acc, curr) => acc + curr, 0);
+                const averageContestRating = allRatings.length > 0 ? (sumRatings / allRatings.length) : 0;
+
+                // Fetch user status for last attempted question, skipped submissions, solved questions, and problem rating frequencies
+                // Fetch up to 2000 submissions to get a good sample for solved problems and ratings
+                const userStatusResponse = await fetch(`https://codeforces.com/api/user.status?handle=${handle}&from=1&count=2000`);
+                const userStatusData = await userStatusResponse.json();
+
+                if (userStatusData.status === 'FAILED') {
+                    throw new Error(userStatusData.comment || 'Failed to fetch user status.');
+                }
+
+                let lastAttemptedProblem = 'N/A';
+                let lastAttemptedDate = 'N/A';
+                let skippedSubmissionsCount = 0;
+                let rawWeightedSolvedProblemScore = 0; // New: raw score before scaling
+                let daysSinceLastAttempt = 365; // Default to high value if no submissions
+                const problemRatingFrequencies = {}; // To store {rating: count}
+
+                const LOW_RATING_POINTS = 1; // Points for problems < 1400
+                const MEDIUM_RATING_POINTS = 2; // Points for problems 1400-1799
+                const HIGH_RATING_POINTS = 3; // Points for problems >= 1800
+
+                if (userStatusData.result.length > 0) {
+                    const latestSubmission = userStatusData.result[0];
+                    lastAttemptedProblem = `${latestSubmission.problem.name} (ID: ${latestSubmission.problem.contestId}-${latestSubmission.problem.index})`;
+                    lastAttemptedDate = new Date(latestSubmission.creationTimeSeconds * 1000).toLocaleString();
+
+                    const currentTimeSeconds = Math.floor(Date.now() / 1000);
+                    const secondsSinceLastAttempt = currentTimeSeconds - latestSubmission.creationTimeSeconds;
+                    daysSinceLastAttempt = secondsSinceLastAttempt / (60 * 60 * 24);
+
+                    // Iterate through all submissions to count solved and skipped, and gather problem ratings
+                    const solvedProblemIds = new Set(); // To count unique solved problems
+                    for (const submission of userStatusData.result) {
+                        if (submission.verdict === 'OK') {
+                            // Only count unique solved problems
+                            const problemId = `${submission.problem.contestId || 'gym'}-${submission.problem.index}`;
+                            if (!solvedProblemIds.has(problemId)) {
+                                solvedProblemIds.add(problemId);
+
+                                if (submission.problem.rating) {
+                                    const rating = submission.problem.rating;
+                                    problemRatingFrequencies[rating] = (problemRatingFrequencies[rating] || 0) + 1;
+
+                                    // Add to raw weighted score based on rating tiers
+                                    if (rating < 1400) {
+                                        rawWeightedSolvedProblemScore += LOW_RATING_POINTS;
+                                    } else if (rating >= 1400 && rating < 1800) {
+                                        rawWeightedSolvedProblemScore += MEDIUM_RATING_POINTS;
+                                    } else if (rating >= 1800) {
+                                        rawWeightedSolvedProblemScore += HIGH_RATING_POINTS;
+                                    }
+                                }
+                            }
+                        } else if (submission.verdict === 'SKIPPED') {
+                            skippedSubmissionsCount++;
+                        }
+                    }
+                }
+
+                // Format problemRatingFrequencies for display
+                const formattedProblemRatingFrequencies = Object.entries(problemRatingFrequencies)
+                    .sort((a, b) => parseInt(a[0]) - parseInt(b[0])) // Sort by rating
+                    .map(([rating, count]) => `${rating}: ${count}`)
+                    .join(', ');
+
+                // --- Calculate Div. 2 Readiness Score (DR) out of 200 ---
+                // Define maximum points for each positive factor
+                const MAX_POINTS_MAX_RATING = 60;
+                const MAX_POINTS_AVG_RATING = 50;
+                const MAX_POINTS_CONTEST_COUNT = 20;
+                const MAX_POINTS_INTERNAL_CONTEST = 30;
+                const MAX_POINTS_WEIGHTED_SOLVED_PROBLEMS = 40; // New combined factor
+
+                // Define thresholds for full points for each factor
+                const RATING_THRESHOLD_FULL_POINTS = 2000;
+                const AVG_RATING_THRESHOLD_FULL_POINTS = 1800;
+                const CONTEST_COUNT_THRESHOLD_FULL_POINTS = 100;
+                const WEIGHTED_SOLVED_THRESHOLD_FULL_POINTS = 200; // Example: A raw weighted score of 200 gets full 40 points
+
+                const SKIPPED_COUNT_THRESHOLD_MAX_PENALTY = 50;
+                const RECENCY_DAYS_THRESHOLD_MAX_PENALTY = 90;
+
+                let scoreMaxRating = Math.min(MAX_POINTS_MAX_RATING, (maxRating / RATING_THRESHOLD_FULL_POINTS) * MAX_POINTS_MAX_RATING);
+                let scoreAvgRating = Math.min(MAX_POINTS_AVG_RATING, (averageContestRating / AVG_RATING_THRESHOLD_FULL_POINTS) * MAX_POINTS_AVG_RATING);
+                let scoreContestCount = Math.min(MAX_POINTS_CONTEST_COUNT, (contestCount / CONTEST_COUNT_THRESHOLD_FULL_POINTS) * MAX_POINTS_CONTEST_COUNT);
+                let scoreInternalContest = (internalContestPerformanceScore / 200) * MAX_POINTS_INTERNAL_CONTEST;
+
+                let scoreWeightedSolvedProblems = Math.min(MAX_POINTS_WEIGHTED_SOLVED_PROBLEMS, (rawWeightedSolvedProblemScore / WEIGHTED_SOLVED_THRESHOLD_FULL_POINTS) * MAX_POINTS_WEIGHTED_SOLVED_PROBLEMS);
+
+                let recencyPenalty = Math.min(40, (daysSinceLastAttempt / RECENCY_DAYS_THRESHOLD_MAX_PENALTY) * 40);
+                let skippedPenalty = Math.min(20, (skippedSubmissionsCount / SKIPPED_COUNT_THRESHOLD_MAX_PENALTY) * 20);
+
+                recencyPenalty = Math.max(0, recencyPenalty);
+                skippedPenalty = Math.max(0, skippedPenalty);
+
+                let drScore = scoreMaxRating + scoreAvgRating + scoreContestCount + scoreInternalContest + scoreWeightedSolvedProblems - recencyPenalty - skippedPenalty;
+                drScore = Math.max(0, Math.min(200, drScore)); // Ensure score is between 0 and 200
+
+                return {
+                    handle,
+                    maxRating,
+                    averageContestRating: averageContestRating.toFixed(2),
+                    contestCount,
+                    skippedSubmissionsCount,
+                    rawWeightedSolvedProblemScore: rawWeightedSolvedProblemScore, // Display raw score
+                    problemRatingFrequencies: formattedProblemRatingFrequencies || 'N/A',
+                    lastAttemptedProblem,
+                    lastAttemptedDate,
+                    daysSinceLastAttempt: daysSinceLastAttempt.toFixed(0),
+                    internalContestPerformanceScore,
+                    drScore: drScore.toFixed(2)
+                };
+            }
+
+            function appendUserRowToTable(userData) {
+                const row = resultsTableBody.insertRow();
+                if (userData.error) {
+                    row.innerHTML = `<td colspan="12" class="text-red-600 font-bold">${userData.handle}: ${userData.error}</td>`;
+                } else {
+                    let drScoreClass = '';
+                    const drScoreNum = parseFloat(userData.drScore);
+                    if (drScoreNum >= 150) { // Equivalent to 75% of 200
+                        drScoreClass = 'text-green-600';
+                    } else if (drScoreNum >= 100) { // Equivalent to 50% of 200
+                        drScoreClass = 'text-yellow-600';
+                    } else {
+                        drScoreClass = 'text-red-600';
+                    }
+
+                    row.innerHTML = `
+                        <td>${userData.handle}</td>
+                        <td>${userData.maxRating}</td>
+                        <td>${userData.averageContestRating}</td>
+                        <td>${userData.contestCount}</td>
+                        <td>${userData.skippedSubmissionsCount}</td>
+                        <td>${userData.rawWeightedSolvedProblemScore}</td>
+                        <td>${userData.problemRatingFrequencies}</td>
+                        <td>${userData.lastAttemptedProblem}</td>
+                        <td>${userData.lastAttemptedDate}</td>
+                        <td>${userData.daysSinceLastAttempt}</td>
+                        <td>${userData.internalContestPerformanceScore}</td>
+                        <td class="dr-score-cell ${drScoreClass}">${userData.drScore}</td>
+                    `;
+                }
+            }
+
+            function displayError(message) {
+                errorMessageDiv.textContent = message;
+                errorMessageDiv.classList.remove('hidden');
+            }
+
+            function hideError() {
+                errorMessageDiv.classList.add('hidden');
+                errorMessageDiv.textContent = '';
+            }
+
+            function showLoading() {
+                loadingIndicator.style.display = 'block';
+                addToListBtn.disabled = true;
+                clearListBtn.disabled = true;
+                calculateAllStatsBtn.disabled = true;
+                handleInput.disabled = true;
+                internalContestPerformanceScoreInput.disabled = true;
+            }
+
+            function hideLoading() {
+                loadingIndicator.style.display = 'none';
+                addToListBtn.disabled = false;
+                clearListBtn.disabled = false;
+                calculateAllStatsBtn.disabled = false;
+                handleInput.disabled = false;
+                internalContestPerformanceScoreInput.disabled = false;
+            }
+
+            // Initial display update
+            updateUserListDisplay();
+        });
+    </script>
+</body>
+</html>
+
