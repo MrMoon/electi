@@ -101,11 +101,11 @@
             transition: background-color 0.2s, transform 0.2s;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
-        .button-group .add-btn, .button-group .load-btn {
+        .button-group .add-load-btn { /* New class for the combined button */
             background-color: #3b82f6; /* Blue for add/load */
             color: white;
         }
-        .button-group .add-btn:hover, .button-group .load-btn:hover {
+        .button-group .add-load-btn:hover {
             background-color: #2563eb;
             transform: translateY(-1px);
         }
@@ -302,7 +302,7 @@
         <h1 class="text-3xl font-bold text-gray-800 text-center mb-6">Codeforces User Eligibility Analyzer</h1>
 
         <div class="input-section">
-            <h3 class="text-lg font-semibold text-gray-700 mb-4">Manual User Entry</h3>
+            <h3 class="text-lg font-semibold text-gray-700 mb-4">Input User Data</h3>
             <div class="input-group">
                 <div class="w-full md:w-1/2">
                     <label for="handleInput">Codeforces Handle:</label>
@@ -315,30 +315,22 @@
                         *This score must be entered manually as private contest data cannot be accessed automatically.
                     </p>
                 </div>
-                <div class="w-full flex justify-end">
-                    <button id="addToListBtn" class="add-btn">
-                        Add User to List
-                    </button>
-                </div>
             </div>
 
-            <h3 class="text-lg font-semibold text-gray-700 mb-4 mt-6">Load Users from CSV</h3>
             <div class="input-group">
                 <div class="w-full">
-                    <label for="csvFileInput">Upload CSV (handle,internal_score):</label>
+                    <label for="csvFileInput">Or Upload CSV (handle,internal_score):</label>
                     <input type="file" id="csvFileInput" accept=".csv">
                     <p class="text-xs text-gray-500 mt-1">
                         *CSV should contain 'handle' and 'internal_score' columns.
                     </p>
                 </div>
-                <div class="w-full flex justify-end">
-                    <button id="loadCsvBtn" class="load-btn">
-                        Load CSV
-                    </button>
-                </div>
             </div>
 
             <div class="button-group mt-4">
+                <button id="addOrLoadUsersBtn" class="add-load-btn">
+                    Add User / Load CSV
+                </button>
                 <button id="clearListBtn" class="clear-btn">
                     Clear All Users
                 </button>
@@ -403,7 +395,7 @@
                 <li><span class="term">Score from Max Rating</span>: <span class="formula-part"><span class="function">min</span>(<span class="constant">60</span>, (<span class="variable">UserMaxRating</span> / <span class="constant">2000</span>) ⋅ <span class="constant">60</span>)</span></li>
                 <li><span class="term">Score from Avg Contest Rating</span>: <span class="formula-part"><span class="function">min</span>(<span class="constant">50</span>, (<span class="variable">AverageContestRating</span> / <span class="constant">1800</span>) ⋅ <span class="constant">50</span>)</span></li>
                 <li><span class="term">Score from Contest Count</span>: <span class="formula-part"><span class="function">min</span>(<span class="constant">20</span>, (<span class="variable">ContestParticipationCount</span> / <span class="constant">100</span>) ⋅ <span class="constant">20</span>)</span></li>
-                <li><span class="term">Score from Internal Contest</span>: <span class="formula-part">(<span class="variable">InternalContestPerformanceScore</span> / <span class="constant">200</span>) ⋅ <span class="constant">30</span></span></li>
+                <li><span class="term">Score from Internal Contest</span>: <span class="formula-part">(<span class="variable">InternalContestPerformanceScore</span> / <span class="constant">200</span>) ⋅ <span class="constant">30</span>)</span></li>
                 <li><span class="term">Score from Weighted Solved Problems</span>: <span class="formula-part"><span class="function">min</span>(<span class="constant">40</span>, (<span class="variable">RawWeightedSolvedProblemScore</span> / <span class="constant">200</span>) ⋅ <span class="constant">40</span>)</span><br>
                     <span class="text-sm text-gray-600 ml-4">
                         *Raw score is calculated as: (Problems &lt; 1400 rating ⋅ 1) + (Problems 1400-1799 rating ⋅ 2) + (Problems &ge; 1800 rating ⋅ 3)
@@ -422,13 +414,12 @@
         document.addEventListener('DOMContentLoaded', () => {
             const handleInput = document.getElementById('handleInput');
             const internalContestPerformanceScoreInput = document.getElementById('internalContestPerformanceScoreInput');
-            const addToListBtn = document.getElementById('addToListBtn');
+            const addOrLoadUsersBtn = document.getElementById('addOrLoadUsersBtn'); // Combined button
 
             const csvFileInput = document.getElementById('csvFileInput');
-            const loadCsvBtn = document.getElementById('loadCsvBtn');
 
             const clearListBtn = document.getElementById('clearListBtn');
-            const processAllBtn = document.getElementById('processAllBtn'); // Renamed from processCsvBtn
+            const processAllBtn = document.getElementById('processAllBtn');
             const downloadCsvBtn = document.getElementById('downloadCsvBtn');
 
             const userList = document.getElementById('userList');
@@ -442,44 +433,62 @@
             let cachedUserData = []; // Array to store fetched and calculated data for caching
 
             // --- Event Listeners ---
-            addToListBtn.addEventListener('click', addManualUserToList); // New function for manual add
-            loadCsvBtn.addEventListener('click', loadCSVFile);
+            addOrLoadUsersBtn.addEventListener('click', handleAddOrLoadUsers); // Combined handler
             clearListBtn.addEventListener('click', clearUserList);
-            processAllBtn.addEventListener('click', processAllUsers); // Use the unified process function
+            processAllBtn.addEventListener('click', processAllUsers);
             downloadCsvBtn.addEventListener('click', downloadCSV);
 
             // --- Functions ---
+
+            function handleAddOrLoadUsers() {
+                const file = csvFileInput.files[0];
+                const handle = handleInput.value.trim();
+                const score = internalContestPerformanceScoreInput.value.trim(); // Keep as string for initial check
+
+                if (file) {
+                    // If a file is selected, prioritize CSV load
+                    loadCSVFile();
+                } else if (handle && score) {
+                    // If no file, but manual fields are filled, add manual user
+                    addManualUserToList();
+                } else if (handle || score) {
+                    // If only one manual field is filled
+                    displayError('Please provide both Codeforces Handle and Internal Contest Performance Score for manual entry.');
+                } else {
+                    // If neither file nor manual fields are filled
+                    displayError('Please enter a Codeforces Handle and Score, or select a CSV file.');
+                }
+            }
 
             function addManualUserToList() {
                 const handle = handleInput.value.trim();
                 const score = parseFloat(internalContestPerformanceScoreInput.value);
 
-                if (!handle) {
+                if (!handle) { // Redundant check due to handleAddOrLoadUsers, but good for direct calls
                     displayError('Please enter a Codeforces handle.');
                     return;
                 }
-                if (isNaN(score) || score < 0 || score > 200) {
+                if (isNaN(score) || score < 0 || score > 200) { // Redundant check
                     displayError('Please enter a valid Internal Contest Performance Score between 0 and 200.');
                     return;
                 }
 
                 const normalizedHandle = handle.toLowerCase();
-                // Check for duplicate handle in the list to analyze (using normalized handle)
                 if (usersToAnalyze.some(user => user.handle.toLowerCase() === normalizedHandle)) {
                     displayError(`User "${handle}" is already in the list.`);
                     return;
                 }
 
-                usersToAnalyze.push({ handle: handle, score: score }); // Store original casing
+                usersToAnalyze.push({ handle: handle, score: score });
                 updateUserListDisplay();
-                handleInput.value = ''; // Clear input fields
+                handleInput.value = '';
                 internalContestPerformanceScoreInput.value = '';
                 hideError();
             }
 
             function loadCSVFile() {
                 const file = csvFileInput.files[0];
-                if (!file) {
+                if (!file) { // Redundant check due to handleAddOrLoadUsers
                     displayError('Please select a CSV file.');
                     return;
                 }
@@ -512,7 +521,6 @@
                 const scoreIndex = headers.indexOf('internal_score');
 
                 let dataLines = lines;
-                // If headers are found, skip the first line
                 if (handleIndex !== -1 && scoreIndex !== -1) {
                     dataLines = lines.slice(1);
                 } else if (lines[0].split(',').length < 2) {
@@ -520,7 +528,7 @@
                 }
 
                 const newUsersFromCsv = [];
-                const seenHandlesInCsv = new Set(); // For uniqueness check within the CSV itself
+                const seenHandlesInCsv = new Set();
 
                 dataLines.forEach((line, index) => {
                     const parts = line.split(',');
@@ -530,7 +538,6 @@
                         handle = parts[handleIndex]?.trim();
                         score = parseFloat(parts[scoreIndex]?.trim());
                     } else {
-                        // Assume first column is handle, second is score if headers not found
                         handle = parts[0]?.trim();
                         score = parseFloat(parts[1]?.trim());
                     }
@@ -558,7 +565,6 @@
                     throw new Error('No valid users found in the CSV file. Please check format.');
                 }
 
-                // Merge new users from CSV with existing users, ensuring overall uniqueness
                 const currentUsersMap = new Map(usersToAnalyze.map(u => [u.handle.toLowerCase(), u]));
                 newUsersFromCsv.forEach(user => {
                     const normalizedHandle = user.handle.toLowerCase();
@@ -568,16 +574,16 @@
                         console.warn(`User "${user.handle}" from CSV is already in the list. Skipping.`);
                     }
                 });
-                usersToAnalyze = Array.from(currentUsersMap.values()); // Convert map values back to array
+                usersToAnalyze = Array.from(currentUsersMap.values());
 
                 updateUserListDisplay();
                 displayError(`Loaded ${newUsersFromCsv.length} new users from CSV. Total users: ${usersToAnalyze.length}`);
-                downloadCsvBtn.disabled = true; // Disable download until processing is done
+                downloadCsvBtn.disabled = true;
             }
 
 
             function updateUserListDisplay() {
-                userList.innerHTML = ''; // Clear current list display
+                userList.innerHTML = '';
                 if (usersToAnalyze.length === 0) {
                     noUsersMessage.classList.remove('hidden');
                 } else {
@@ -592,16 +598,17 @@
 
             function clearUserList() {
                 usersToAnalyze = [];
-                cachedUserData = []; // Clear cached data as well
+                cachedUserData = [];
                 updateUserListDisplay();
                 resultsTableBody.innerHTML = '';
                 resultsTableContainer.classList.add('hidden');
                 hideError();
                 downloadCsvBtn.disabled = true;
-                csvFileInput.value = ''; // Clear file input selection
+                csvFileInput.value = '';
+                handleInput.value = ''; // Clear manual input fields
+                internalContestPerformanceScoreInput.value = ''; // Clear manual input fields
             }
 
-            // Helper function to introduce a delay
             function sleep(ms) {
                 return new Promise(resolve => setTimeout(resolve, ms));
             }
@@ -612,27 +619,21 @@
                     return;
                 }
 
-                resultsTableBody.innerHTML = ''; // Clear previous results
-                resultsTableContainer.classList.remove('hidden'); // Show table container immediately
+                resultsTableBody.innerHTML = '';
+                resultsTableContainer.classList.remove('hidden');
                 hideError();
                 showLoading();
-                downloadCsvBtn.disabled = true; // Disable download during processing
-
-                const currentProcessedData = []; // To store data for this specific run
+                downloadCsvBtn.disabled = true;
 
                 for (let i = 0; i < usersToAnalyze.length; i++) {
                     const user = usersToAnalyze[i];
                     let userData;
-                    // Find cached user using the normalized handle
                     const cachedUser = cachedUserData.find(data => data.handle.toLowerCase() === user.handle.toLowerCase());
 
                     if (cachedUser && !cachedUser.error) {
-                        // If user data is cached and no error occurred previously, reuse it
-                        // Update the internal contest score from the current input, as it might have changed
                         userData = { ...cachedUser, internalContestPerformanceScore: user.score };
                         console.log(`Reusing cached data for ${user.handle}`);
                     } else {
-                        // Otherwise, fetch new data
                         try {
                             userData = await fetchStatsForHandle(user.handle, user.score);
                             console.log(`Fetched new data for ${user.handle}`);
@@ -649,7 +650,6 @@
                             };
                         }
 
-                        // Update cache with the newly fetched/error data
                         const cacheIndex = cachedUserData.findIndex(data => data.handle.toLowerCase() === user.handle.toLowerCase());
                         if (cacheIndex > -1) {
                             cachedUserData[cacheIndex] = userData;
@@ -657,22 +657,18 @@
                             cachedUserData.push(userData);
                         }
 
-                        // Introduce a 10-second delay before the next API call,
-                        // but only if we actually made an API call and it's not the last user.
                         if (i < usersToAnalyze.length - 1) {
-                            await sleep(10000); // 10 seconds delay
+                            await sleep(10000);
                         }
                     }
-                    currentProcessedData.push(userData); // Add to the data for this run
-                    appendUserRowToTable(userData); // Append the row as soon as data is ready
+                    appendUserRowToTable(userData);
                 }
 
                 hideLoading();
-                downloadCsvBtn.disabled = false; // Enable download after processing
+                downloadCsvBtn.disabled = false;
             }
 
             async function fetchStatsForHandle(handle, internalContestPerformanceScore) {
-                // Fetch user info for max rating
                 const userInfoResponse = await fetch(`https://codeforces.com/api/user.info?handles=${handle}`);
                 const userInfoData = await userInfoResponse.json();
 
@@ -682,7 +678,6 @@
                 const userInfo = userInfoData.result[0];
                 const maxRating = userInfo.maxRating || 0;
 
-                // Fetch user rating for contest participation and rating history
                 const userRatingResponse = await fetch(`https://codeforces.com/api/user.rating?handle=${handle}`);
                 const userRatingData = await userRatingResponse.json();
 
@@ -693,12 +688,9 @@
                 const contestCount = ratingChanges.length;
                 const allRatings = ratingChanges.map(entry => entry.newRating);
 
-                // Calculate Average Contest Rating
                 const sumRatings = allRatings.reduce((acc, curr) => acc + curr, 0);
                 const averageContestRating = allRatings.length > 0 ? (sumRatings / allRatings.length) : 0;
 
-                // Fetch user status for last attempted question, skipped submissions, solved questions, and problem rating frequencies
-                // Fetch up to 2000 submissions to get a good sample for solved problems and ratings
                 const userStatusResponse = await fetch(`https://codeforces.com/api/user.status?handle=${handle}&from=1&count=2000`);
                 const userStatusData = await userStatusResponse.json();
 
@@ -709,13 +701,13 @@
                 let lastAttemptedProblem = 'N/A';
                 let lastAttemptedDate = 'N/A';
                 let skippedSubmissionsCount = 0;
-                let rawWeightedSolvedProblemScore = 0; // New: raw score before scaling
-                let daysSinceLastAttempt = 365; // Default to high value if no submissions
-                const problemRatingFrequencies = {}; // To store {rating: count}
+                let rawWeightedSolvedProblemScore = 0;
+                let daysSinceLastAttempt = 365;
+                const problemRatingFrequencies = {};
 
-                const LOW_RATING_POINTS = 1; // Points for problems < 1400
-                const MEDIUM_RATING_POINTS = 2; // Points for problems 1400-1799
-                const HIGH_RATING_POINTS = 3; // Points for problems >= 1800
+                const LOW_RATING_POINTS = 1;
+                const MEDIUM_RATING_POINTS = 2;
+                const HIGH_RATING_POINTS = 3;
 
                 if (userStatusData.result.length > 0) {
                     const latestSubmission = userStatusData.result[0];
@@ -726,11 +718,9 @@
                     const secondsSinceLastAttempt = currentTimeSeconds - latestSubmission.creationTimeSeconds;
                     daysSinceLastAttempt = secondsSinceLastAttempt / (60 * 60 * 24);
 
-                    // Iterate through all submissions to count solved and skipped, and gather problem ratings
-                    const solvedProblemIds = new Set(); // To count unique solved problems
+                    const solvedProblemIds = new Set();
                     for (const submission of userStatusData.result) {
                         if (submission.verdict === 'OK') {
-                            // Only count unique solved problems
                             const problemId = `${submission.problem.contestId || 'gym'}-${submission.problem.index}`;
                             if (!solvedProblemIds.has(problemId)) {
                                 solvedProblemIds.add(problemId);
@@ -739,7 +729,6 @@
                                     const rating = submission.problem.rating;
                                     problemRatingFrequencies[rating] = (problemRatingFrequencies[rating] || 0) + 1;
 
-                                    // Add to raw weighted score based on rating tiers
                                     if (rating < 1400) {
                                         rawWeightedSolvedProblemScore += LOW_RATING_POINTS;
                                     } else if (rating >= 1400 && rating < 1800) {
@@ -755,25 +744,21 @@
                     }
                 }
 
-                // Format problemRatingFrequencies for display
                 const formattedProblemRatingFrequencies = Object.entries(problemRatingFrequencies)
-                    .sort((a, b) => parseInt(a[0]) - parseInt(b[0])) // Sort by rating
+                    .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
                     .map(([rating, count]) => `${rating}: ${count}`)
                     .join(', ');
 
-                // --- Calculate Div. 2 Readiness Score (DR) out of 200 ---
-                // Define maximum points for each positive factor
                 const MAX_POINTS_MAX_RATING = 60;
                 const MAX_POINTS_AVG_RATING = 50;
                 const MAX_POINTS_CONTEST_COUNT = 20;
                 const MAX_POINTS_INTERNAL_CONTEST = 30;
-                const MAX_POINTS_WEIGHTED_SOLVED_PROBLEMS = 40; // New combined factor
+                const MAX_POINTS_WEIGHTED_SOLVED_PROBLEMS = 40;
 
-                // Define thresholds for full points for each factor
                 const RATING_THRESHOLD_FULL_POINTS = 2000;
                 const AVG_RATING_THRESHOLD_FULL_POINTS = 1800;
                 const CONTEST_COUNT_THRESHOLD_FULL_POINTS = 100;
-                const WEIGHTED_SOLVED_THRESHOLD_FULL_POINTS = 200; // Example: A raw weighted score of 200 gets full 40 points
+                const WEIGHTED_SOLVED_THRESHOLD_FULL_POINTS = 200;
 
                 const SKIPPED_COUNT_THRESHOLD_MAX_PENALTY = 50;
                 const RECENCY_DAYS_THRESHOLD_MAX_PENALTY = 90;
@@ -792,7 +777,7 @@
                 skippedPenalty = Math.max(0, skippedPenalty);
 
                 let drScore = scoreMaxRating + scoreAvgRating + scoreContestCount + scoreInternalContest + scoreWeightedSolvedProblems - recencyPenalty - skippedPenalty;
-                drScore = Math.max(0, Math.min(200, drScore)); // Ensure score is between 0 and 200
+                drScore = Math.max(0, Math.min(200, drScore));
 
                 return {
                     handle,
@@ -800,7 +785,7 @@
                     averageContestRating: averageContestRating.toFixed(2),
                     contestCount,
                     skippedSubmissionsCount,
-                    rawWeightedSolvedProblemScore: rawWeightedSolvedProblemScore, // Display raw score
+                    rawWeightedSolvedProblemScore: rawWeightedSolvedProblemScore,
                     problemRatingFrequencies: formattedProblemRatingFrequencies || 'N/A',
                     lastAttemptedProblem,
                     lastAttemptedDate,
@@ -817,9 +802,9 @@
                 } else {
                     let drScoreClass = '';
                     const drScoreNum = parseFloat(userData.drScore);
-                    if (drScoreNum >= 150) { // Equivalent to 75% of 200
+                    if (drScoreNum >= 150) {
                         drScoreClass = 'text-green-600';
-                    } else if (drScoreNum >= 100) { // Equivalent to 50% of 200
+                    } else if (drScoreNum >= 100) {
                         drScoreClass = 'text-yellow-600';
                     } else {
                         drScoreClass = 'text-red-600';
@@ -854,8 +839,7 @@
 
             function showLoading() {
                 loadingIndicator.style.display = 'block';
-                addToListBtn.disabled = true;
-                loadCsvBtn.disabled = true;
+                addOrLoadUsersBtn.disabled = true;
                 clearListBtn.disabled = true;
                 processAllBtn.disabled = true;
                 csvFileInput.disabled = true;
@@ -865,8 +849,7 @@
 
             function hideLoading() {
                 loadingIndicator.style.display = 'none';
-                addToListBtn.disabled = false;
-                loadCsvBtn.disabled = false;
+                addOrLoadUsersBtn.disabled = false;
                 clearListBtn.disabled = false;
                 processAllBtn.disabled = false;
                 csvFileInput.disabled = false;
