@@ -3,434 +3,121 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Codeforces Users Stats Table</title>
-    <!-- Tailwind CSS CDN -->
+    <title>Advanced Codeforces Div. 2 Readiness Checker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start; /* Align to start to prevent content from being too high */
-            min-height: 100vh;
-            padding: 2rem;
-            box-sizing: border-box;
         }
-        .container {
-            background-color: #ffffff;
-            border-radius: 1rem;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            padding: 2.5rem;
-            width: 100%;
-            max-width: 8xl; /* Increased max-width for the table */
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
-        .input-section {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-            padding: 1.5rem;
-            border: 1px solid #e5e7eb;
-            border-radius: 0.75rem;
-            background-color: #f9fafb;
-        }
-        .input-group {
-            display: flex;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-            align-items: flex-end;
-            margin-bottom: 1rem; /* Space between manual and CSV input */
-        }
-        .input-group div {
-            flex-grow: 1;
-        }
-        .input-group label {
-            font-weight: 500;
-            color: #374151;
-            margin-bottom: 0.25rem;
-            display: block;
-        }
-        .input-group input[type="text"],
-        .input-group input[type="number"] {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            font-size: 1rem;
-            color: #374151;
-            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .input-group input[type="file"] {
-            padding: 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            font-size: 1rem;
-            color: #374151;
-            background-color: white;
-            cursor: pointer;
-        }
-        .input-group input[type="file"]::-webkit-file-upload-button {
-            background-color: #e2e8f0;
-            color: #374151;
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 0.25rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .input-group input[type="file"]::-webkit-file-upload-button:hover {
-            background-color: #cbd5e1;
-        }
-        .button-group {
-            display: flex;
-            gap: 0.75rem;
-            flex-wrap: wrap;
-            justify-content: flex-end;
-        }
-        .button-group button {
-            padding: 0.75rem 1.5rem;
-            font-size: 1rem;
-            font-weight: 600;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: background-color 0.2s, transform 0.2s;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .button-group .add-btn, .button-group .load-btn { /* Specific classes for add and load */
-            background-color: #3b82f6; /* Blue for add/load */
-            color: white;
-        }
-        .button-group .add-btn:hover, .button-group .load-btn:hover {
-            background-color: #2563eb;
-            transform: translateY(-1px);
-        }
-        .button-group .process-btn {
-            background-color: #10b981; /* Green for process */
-            color: white;
-        }
-        .button-group .process-btn:hover {
-            background-color: #059669;
-            transform: translateY(-1px);
-        }
-        .button-group .download-btn {
-            background-color: #6366f1; /* Indigo for download */
-            color: white;
-        }
-        .button-group .download-btn:hover {
-            background-color: #4f46e5;
-            transform: translateY(-1px);
-        }
-        .button-group .clear-btn {
-            background-color: #ef4444; /* Red for clear */
-            color: white;
-        }
-        .button-group .clear-btn:hover {
-            background-color: #dc2626;
-            transform: translateY(-1px);
-        }
-
-        .user-list-container {
-            margin-top: 1rem;
-            padding: 1rem;
-            border: 1px solid #d1d5db;
-            border-radius: 0.5rem;
-            background-color: #ffffff;
-            min-height: 50px;
-        }
-        .user-list-container h3 {
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 0.5rem;
-        }
-        .user-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            max-height: 250px; /* Increased height for long lists */
-            overflow-y: auto; /* Add scroll for long lists */
-            border: 1px solid #e5e7eb;
-            border-radius: 0.5rem;
-            padding: 0.5rem;
-            background-color: #f9fafb;
-        }
-        .user-list li {
-            padding: 0.25rem 0;
-            border-bottom: 1px dashed #e5e7eb;
-            color: #4b5563;
-        }
-        .user-list li:last-child {
-            border-bottom: none;
-        }
-        .error-message {
-            color: #dc2626;
-            font-weight: 500;
-            text-align: center;
-            margin-top: 1rem;
-        }
-        .loading-spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #3b82f6;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
+        .loader {
+            border-top-color: #3498db;
+            -webkit-animation: spin 1s linear infinite;
             animation: spin 1s linear infinite;
-            margin: 2rem auto;
-            display: none;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .results-table-container {
-            overflow-x: auto; /* Enable horizontal scrolling for small screens */
-            margin-top: 1.5rem;
-            border-radius: 0.75rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        }
-        .results-table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 1600px; /* Adjusted min-width for new columns */
-        }
-        .results-table th, .results-table td {
-            padding: 0.75rem 1rem;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-        }
-        .results-table th {
-            background-color: #eff6ff;
-            color: #1e40af;
-            font-weight: 600;
-            text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
-            position: sticky; /* Make header sticky for horizontal scroll */
-            top: 0;
-            z-index: 10;
-        }
-        .results-table tbody tr:nth-child(even) {
-            background-color: #f9fafb;
-        }
-        .results-table tbody tr:hover {
-            background-color: #f3f4f6;
-        }
-        .results-table td {
-            color: #4b5563;
-            font-size: 0.9rem;
-        }
-        .results-table .dr-score-cell {
-            font-weight: 700;
-            color: #10b981; /* Green for good score */
-        }
-        .results-table .dr-score-cell.low-score {
-            color: #ef4444; /* Red for low score */
-        }
-        .results-table .dr-score-cell.medium-score {
-            color: #f59e0b; /* Orange for medium score */
-        }
-        .equation-section {
-            background-color: #ffffff;
-            border-radius: 1rem;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            padding: 2rem;
-            margin-top: 1.5rem;
-            text-align: center;
-        }
-        .equation-section h2 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 1rem;
-        }
-        .equation-section .formula-line {
-            font-size: 1.1rem;
-            font-weight: 500;
-            color: #1e40af;
-            margin: 1.5rem 0;
-            line-height: 1.8;
-            display: block;
-            font-family: 'Fira Code', 'Cascadia Code', monospace; /* Monospace for clarity */
-        }
-        .equation-section .variable {
-            font-style: italic;
-            font-weight: 600;
-            color: #0d6efd; /* A distinct blue for variables */
-        }
-        .equation-section .operator {
-            font-weight: 700;
-            color: #374151;
-        }
-        .equation-section .constant {
-            color: #6c757d; /* A subtle color for constants */
-        }
-        .equation-section .function {
-            font-weight: 600;
-            color: #20c997; /* Green for functions like min */
-        }
-        .equation-section .explanation-list {
-            list-style: none;
-            padding: 0;
-            margin: 1rem auto;
-            max-width: 45rem; /* Adjust width for readability */
-            text-align: left;
-        }
-        .equation-section .explanation-list li {
-            margin-bottom: 0.5rem;
-            line-height: 1.4;
-            color: #4b5563;
-        }
-        .equation-section .explanation-list li .term {
-            font-weight: 600;
-            color: #374151;
-        }
-        .equation-section .explanation-list li .formula-part {
-            font-family: 'Fira Code', 'Cascadia Code', monospace;
-            background-color: #e2e8f0;
-            padding: 0.1em 0.3em;
-            border-radius: 0.25em;
-            font-size: 0.95em;
-        }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-    <div class="container">
-        <h1 class="text-3xl font-bold text-gray-800 text-center mb-6">Codeforces User Eligibility Analyzer</h1>
+<body class="bg-gray-100 text-gray-800">
 
-        <div class="input-section">
-            <h3 class="text-lg font-semibold text-gray-700 mb-4">Manual User Entry</h3>
-            <div class="input-group">
-                <div class="w-full md:w-1/2">
-                    <label for="handleInput">Codeforces Handle:</label>
-                    <input type="text" id="handleInput" placeholder="e.g., tourist">
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Advanced Div. 2 Readiness Checker</h1>
+            <p class="text-gray-600 mt-2">Using a probabilistic model with non-linear scoring and recency weighting.</p>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Control Panel -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2">Controls</h2>
+
+                <!-- Manual Input -->
+                <div class="mb-6">
+                    <h3 class="font-semibold mb-2">Add User Manually</h3>
+                    <input type="text" id="handleInput" placeholder="Codeforces Handle" class="w-full p-2 border rounded-md mb-2 focus:ring-2 focus:ring-blue-500">
+                    <input type="number" id="lunaScoreInput" placeholder="Luna Score (0-200)" class="w-full p-2 border rounded-md mb-2 focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="placementsInput" placeholder="Placements (e.g., 10, 25, 5)" class="w-full p-2 border rounded-md mb-2 focus:ring-2 focus:ring-blue-500">
+                    <button id="addManualUserBtn" class="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition-colors">Add User</button>
                 </div>
-                <div class="w-full md:w-1/2">
-                    <label for="internalContestPerformanceScoreInput">Internal Contest Performance Score (0-200):</label>
-                    <input type="number" id="internalContestPerformanceScoreInput" placeholder="e.g., 150" min="0" max="200">
-                    <p class="text-xs text-gray-500 mt-1">
-                        *This score must be entered manually as private contest data cannot be accessed automatically.
-                    </p>
+
+                <!-- CSV Input -->
+                <div class="mb-6">
+                    <h3 class="font-semibold mb-2">Load from CSV</h3>
+                    <p class="text-sm text-gray-500 mb-2">CSV format (no headers):<br>handle,luna_score,"placements;...;"</p>
+                    <input type="file" id="csvFileInput" accept=".csv" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <button id="loadCsvBtn" class="w-full mt-2 bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition-colors">Load CSV</button>
                 </div>
-                <div class="w-full flex justify-end">
-                    <button id="addManualUserBtn" class="add-btn">
-                        Add User to List
-                    </button>
+
+                <!-- Actions -->
+                <div>
+                    <h3 class="font-semibold mb-2">Actions</h3>
+                    <div class="flex flex-col space-y-2">
+                         <button id="processAllBtn" class="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition-colors">Process All Users</button>
+                         <button id="downloadCsvBtn" class="w-full bg-gray-700 text-white py-2 rounded-md hover:bg-gray-800 transition-colors" disabled>Download Results</button>
+                         <button id="clearListBtn" class="w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700 transition-colors">Clear List & Results</button>
+                    </div>
                 </div>
             </div>
 
-            <h3 class="text-lg font-semibold text-gray-700 mb-4 mt-6">Load Users from CSV</h3>
-            <div class="input-group">
-                <div class="w-full">
-                    <label for="csvFileInput">Upload CSV (handle,internal_score):</label>
-                    <input type="file" id="csvFileInput" accept=".csv">
-                    <p class="text-xs text-gray-500 mt-1">
-                        *CSV should contain 'handle' and 'internal_score' columns.
-                    </p>
-                </div>
-                <div class="w-full flex justify-end">
-                    <button id="loadCsvBtn" class="load-btn">
-                        Load CSV
-                    </button>
-                </div>
+            <!-- User List -->
+            <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2">Users to Analyze</h2>
+                <div id="noUsersMessage" class="text-gray-500">No users added yet.</div>
+                <ul id="userList" class="space-y-2">
+                    <!-- User list items will be injected here -->
+                </ul>
+                 <div id="errorMessage" class="mt-4 p-3 bg-red-100 text-red-700 rounded-md hidden"></div>
             </div>
+        </main>
 
-            <div class="button-group mt-4">
-                <button id="clearListBtn" class="clear-btn">
-                    Clear All Users
-                </button>
-                <button id="processAllBtn" class="process-btn">
-                    Calculate Stats for All
-                </button>
-                <button id="downloadCsvBtn" class="download-btn" disabled>
-                    Download Results CSV
-                </button>
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center hidden z-50">
+            <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div>
+            <p class="text-white text-xl ml-4">Processing... Please wait.</p>
+        </div>
+
+
+        <!-- Results Table -->
+        <div id="resultsTableContainer" class="mt-8 bg-white p-6 rounded-lg shadow-md hidden">
+            <h2 class="text-2xl font-semibold mb-4">Results</h2>
+            <div class="overflow-x-auto">
+                <table id="resultsTable" class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Handle</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Max Rating</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Rating</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contests</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Luna Score</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. Placement</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recency-Weighted Solves</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Inactive</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Readiness Probability</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <!-- Result rows will be injected here -->
+                    </tbody>
+                </table>
             </div>
-        </div>
-
-        <div id="errorMessage" class="error-message hidden"></div>
-        <div id="loadingIndicator" class="loading-spinner"></div>
-
-        <div id="userListContainer" class="user-list-container">
-            <h3>Users to Analyze:</h3>
-            <ul id="userList" class="user-list">
-                <!-- Loaded users will appear here -->
-            </ul>
-            <p id="noUsersMessage" class="text-gray-500 text-sm mt-2">No users loaded yet.</p>
-        </div>
-
-        <div id="resultsTableContainer" class="results-table-container hidden">
-            <table id="resultsTable" class="results-table">
-                <thead>
-                    <tr>
-                        <th>Handle</th>
-                        <th>Max Rating</th>
-                        <th>Avg Rating</th>
-                        <th>Contests</th>
-                        <th>Skipped Subs</th>
-                        <th>Weighted Solved Problem Score</th>
-                        <th>Problem Rating Freq (Rating:Count)</th>
-                        <th>Last Attempted Q</th>
-                        <th>Date Attempted</th>
-                        <th>Days Inactive</th>
-                        <th>Internal Contest Score</th>
-                        <th>DR Score / 200</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <!-- Results will be inserted here -->
-                </tbody>
-            </table>
-        </div>
-
-        <div class="equation-section">
-            <h2>Div. 2 Readiness Score ($D_R$) Equation</h2>
-            <p class="formula-line">
-                <span class="variable">D<sub>R</sub></span> <span class="operator">=</span>
-                <span class="term">Score from Max Rating</span>
-                <span class="operator">+</span> <span class="term">Score from Avg Contest Rating</span>
-                <span class="operator">+</span> <span class="term">Score from Contest Count</span>
-                <span class="operator">+</span> <span class="term">Score from Internal Contest</span>
-                <span class="operator">+</span> <span class="term">Score from Weighted Solved Problems</span>
-                <span class="operator">-</span> <span class="term">Recency Penalty</span>
-                <span class="operator">-</span> <span class="term">Skipped Penalty</span>
-            </p>
-            <p>Where:</p>
-            <ul class="explanation-list">
-                <li><span class="term">Score from Max Rating</span>: <span class="formula-part"><span class="function">min</span>(<span class="constant">60</span>, (<span class="variable">UserMaxRating</span> / <span class="constant">2000</span>) ⋅ <span class="constant">60</span>)</span></li>
-                <li><span class="term">Score from Avg Contest Rating</span>: <span class="formula-part"><span class="function">min</span>(<span class="constant">50</span>, (<span class="variable">AverageContestRating</span> / <span class="constant">1800</span>) ⋅ <span class="constant">50</span>)</span></li>
-                <li><span class="term">Score from Contest Count</span>: <span class="formula-part"><span class="function">min</span>(<span class="constant">20</span>, (<span class="variable">ContestParticipationCount</span> / <span class="constant">100</span>) ⋅ <span class="constant">20</span>)</span></li>
-                <li><span class="term">Score from Internal Contest</span>: <span class="formula-part">(<span class="variable">InternalContestPerformanceScore</span> / <span class="constant">200</span>) ⋅ <span class="constant">30</span>)</span></li>
-                <li><span class="term">Score from Weighted Solved Problems</span>: <span class="formula-part"><span class="function">min</span>(<span class="constant">40</span>, (<span class="variable">RawWeightedSolvedProblemScore</span> / <span class="constant">200</span>) ⋅ <span class="constant">40</span>)</span><br>
-                    <span class="text-sm text-gray-600 ml-4">
-                        *Raw score is calculated as: (Problems &lt; 1400 rating ⋅ 1) + (Problems 1400-1799 rating ⋅ 2) + (Problems &ge; 1800 rating ⋅ 3)
-                    </span>
-                </li>
-                <li><span class="term">Recency Penalty</span>: <span class="formula-part"><span class="function">min</span>(<span class="constant">40</span>, (<span class="variable">DaysSinceLastAttempt</span> / <span class="constant">90</span>) ⋅ <span class="constant">40</span>)</span></li>
-                <li><span class="term">Skipped Penalty</span>: <span class="formula-part"><span class="function">min</span>(<span class="constant">20</span>, (<span class="variable">SkippedSubmissionsCount</span> / <span class="constant">50</span>) ⋅ <span class="constant">20</span>)</span></li>
-            </ul>
-            <p class="mt-4 text-sm text-gray-600">
-                *The final $D_R$ score is capped between 0 and 200. Penalties are always non-negative.
-            </p>
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Element References ---
             const handleInput = document.getElementById('handleInput');
-            const internalContestPerformanceScoreInput = document.getElementById('internalContestPerformanceScoreInput');
-            const addManualUserBtn = document.getElementById('addManualUserBtn'); // Separate button for manual add
-
+            const lunaScoreInput = document.getElementById('lunaScoreInput');
+            const placementsInput = document.getElementById('placementsInput');
+            const addManualUserBtn = document.getElementById('addManualUserBtn');
             const csvFileInput = document.getElementById('csvFileInput');
-            const loadCsvBtn = document.getElementById('loadCsvBtn'); // Separate button for CSV load
-
+            const loadCsvBtn = document.getElementById('loadCsvBtn');
             const clearListBtn = document.getElementById('clearListBtn');
             const processAllBtn = document.getElementById('processAllBtn');
             const downloadCsvBtn = document.getElementById('downloadCsvBtn');
-
             const userList = document.getElementById('userList');
             const noUsersMessage = document.getElementById('noUsersMessage');
             const resultsTableContainer = document.getElementById('resultsTableContainer');
@@ -438,130 +125,158 @@
             const errorMessageDiv = document.getElementById('errorMessage');
             const loadingIndicator = document.getElementById('loadingIndicator');
 
+            // --- State Variables ---
             let usersToAnalyze = [];
             let cachedUserData = [];
 
-            // --- Function Definitions (moved to top for explicit hoisting) ---
+            // --- Core Calculation Logic (New Model) ---
+
+            const sigmoid = (x) => 1 / (1 + Math.exp(-x));
+            const logisticCurve = (x, L, k, x0) => L / (1 + Math.exp(-k * (x - x0)));
+
+            function getScoreFromMaxRating(maxRating) { return logisticCurve(maxRating, 60, 0.01, 1750); }
+            function getScoreFromAvgRating(avgRating) { return logisticCurve(avgRating, 50, 0.012, 1650); }
+            function getScoreFromContestCount(contestCount) { return logisticCurve(contestCount, 20, 0.05, 75); }
+            function getScoreFromLunaScore(lunaScore) { return logisticCurve(lunaScore, 50, 0.05, 150); }
+
+            function getScoreFromPlacements(placements) {
+                if (!placements || placements.length === 0) return 0;
+                const invertedScores = placements.map(p => 100 - p);
+                const avgInvertedScore = invertedScores.reduce((a, b) => a + b, 0) / invertedScores.length;
+                return logisticCurve(avgInvertedScore, 70, 0.08, 75);
+            }
+
+            function getRecencyWeightedSolvedProblemScore(submissions) {
+                let score = 0;
+                const solvedProblemIds = new Set();
+                const now = Date.now() / 1000;
+                const DECAY_CONSTANT = 0.005;
+                const RATING_BASE = 1200;
+                const GROWTH_FACTOR = 1.15;
+
+                const sortedSubmissions = submissions.sort((a, b) => b.creationTimeSeconds - a.creationTimeSeconds);
+
+                for (const sub of sortedSubmissions) {
+                    if (sub.verdict !== 'OK' || !sub.problem.rating) continue;
+                    const problemId = `${sub.problem.contestId || 'gym'}-${sub.problem.index}`;
+                    if (solvedProblemIds.has(problemId)) continue;
+                    solvedProblemIds.add(problemId);
+
+                    const daysOld = (now - sub.creationTimeSeconds) / (60 * 60 * 24);
+                    const recencyWeight = Math.exp(-DECAY_CONSTANT * daysOld);
+                    const problemScore = Math.pow(GROWTH_FACTOR, (sub.problem.rating - RATING_BASE) / 100);
+                    score += problemScore * recencyWeight;
+                }
+                return logisticCurve(score, 40, 0.002, 1500);
+            }
+
+            function calculateReadinessProbability(stats) {
+                const weights = {
+                    bias: -5.0,
+                    maxRating: 0.04,
+                    avgRating: 0.03,
+                    contestCount: 0.05,
+                    lunaScore: 0.06,
+                    placementScore: 0.08,
+                    weightedSolves: 0.07,
+                    daysInactive: -0.02,
+                    skipped: -0.01
+                };
+
+                const z = weights.bias +
+                    (stats.scoreMaxRating * weights.maxRating) +
+                    (stats.scoreAvgRating * weights.avgRating) +
+                    (stats.scoreContestCount * weights.contestCount) +
+                    (stats.scoreFromLunaScore * weights.lunaScore) +
+                    (stats.scoreFromPlacements * weights.placementScore) +
+                    (stats.scoreWeightedSolvedProblems * weights.weightedSolves) +
+                    (stats.daysSinceLastAttempt * weights.daysInactive) +
+                    (stats.skippedSubmissionsCount * weights.skipped);
+
+                return sigmoid(z);
+            }
+
+            // --- UI and Helper Functions ---
 
             function addManualUserToList() {
                 const handle = handleInput.value.trim();
-                const score = parseFloat(internalContestPerformanceScoreInput.value);
+                const lunaScore = parseFloat(lunaScoreInput.value);
+                const placementsStr = placementsInput.value.trim();
 
-                if (!handle) {
-                    displayError('Please enter a Codeforces handle.');
-                    return;
-                }
-                if (isNaN(score) || score < 0 || score > 200) {
-                    displayError('Please enter a valid Internal Contest Performance Score between 0 and 200.');
-                    return;
+                if (!handle) { displayError('Please enter a Codeforces handle.'); return; }
+                if (isNaN(lunaScore) || lunaScore < 0 || lunaScore > 200) { displayError('Please enter a valid Luna Score (0-200).'); return; }
+                if (!placementsStr) { displayError('Please enter contest placement percentages.'); return; }
+
+                const placements = placementsStr.split(',').map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
+                if (placements.length === 0 || !placements.every(p => p >= 0 && p <= 100)) {
+                    displayError('Please enter valid, comma-separated percentages (0-100).'); return;
                 }
 
                 const normalizedHandle = handle.toLowerCase();
                 if (usersToAnalyze.some(user => user.handle.toLowerCase() === normalizedHandle)) {
-                    displayError(`User "${handle}" is already in the list.`);
-                    return;
+                    displayError(`User "${handle}" is already in the list.`); return;
                 }
 
-                usersToAnalyze.push({ handle: handle, score: score });
+                usersToAnalyze.push({ handle, lunaScore, placements });
                 updateUserListDisplay();
                 handleInput.value = '';
-                internalContestPerformanceScoreInput.value = '';
+                lunaScoreInput.value = '';
+                placementsInput.value = '';
                 hideError();
             }
 
             function loadCSVFile() {
                 const file = csvFileInput.files[0];
-                if (!file) {
-                    displayError('Please select a CSV file.');
-                    return;
-                }
-
+                if (!file) { displayError('Please select a CSV file.'); return; }
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    try {
-                        const csvContent = e.target.result;
-                        parseCSV(csvContent);
-                        hideError();
-                    } catch (error) {
-                        displayError(`Error parsing CSV: ${error.message}`);
-                        console.error('CSV parsing error:', error);
-                    }
-                };
-                reader.onerror = () => {
-                    displayError('Error reading file.');
+                    try { parseCSV(e.target.result); hideError(); } 
+                    catch (error) { displayError(`Error parsing CSV: ${error.message}`); }
                 };
                 reader.readAsText(file);
             }
 
             function parseCSV(csvString) {
                 const lines = csvString.trim().split('\n');
-                if (lines.length === 0) {
-                    throw new Error('CSV file is empty.');
-                }
-
-                const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-                const handleIndex = headers.indexOf('handle');
-                const scoreIndex = headers.indexOf('internal_score');
-
-                let dataLines = lines;
-                if (handleIndex !== -1 && scoreIndex !== -1) {
-                    dataLines = lines.slice(1);
-                } else if (lines[0].split(',').length < 2) {
-                     throw new Error('CSV must have at least two columns: handle and internal_score, or be structured as such.');
-                }
-
+                if (lines.length === 0) throw new Error('CSV file is empty or invalid.');
+                
                 const newUsersFromCsv = [];
-                const seenHandlesInCsv = new Set();
-
-                dataLines.forEach((line, index) => {
+                lines.forEach((line, index) => {
                     const parts = line.split(',');
-                    let handle, score;
-
-                    if (handleIndex !== -1 && scoreIndex !== -1) {
-                        handle = parts[handleIndex]?.trim();
-                        score = parseFloat(parts[scoreIndex]?.trim());
-                    } else {
-                        handle = parts[0]?.trim();
-                        score = parseFloat(parts[1]?.trim());
-                    }
-
-                    if (!handle) {
-                        console.warn(`Skipping row ${index + 1}: Missing handle.`);
+                    if (parts.length < 3) {
+                        console.warn(`Skipping row ${index + 1}: must have 3 columns.`);
                         return;
                     }
-                    if (isNaN(score) || score < 0 || score > 200) {
-                        console.warn(`Skipping row ${index + 1} (${handle}): Invalid score "${parts[scoreIndex] || parts[1]}". Score must be between 0 and 200.`);
+
+                    const handle = parts[0]?.trim();
+                    const lunaScore = parseFloat(parts[1]?.trim());
+                    const placementsStr = parts[2]?.trim().replace(/"/g, '');
+                    
+                    if (!handle || isNaN(lunaScore) || !placementsStr) {
+                        console.warn(`Skipping row ${index + 1}: Invalid data format.`);
                         return;
+                    }
+
+                    const placements = placementsStr.split(';').map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
+                    if (placements.length === 0 || !placements.every(p => p >= 0 && p <= 100)) {
+                         console.warn(`Skipping row ${index + 1} (${handle}): Invalid placements data.`);
+                         return;
                     }
 
                     const normalizedHandle = handle.toLowerCase();
-                    if (seenHandlesInCsv.has(normalizedHandle)) {
-                        console.warn(`Skipping duplicate handle "${handle}" within CSV on row ${index + 1}.`);
+                    if (usersToAnalyze.some(u => u.handle.toLowerCase() === normalizedHandle)) {
+                        console.warn(`Skipping duplicate handle "${handle}" from CSV.`);
                         return;
                     }
-
-                    newUsersFromCsv.push({ handle: handle, score: score });
-                    seenHandlesInCsv.add(normalizedHandle);
+                    newUsersFromCsv.push({ handle, lunaScore, placements });
                 });
 
-                if (newUsersFromCsv.length === 0) {
-                    throw new Error('No valid users found in the CSV file. Please check format.');
-                }
-
-                const currentUsersMap = new Map(usersToAnalyze.map(u => [u.handle.toLowerCase(), u]));
-                newUsersFromCsv.forEach(user => {
-                    const normalizedHandle = user.handle.toLowerCase();
-                    if (!currentUsersMap.has(normalizedHandle)) {
-                        currentUsersMap.set(normalizedHandle, user);
-                    } else {
-                        console.warn(`User "${user.handle}" from CSV is already in the list. Skipping.`);
-                    }
-                });
-                usersToAnalyze = Array.from(currentUsersMap.values());
-
+                if (newUsersFromCsv.length === 0) throw new Error('No valid new users found in CSV.');
+                
+                usersToAnalyze.push(...newUsersFromCsv);
                 updateUserListDisplay();
-                displayError(`Loaded ${newUsersFromCsv.length} new users from CSV. Total users: ${usersToAnalyze.length}`);
-                downloadCsvBtn.disabled = true;
+                displayError(`Loaded ${newUsersFromCsv.length} new users. Total: ${usersToAnalyze.length}`);
+                csvFileInput.value = '';
             }
 
             function updateUserListDisplay() {
@@ -572,7 +287,8 @@
                     noUsersMessage.classList.add('hidden');
                     usersToAnalyze.forEach(user => {
                         const listItem = document.createElement('li');
-                        listItem.textContent = `${user.handle} (Score: ${user.score})`;
+                        listItem.className = 'p-2 bg-gray-50 rounded-md text-sm';
+                        listItem.textContent = `${user.handle} (Luna: ${user.lunaScore}, Placements: ${user.placements.join('%, ')}%)`;
                         userList.appendChild(listItem);
                     });
                 }
@@ -588,19 +304,14 @@
                 downloadCsvBtn.disabled = true;
                 csvFileInput.value = '';
                 handleInput.value = '';
-                internalContestPerformanceScoreInput.value = '';
+                lunaScoreInput.value = '';
+                placementsInput.value = '';
             }
 
-            function sleep(ms) {
-                return new Promise(resolve => setTimeout(resolve, ms));
-            }
+            function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
             async function processAllUsers() {
-                if (usersToAnalyze.length === 0) {
-                    displayError('Please load or add users to the list first.');
-                    return;
-                }
-
+                if (usersToAnalyze.length === 0) { displayError('Please add users to the list first.'); return; }
                 resultsTableBody.innerHTML = '';
                 resultsTableContainer.classList.remove('hidden');
                 hideError();
@@ -613,264 +324,114 @@
                     const cachedUser = cachedUserData.find(data => data.handle.toLowerCase() === user.handle.toLowerCase());
 
                     if (cachedUser && !cachedUser.error) {
-                        userData = { ...cachedUser, internalContestPerformanceScore: user.score };
-                        console.log(`Reusing cached data for ${user.handle}`);
+                        userData = { ...cachedUser, lunaScore: user.lunaScore, placements: user.placements };
+                        userData.scoreFromLunaScore = getScoreFromLunaScore(user.lunaScore);
+                        userData.scoreFromPlacements = getScoreFromPlacements(user.placements);
+                        userData.readinessProbability = calculateReadinessProbability(userData);
+                        console.log(`Reusing and recalculating for cached user ${user.handle}`);
                     } else {
                         try {
-                            userData = await fetchStatsForHandle(user.handle, user.score);
+                            userData = await fetchStatsForHandle(user.handle, user.lunaScore, user.placements);
                             console.log(`Fetched new data for ${user.handle}`);
                         } catch (error) {
                             console.error(`Error fetching stats for ${user.handle}:`, error);
-                            userData = {
-                                handle: user.handle,
-                                maxRating: 'N/A', avgRating: 'N/A', contests: 'N/A', skippedSubmissionsCount: 'N/A',
-                                rawWeightedSolvedProblemScore: 'N/A', problemRatingFrequencies: 'N/A',
-                                lastAttemptedProblem: 'N/A', lastAttemptedDate: 'N/A', daysSinceLastAttempt: 'N/A',
-                                internalContestPerformanceScore: user.score,
-                                drScore: 'N/A',
-                                error: `Error: ${error.message.substring(0, 50)}...`
-                            };
+                            userData = { handle: user.handle, error: `Error: ${error.message.substring(0, 100)}...` };
                         }
 
                         const cacheIndex = cachedUserData.findIndex(data => data.handle.toLowerCase() === user.handle.toLowerCase());
-                        if (cacheIndex > -1) {
-                            cachedUserData[cacheIndex] = userData;
-                        } else {
-                            cachedUserData.push(userData);
-                        }
+                        if (cacheIndex > -1) cachedUserData[cacheIndex] = userData;
+                        else cachedUserData.push(userData);
 
-                        if (i < usersToAnalyze.length - 1) {
-                            await sleep(10000);
-                        }
+                        if (i < usersToAnalyze.length - 1) await sleep(2000);
                     }
                     appendUserRowToTable(userData);
                 }
-
                 hideLoading();
                 downloadCsvBtn.disabled = false;
             }
 
-            async function fetchStatsForHandle(handle, internalContestPerformanceScore) {
+            async function fetchStatsForHandle(handle, lunaScore, placements) {
                 const userInfoResponse = await fetch(`https://codeforces.com/api/user.info?handles=${handle}`);
                 const userInfoData = await userInfoResponse.json();
-
-                if (userInfoData.status === 'FAILED') {
-                    throw new Error(userInfoData.comment || 'Failed to fetch user info.');
-                }
-                const userInfo = userInfoData.result[0];
-                const maxRating = userInfo.maxRating || 0;
+                if (userInfoData.status === 'FAILED') throw new Error(userInfoData.comment);
+                const maxRating = userInfoData.result[0].maxRating || 0;
 
                 const userRatingResponse = await fetch(`https://codeforces.com/api/user.rating?handle=${handle}`);
                 const userRatingData = await userRatingResponse.json();
-
-                if (userRatingData.status === 'FAILED') {
-                    throw new Error(userRatingData.comment || 'Failed to fetch user rating.');
-                }
+                if (userRatingData.status === 'FAILED') throw new Error(userRatingData.comment);
                 const ratingChanges = userRatingData.result;
                 const contestCount = ratingChanges.length;
-                const allRatings = ratingChanges.map(entry => entry.newRating);
-
-                const sumRatings = allRatings.reduce((acc, curr) => acc + curr, 0);
-                const averageContestRating = allRatings.length > 0 ? (sumRatings / allRatings.length) : 0;
+                const sumRatings = ratingChanges.reduce((acc, curr) => acc + curr.newRating, 0);
+                const averageContestRating = contestCount > 0 ? (sumRatings / contestCount) : 0;
 
                 const userStatusResponse = await fetch(`https://codeforces.com/api/user.status?handle=${handle}&from=1&count=2000`);
                 const userStatusData = await userStatusResponse.json();
+                if (userStatusData.status === 'FAILED') throw new Error(userStatusData.comment);
+                const submissions = userStatusData.result;
 
-                if (userStatusData.status === 'FAILED') {
-                    throw new Error(userStatusData.comment || 'Failed to fetch user status.');
-                }
-
-                let lastAttemptedProblem = 'N/A';
-                let lastAttemptedDate = 'N/A';
-                let skippedSubmissionsCount = 0;
-                let rawWeightedSolvedProblemScore = 0;
                 let daysSinceLastAttempt = 365;
-                const problemRatingFrequencies = {};
-
-                const LOW_RATING_POINTS = 1;
-                const MEDIUM_RATING_POINTS = 2;
-                const HIGH_RATING_POINTS = 3;
-
-                if (userStatusData.result.length > 0) {
-                    const latestSubmission = userStatusData.result[0];
-                    lastAttemptedProblem = `${latestSubmission.problem.name} (ID: ${latestSubmission.problem.contestId}-${latestSubmission.problem.index})`;
-                    lastAttemptedDate = new Date(latestSubmission.creationTimeSeconds * 1000).toLocaleString();
-
-                    const currentTimeSeconds = Math.floor(Date.now() / 1000);
-                    const secondsSinceLastAttempt = currentTimeSeconds - latestSubmission.creationTimeSeconds;
-                    daysSinceLastAttempt = secondsSinceLastAttempt / (60 * 60 * 24);
-
-                    const solvedProblemIds = new Set();
-                    for (const submission of userStatusData.result) {
-                        if (submission.verdict === 'OK') {
-                            const problemId = `${submission.problem.contestId || 'gym'}-${submission.problem.index}`;
-                            if (!solvedProblemIds.has(problemId)) {
-                                solvedProblemIds.add(problemId);
-
-                                if (submission.problem.rating) {
-                                    const rating = submission.problem.rating;
-                                    problemRatingFrequencies[rating] = (problemRatingFrequencies[rating] || 0) + 1;
-
-                                    if (rating < 1400) {
-                                        rawWeightedSolvedProblemScore += LOW_RATING_POINTS;
-                                    } else if (rating >= 1400 && rating < 1800) {
-                                        rawWeightedSolvedProblemScore += MEDIUM_RATING_POINTS;
-                                    } else if (rating >= 1800) {
-                                        rawWeightedSolvedProblemScore += HIGH_RATING_POINTS;
-                                    }
-                                }
-                            }
-                        } else if (submission.verdict === 'SKIPPED') {
-                            skippedSubmissionsCount++;
-                        }
-                    }
+                let skippedSubmissionsCount = 0;
+                if (submissions.length > 0) {
+                    daysSinceLastAttempt = (Date.now() / 1000 - submissions[0].creationTimeSeconds) / (60 * 60 * 24);
+                    skippedSubmissionsCount = submissions.filter(s => s.verdict === 'SKIPPED').length;
                 }
 
-                const formattedProblemRatingFrequencies = Object.entries(problemRatingFrequencies)
-                    .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
-                    .map(([rating, count]) => `${rating}: ${count}`)
-                    .join(', ');
+                const scoreMaxRating = getScoreFromMaxRating(maxRating);
+                const scoreAvgRating = getScoreFromAvgRating(averageContestRating);
+                const scoreContestCount = getScoreFromContestCount(contestCount);
+                const scoreWeightedSolvedProblems = getRecencyWeightedSolvedProblemScore(submissions);
+                const scoreFromLunaScore = getScoreFromLunaScore(lunaScore);
+                const scoreFromPlacements = getScoreFromPlacements(placements);
 
-                const MAX_POINTS_MAX_RATING = 60;
-                const MAX_POINTS_AVG_RATING = 50;
-                const MAX_POINTS_CONTEST_COUNT = 20;
-                const MAX_POINTS_INTERNAL_CONTEST = 30;
-                const MAX_POINTS_WEIGHTED_SOLVED_PROBLEMS = 40;
-
-                const RATING_THRESHOLD_FULL_POINTS = 2000;
-                const AVG_RATING_THRESHOLD_FULL_POINTS = 1800;
-                const CONTEST_COUNT_THRESHOLD_FULL_POINTS = 100;
-                const WEIGHTED_SOLVED_THRESHOLD_FULL_POINTS = 200;
-
-                const SKIPPED_COUNT_THRESHOLD_MAX_PENALTY = 50;
-                const RECENCY_DAYS_THRESHOLD_MAX_PENALTY = 90;
-
-                let scoreMaxRating = Math.min(MAX_POINTS_MAX_RATING, (maxRating / RATING_THRESHOLD_FULL_POINTS) * MAX_POINTS_MAX_RATING);
-                let scoreAvgRating = Math.min(MAX_POINTS_AVG_RATING, (averageContestRating / AVG_RATING_THRESHOLD_FULL_POINTS) * MAX_POINTS_AVG_RATING);
-                let scoreContestCount = Math.min(MAX_POINTS_CONTEST_COUNT, (contestCount / CONTEST_COUNT_THRESHOLD_FULL_POINTS) * MAX_POINTS_CONTEST_COUNT);
-                let scoreInternalContest = (internalContestPerformanceScore / 200) * MAX_POINTS_INTERNAL_CONTEST;
-
-                let scoreWeightedSolvedProblems = Math.min(MAX_POINTS_WEIGHTED_SOLVED_PROBLEMS, (rawWeightedSolvedProblemScore / WEIGHTED_SOLVED_THRESHOLD_FULL_POINTS) * MAX_POINTS_WEIGHTED_SOLVED_PROBLEMS);
-
-                let recencyPenalty = Math.min(40, (daysSinceLastAttempt / RECENCY_DAYS_THRESHOLD_MAX_PENALTY) * 40);
-                let skippedPenalty = Math.min(20, (skippedSubmissionsCount / SKIPPED_COUNT_THRESHOLD_MAX_PENALTY) * 20);
-
-                recencyPenalty = Math.max(0, recencyPenalty);
-                skippedPenalty = Math.max(0, skippedPenalty);
-
-                let drScore = scoreMaxRating + scoreAvgRating + scoreContestCount + scoreInternalContest + scoreWeightedSolvedProblems - recencyPenalty - skippedPenalty;
-                drScore = Math.max(0, Math.min(200, drScore));
-
-                return {
-                    handle,
-                    maxRating,
-                    averageContestRating: averageContestRating.toFixed(2),
-                    contestCount,
-                    skippedSubmissionsCount,
-                    rawWeightedSolvedProblemScore: rawWeightedSolvedProblemScore,
-                    problemRatingFrequencies: formattedProblemRatingFrequencies || 'N/A',
-                    lastAttemptedProblem,
-                    lastAttemptedDate,
-                    daysSinceLastAttempt: daysSinceLastAttempt.toFixed(0),
-                    internalContestPerformanceScore,
-                    drScore: drScore.toFixed(2)
+                const stats = {
+                    handle, maxRating, averageContestRating, contestCount, lunaScore, placements,
+                    skippedSubmissionsCount, scoreWeightedSolvedProblems, daysSinceLastAttempt, 
+                    scoreFromPlacements, scoreFromLunaScore, scoreMaxRating, scoreAvgRating, scoreContestCount
                 };
+
+                const readinessProbability = calculateReadinessProbability(stats);
+                return { ...stats, readinessProbability };
             }
 
             function appendUserRowToTable(userData) {
                 const row = resultsTableBody.insertRow();
                 if (userData.error) {
-                    row.innerHTML = `<td colspan="12" class="text-red-600 font-bold">${userData.handle}: ${userData.error}</td>`;
-                } else {
-                    let drScoreClass = '';
-                    const drScoreNum = parseFloat(userData.drScore);
-                    if (drScoreNum >= 150) {
-                        drScoreClass = 'text-green-600';
-                    } else if (drScoreNum >= 100) {
-                        drScoreClass = 'text-yellow-600';
-                    } else {
-                        drScoreClass = 'text-red-600';
-                    }
-
-                    row.innerHTML = `
-                        <td>${userData.handle}</td>
-                        <td>${userData.maxRating}</td>
-                        <td>${userData.averageContestRating}</td>
-                        <td>${userData.contestCount}</td>
-                        <td>${userData.skippedSubmissionsCount}</td>
-                        <td>${userData.rawWeightedSolvedProblemScore}</td>
-                        <td>${userData.problemRatingFrequencies}</td>
-                        <td>${userData.lastAttemptedProblem}</td>
-                        <td>${userData.lastAttemptedDate}</td>
-                        <td>${userData.daysSinceLastAttempt}</td>
-                        <td>${userData.internalContestPerformanceScore}</td>
-                        <td class="dr-score-cell ${drScoreClass}">${userData.drScore}</td>
-                    `;
-                }
-            }
-
-            function displayError(message) {
-                errorMessageDiv.textContent = message;
-                errorMessageDiv.classList.remove('hidden');
-            }
-
-            function hideError() {
-                errorMessageDiv.classList.add('hidden');
-                errorMessageDiv.textContent = '';
-            }
-
-            function showLoading() {
-                loadingIndicator.style.display = 'block';
-                addManualUserBtn.disabled = true; // Disable manual add button
-                loadCsvBtn.disabled = true; // Disable CSV load button
-                clearListBtn.disabled = true;
-                processAllBtn.disabled = true;
-                csvFileInput.disabled = true;
-                handleInput.disabled = true;
-                internalContestPerformanceScoreInput.disabled = true;
-            }
-
-            function hideLoading() {
-                loadingIndicator.style.display = 'none';
-                addManualUserBtn.disabled = false; // Enable manual add button
-                loadCsvBtn.disabled = false; // Enable CSV load button
-                clearListBtn.disabled = false;
-                processAllBtn.disabled = false;
-                csvFileInput.disabled = false;
-                handleInput.disabled = false;
-                internalContestPerformanceScoreInput.disabled = false;
-            }
-
-            function downloadCSV() {
-                if (cachedUserData.length === 0) {
-                    displayError('No data to download. Please process users first.');
+                    row.innerHTML = `<td colspan="9" class="px-4 py-3 text-red-600 font-bold">${userData.handle}: ${userData.error}</td>`;
                     return;
                 }
 
-                const headers = [
-                    "Handle", "Max Rating", "Avg Rating", "Contests", "Skipped Submissions",
-                    "Weighted Solved Problem Score", "Problem Rating Frequencies",
-                    "Last Attempted Question", "Date Last Attempted", "Days Inactive",
-                    "Internal Contest Score", "DR Score / 200"
-                ];
+                const probability = userData.readinessProbability * 100;
+                let probClass = '', confidence = 'Low';
+                if (probability >= 85) { probClass = 'text-green-600 font-bold'; confidence = 'Very High'; }
+                else if (probability >= 65) { probClass = 'text-emerald-600'; confidence = 'High'; }
+                else if (probability >= 40) { probClass = 'text-yellow-600'; confidence = 'Medium'; }
+                else { probClass = 'text-red-600'; }
 
-                const rows = [headers.join(',')];
+                const avgPlacement = userData.placements.reduce((a, b) => a + b, 0) / userData.placements.length;
 
-                cachedUserData.forEach(data => {
-                    const rowData = [
-                        data.handle,
-                        data.maxRating,
-                        data.averageContestRating,
-                        data.contestCount,
-                        data.skippedSubmissionsCount,
-                        data.rawWeightedSolvedProblemScore,
-                        `"${data.problemRatingFrequencies.replace(/"/g, '""')}"`,
-                        `"${data.lastAttemptedProblem.replace(/"/g, '""')}"`,
-                        `"${data.lastAttemptedDate.replace(/"/g, '""')}"`,
-                        data.daysSinceLastAttempt,
-                        data.internalContestPerformanceScore,
-                        data.drScore
-                    ];
+                row.innerHTML = `
+                    <td class="px-4 py-3 whitespace-nowrap">${userData.handle}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${userData.maxRating}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${userData.averageContestRating.toFixed(0)}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${userData.contestCount}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${userData.lunaScore}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">Top ${avgPlacement.toFixed(1)}%</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${userData.scoreWeightedSolvedProblems.toFixed(2)}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${userData.daysSinceLastAttempt.toFixed(0)}</td>
+                    <td class="px-4 py-3 whitespace-nowrap ${probClass}">${probability.toFixed(2)}% (${confidence})</td>
+                `;
+            }
+
+            function downloadCSV() {
+                if (cachedUserData.length === 0) { displayError('No data to download.'); return; }
+                
+                const rows = [];
+                const sortedData = [...cachedUserData].sort((a, b) => (b.readinessProbability || 0) - (a.readinessProbability || 0));
+
+                sortedData.forEach(data => {
+                    if (data.error) return;
+                    const placementsStr = `"${data.placements.join(';')}"`;
+                    const rowData = [ data.handle, data.lunaScore, placementsStr ];
                     rows.push(rowData.join(','));
                 });
 
@@ -878,20 +439,24 @@
                 const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                link.download = `codeforces_stats_${new Date().toISOString().slice(0,10)}.csv`;
+                link.download = `readiness_report_${new Date().toISOString().slice(0,10)}.csv`;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
             }
 
+            function displayError(message) { errorMessageDiv.textContent = message; errorMessageDiv.classList.remove('hidden'); }
+            function hideError() { errorMessageDiv.classList.add('hidden'); }
+            function showLoading() { loadingIndicator.classList.remove('hidden'); document.querySelectorAll('button, input').forEach(el => el.disabled = true); }
+            function hideLoading() { loadingIndicator.classList.add('hidden'); document.querySelectorAll('button, input').forEach(el => el.disabled = false); if (cachedUserData.length === 0) downloadCsvBtn.disabled = true; }
+
             // --- Event Listeners ---
-            addManualUserBtn.addEventListener('click', addManualUserToList); // Attach to new manual button
-            loadCsvBtn.addEventListener('click', loadCSVFile); // Attach to new CSV button
+            addManualUserBtn.addEventListener('click', addManualUserToList);
+            loadCsvBtn.addEventListener('click', loadCSVFile);
             clearListBtn.addEventListener('click', clearUserList);
             processAllBtn.addEventListener('click', processAllUsers);
             downloadCsvBtn.addEventListener('click', downloadCSV);
 
-            // Initial display update
             updateUserListDisplay();
         });
     </script>
