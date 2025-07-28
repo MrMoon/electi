@@ -26,7 +26,7 @@
     <div class="container mx-auto p-4 md:p-8">
         <header class="text-center mb-8">
             <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Advanced Div. 2 Readiness Checker</h1>
-            <p class="text-gray-600 mt-2">Using a probabilistic model with non-linear scoring and recency weighting.</p>
+            <p class="text-gray-600 mt-2">Analyzes pre-transition stats and high-performance contests.</p>
         </header>
 
         <main class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -91,9 +91,9 @@
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Max Rating</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Rating</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contests</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">High-Perf. Contests</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Luna Score</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. Placement</th>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recency-Weighted Solves</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Days Inactive</th>
                             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Readiness Probability</th>
                         </tr>
@@ -138,6 +138,7 @@
             function getScoreFromAvgRating(avgRating) { return logisticCurve(avgRating, 50, 0.012, 1650); }
             function getScoreFromContestCount(contestCount) { return logisticCurve(contestCount, 20, 0.05, 75); }
             function getScoreFromLunaScore(lunaScore) { return logisticCurve(lunaScore, 50, 0.05, 150); }
+            function getScoreFromHighPerfContests(count) { return logisticCurve(count, 40, 0.3, 5); }
 
             function getScoreFromPlacements(placements) {
                 if (!placements || placements.length === 0) return 0;
@@ -172,12 +173,13 @@
 
             function calculateReadinessProbability(stats) {
                 const weights = {
-                    bias: -5.0,
-                    maxRating: 0.04,
-                    avgRating: 0.03,
-                    contestCount: 0.05,
-                    lunaScore: 0.06,
+                    bias: -5.5,
+                    maxRating: 0.03,
+                    avgRating: 0.02,
+                    contestCount: 0.04,
+                    lunaScore: 0.04,
                     placementScore: 0.08,
+                    highPerfScore: 0.09, // Strong signal
                     weightedSolves: 0.07,
                     daysInactive: -0.02,
                     skipped: -0.01
@@ -189,6 +191,7 @@
                     (stats.scoreContestCount * weights.contestCount) +
                     (stats.scoreFromLunaScore * weights.lunaScore) +
                     (stats.scoreFromPlacements * weights.placementScore) +
+                    (stats.scoreFromHighPerfContests * weights.highPerfScore) +
                     (stats.scoreWeightedSolvedProblems * weights.weightedSolves) +
                     (stats.daysSinceLastAttempt * weights.daysInactive) +
                     (stats.skippedSubmissionsCount * weights.skipped);
@@ -351,42 +354,67 @@
             }
 
             async function fetchStatsForHandle(handle, lunaScore, placements) {
-                const userInfoResponse = await fetch(`https://codeforces.com/api/user.info?handles=${handle}`);
-                const userInfoData = await userInfoResponse.json();
-                if (userInfoData.status === 'FAILED') throw new Error(userInfoData.comment);
-                const maxRating = userInfoData.result[0].maxRating || 0;
-
+                // First, get rating history to find the transition point
                 const userRatingResponse = await fetch(`https://codeforces.com/api/user.rating?handle=${handle}`);
                 const userRatingData = await userRatingResponse.json();
                 if (userRatingData.status === 'FAILED') throw new Error(userRatingData.comment);
-                const ratingChanges = userRatingData.result;
-                const contestCount = ratingChanges.length;
-                const sumRatings = ratingChanges.reduce((acc, curr) => acc + curr.newRating, 0);
-                const averageContestRating = contestCount > 0 ? (sumRatings / contestCount) : 0;
+                const allRatingChanges = userRatingData.result;
 
-                const userStatusResponse = await fetch(`https://codeforces.com/api/user.status?handle=${handle}&from=1&count=2000`);
+                // Find first Div. 2 contest
+                const firstDiv2Contest = allRatingChanges.find(c => c.contestName.includes('Div. 2'));
+                const transitionTime = firstDiv2Contest ? firstDiv2Contest.ratingUpdateTimeSeconds : Infinity;
+
+                // Filter rating changes to be *before* the transition
+                const preTransitionRatingChanges = allRatingChanges.filter(c => c.ratingUpdateTimeSeconds < transitionTime);
+                
+                const contestCount = preTransitionRatingChanges.length;
+                const sumRatings = preTransitionRatingChanges.reduce((acc, curr) => acc + curr.newRating, 0);
+                const averageContestRating = contestCount > 0 ? (sumRatings / contestCount) : 0;
+                const maxRating = preTransitionRatingChanges.length > 0 ? Math.max(...preTransitionRatingChanges.map(c => c.newRating)) : 0;
+
+                // Now get all submissions
+                const userStatusResponse = await fetch(`https://codeforces.com/api/user.status?handle=${handle}&from=1&count=5000`);
                 const userStatusData = await userStatusResponse.json();
                 if (userStatusData.status === 'FAILED') throw new Error(userStatusData.comment);
-                const submissions = userStatusData.result;
+                
+                // Filter submissions to be *before* the transition
+                const preTransitionSubmissions = userStatusData.result.filter(s => s.creationTimeSeconds < transitionTime);
 
                 let daysSinceLastAttempt = 365;
                 let skippedSubmissionsCount = 0;
-                if (submissions.length > 0) {
-                    daysSinceLastAttempt = (Date.now() / 1000 - submissions[0].creationTimeSeconds) / (60 * 60 * 24);
-                    skippedSubmissionsCount = submissions.filter(s => s.verdict === 'SKIPPED').length;
+                let highPerformanceContests = 0;
+
+                if (preTransitionSubmissions.length > 0) {
+                    daysSinceLastAttempt = (transitionTime - preTransitionSubmissions[0].creationTimeSeconds) / (60 * 60 * 24);
+                    skippedSubmissionsCount = preTransitionSubmissions.filter(s => s.verdict === 'SKIPPED').length;
+
+                    // Calculate high performance contests
+                    const solvedProblemsByContest = {};
+                    for (const sub of preTransitionSubmissions) {
+                        if (sub.verdict === 'OK' && sub.contestId) {
+                            if (!solvedProblemsByContest[sub.contestId]) {
+                                solvedProblemsByContest[sub.contestId] = new Set();
+                            }
+                            solvedProblemsByContest[sub.contestId].add(sub.problem.index);
+                        }
+                    }
+                    highPerformanceContests = Object.values(solvedProblemsByContest).filter(solvedSet => solvedSet.size > 3).length;
                 }
 
+                // Calculate all score components
                 const scoreMaxRating = getScoreFromMaxRating(maxRating);
                 const scoreAvgRating = getScoreFromAvgRating(averageContestRating);
                 const scoreContestCount = getScoreFromContestCount(contestCount);
-                const scoreWeightedSolvedProblems = getRecencyWeightedSolvedProblemScore(submissions);
+                const scoreWeightedSolvedProblems = getRecencyWeightedSolvedProblemScore(preTransitionSubmissions);
                 const scoreFromLunaScore = getScoreFromLunaScore(lunaScore);
                 const scoreFromPlacements = getScoreFromPlacements(placements);
+                const scoreFromHighPerfContests = getScoreFromHighPerfContests(highPerformanceContests);
 
                 const stats = {
-                    handle, maxRating, averageContestRating, contestCount, lunaScore, placements,
-                    skippedSubmissionsCount, scoreWeightedSolvedProblems, daysSinceLastAttempt, 
-                    scoreFromPlacements, scoreFromLunaScore, scoreMaxRating, scoreAvgRating, scoreContestCount
+                    handle, maxRating, averageContestRating, contestCount, lunaScore, placements, highPerformanceContests,
+                    skippedSubmissionsCount, daysSinceLastAttempt, 
+                    scoreFromPlacements, scoreFromLunaScore, scoreMaxRating, scoreAvgRating, scoreContestCount,
+                    scoreWeightedSolvedProblems, scoreFromHighPerfContests
                 };
 
                 const readinessProbability = calculateReadinessProbability(stats);
@@ -414,36 +442,81 @@
                     <td class="px-4 py-3 whitespace-nowrap">${userData.maxRating}</td>
                     <td class="px-4 py-3 whitespace-nowrap">${userData.averageContestRating.toFixed(0)}</td>
                     <td class="px-4 py-3 whitespace-nowrap">${userData.contestCount}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${userData.highPerformanceContests}</td>
                     <td class="px-4 py-3 whitespace-nowrap">${userData.lunaScore}</td>
                     <td class="px-4 py-3 whitespace-nowrap">Top ${avgPlacement.toFixed(1)}%</td>
-                    <td class="px-4 py-3 whitespace-nowrap">${userData.scoreWeightedSolvedProblems.toFixed(2)}</td>
                     <td class="px-4 py-3 whitespace-nowrap">${userData.daysSinceLastAttempt.toFixed(0)}</td>
                     <td class="px-4 py-3 whitespace-nowrap ${probClass}">${probability.toFixed(2)}% (${confidence})</td>
                 `;
             }
 
-            function downloadCSV() {
-                if (cachedUserData.length === 0) { displayError('No data to download.'); return; }
-                
-                const rows = [];
-                const sortedData = [...cachedUserData].sort((a, b) => (b.readinessProbability || 0) - (a.readinessProbability || 0));
-
-                sortedData.forEach(data => {
-                    if (data.error) return;
-                    const placementsStr = `"${data.placements.join(';')}"`;
-                    const rowData = [ data.handle, data.lunaScore, placementsStr ];
-                    rows.push(rowData.join(','));
-                });
-
-                const csvString = rows.join('\n');
-                const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+            function downloadFile(content, fileName, mimeType) {
+                const blob = new Blob([content], { type: mimeType });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                link.download = `readiness_report_${new Date().toISOString().slice(0,10)}.csv`;
+                link.download = fileName;
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
             }
+
+            function downloadResults() {
+                if (usersToAnalyze.length === 0) { 
+                    displayError('No user data to download.'); 
+                    return; 
+                }
+
+                // --- File 1: Users to Analyze ---
+                const userRows = usersToAnalyze.map(user => {
+                    const placementsStr = `"${user.placements.join(';')}"`;
+                    return [user.handle, user.lunaScore, placementsStr].join(',');
+                });
+                const userCsvString = userRows.join('\n');
+                downloadFile(userCsvString, 'users_to_analyze.csv', 'text/csv;charset=utf-8;');
+
+
+                // --- File 2: Full Results Table ---
+                if (cachedUserData.length === 0) {
+                    displayError('Process users first to download full results.');
+                    return;
+                }
+
+                const headers = ["Handle", "Readiness Probability (%)", "Confidence", "Luna Score", "Avg Placement (%)", "High-Perf. Contests", "Max Rating", "Avg Rating", "Contests", "Days Inactive"];
+                const resultRows = [headers.join(',')];
+                const sortedData = [...cachedUserData].sort((a, b) => (b.readinessProbability || 0) - (a.readinessProbability || 0));
+                
+                sortedData.forEach(data => {
+                    if (data.error) return;
+                    
+                    const probability = data.readinessProbability * 100;
+                    let confidence = 'Low';
+                    if (probability >= 85) { confidence = 'Very High'; }
+                    else if (probability >= 65) { confidence = 'High'; }
+                    else if (probability >= 40) { confidence = 'Medium'; }
+
+                    const avgPlacement = data.placements.reduce((a, b) => a + b, 0) / data.placements.length;
+                    
+                    const rowData = [
+                        data.handle, 
+                        probability.toFixed(2),
+                        confidence,
+                        data.lunaScore,
+                        avgPlacement.toFixed(1),
+                        data.highPerformanceContests,
+                        data.maxRating, 
+                        data.averageContestRating.toFixed(0), 
+                        data.contestCount,
+                        data.daysSinceLastAttempt.toFixed(0)
+                    ];
+                    resultRows.push(rowData.join(','));
+                });
+                
+                const resultCsvString = resultRows.join('\n');
+                setTimeout(() => {
+                    downloadFile(resultCsvString, `readiness_results_${new Date().toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8;');
+                }, 500);
+            }
+
 
             function displayError(message) { errorMessageDiv.textContent = message; errorMessageDiv.classList.remove('hidden'); }
             function hideError() { errorMessageDiv.classList.add('hidden'); }
@@ -455,7 +528,7 @@
             loadCsvBtn.addEventListener('click', loadCSVFile);
             clearListBtn.addEventListener('click', clearUserList);
             processAllBtn.addEventListener('click', processAllUsers);
-            downloadCsvBtn.addEventListener('click', downloadCSV);
+            downloadCsvBtn.addEventListener('click', downloadResults);
 
             updateUserListDisplay();
         });
