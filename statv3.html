@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codeforces Div. 2 Readiness Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .loader {
+            border-top-color: #3498db;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900">Codeforces Div. 2 Readiness Calculator</h1>
+            <p class="mt-2 text-gray-600">Analyze user performance to predict Division 2 readiness.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column: Inputs and User List -->
+            <div class="lg:col-span-1 bg-white p-6 rounded-xl shadow-md">
+                <h2 class="text-xl font-semibold mb-4 border-b pb-2">Add Users for Analysis</h2>
+
+                <!-- Manual Input -->
+                <div class="space-y-4 mb-6">
+                    <div>
+                        <label for="handleInput" class="block text-sm font-medium text-gray-700">CF Handle</label>
+                        <input type="text" id="handleInput" placeholder="e.g., tourist" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="lunaScoreInput" class="block text-sm font-medium text-gray-700">Luna Score (0-200)</label>
+                        <input type="number" id="lunaScoreInput" placeholder="e.g., 150" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    </div>
+                    <div>
+                        <label for="placementsInput" class="block text-sm font-medium text-gray-700">Contest Placements (%)</label>
+                        <input type="text" id="placementsInput" placeholder="e.g., 10, 25, 15" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <p class="text-xs text-gray-500 mt-1">Comma-separated top placement percentages.</p>
+                    </div>
+                    <button id="addManualUserBtn" class="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                        Add User Manually
+                    </button>
+                </div>
+
+                <!-- CSV Input -->
+                <div class="space-y-2 mb-6">
+                     <label for="csvFileInput" class="block text-sm font-medium text-gray-700">Or Upload CSV</label>
+                    <input type="file" id="csvFileInput" accept=".csv" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100">
+                    <button id="loadCsvBtn" class="w-full bg-gray-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors mt-2">
+                        Load from CSV
+                    </button>
+                     <p class="text-xs text-gray-500 mt-1">Format: `handle,luna_score,"placement1;placement2"`</p>
+                </div>
+
+                <!-- User List -->
+                <div>
+                    <h3 class="font-semibold mb-2">Users to Analyze (<span id="userCount">0</span>)</h3>
+                    <div id="userListContainer" class="h-48 bg-gray-50 rounded-lg p-2 overflow-y-auto border">
+                        <ul id="userList" class="space-y-2"></ul>
+                        <p id="noUsersMessage" class="text-center text-gray-500 pt-16">No users added yet.</p>
+                    </div>
+                     <button id="clearListBtn" class="w-full text-sm text-red-600 hover:text-red-800 mt-2">Clear List</button>
+                </div>
+            </div>
+
+            <!-- Right Column: Controls and Results -->
+            <div class="lg:col-span-2 space-y-6">
+                 <!-- Controls -->
+                <div class="bg-white p-6 rounded-xl shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
+                    <p class="text-gray-600 flex-grow">Ready to analyze? Process the list to see the results.</p>
+                    <div class="flex items-center gap-4 w-full md:w-auto">
+                        <button id="processAllBtn" class="w-full md:w-auto bg-green-600 text-white font-bold py-3 px-6 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                            Process All Users
+                        </button>
+                        <button id="downloadCsvBtn" disabled class="w-full md:w-auto bg-blue-600 text-white font-semibold py-3 px-6 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                           <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                            Download
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Error and Loading Indicators -->
+                <div id="errorMessage" class="hidden p-4 bg-red-100 text-red-700 rounded-lg"></div>
+                <div id="loadingIndicator" class="hidden flex items-center justify-center gap-4 p-4 bg-blue-50 rounded-lg">
+                    <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12"></div>
+                    <span class="text-blue-700 font-semibold">Processing users... This may take a while due to API rate limits. Please wait.</span>
+                </div>
+
+                <!-- Results Table -->
+                <div id="resultsTableContainer" class="hidden">
+                    <h2 class="text-2xl font-semibold mb-4">Analysis Results</h2>
+                    <div class="overflow-x-auto bg-white rounded-xl shadow-md">
+                        <table id="resultsTable" class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Handle</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Max Rating</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Rating</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Contests</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Div. 2 High-Perf.</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Luna Score</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Placement</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Readiness</th>
+                                </tr>
+                            </thead>
+                            <tbody id="resultsTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- Rows will be inserted here by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Element References ---
+            const handleInput = document.getElementById('handleInput');
+            const lunaScoreInput = document.getElementById('lunaScoreInput');
+            const placementsInput = document.getElementById('placementsInput');
+            const addManualUserBtn = document.getElementById('addManualUserBtn');
+            const csvFileInput = document.getElementById('csvFileInput');
+            const loadCsvBtn = document.getElementById('loadCsvBtn');
+            const clearListBtn = document.getElementById('clearListBtn');
+            const processAllBtn = document.getElementById('processAllBtn');
+            const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+            const userList = document.getElementById('userList');
+            const userCount = document.getElementById('userCount');
+            const noUsersMessage = document.getElementById('noUsersMessage');
+            const resultsTableContainer = document.getElementById('resultsTableContainer');
+            const resultsTableBody = document.querySelector('#resultsTable tbody');
+            const errorMessageDiv = document.getElementById('errorMessage');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+
+            // --- State Variables ---
+            let usersToAnalyze = [];
+            let cachedUserData = [];
+
+            // --- Core Calculation Logic & Model ---
+
+            const sigmoid = (x) => 1 / (1 + Math.exp(-x));
+            const logisticCurve = (x, L, k, x0) => L / (1 + Math.exp(-k * (x - x0)));
+
+            // --- Feature Scoring Functions ---
+            function getScoreFromMaxRating(maxRating) { return logisticCurve(maxRating, 60, 0.01, 1750); }
+            function getScoreFromAvgRating(avgRating) { return logisticCurve(avgRating, 50, 0.012, 1650); }
+            function getScoreFromContestCount(contestCount) { return logisticCurve(contestCount, 20, 0.05, 75); }
+            function getScoreFromLunaScore(lunaScore) { return logisticCurve(lunaScore, 50, 0.05, 150); }
+            
+            // ** IMPROVED METRIC **: This function scores performance in Div. 2 contests.
+            // It's more robust than a simple count of solved problems.
+            function getScoreFromDiv2HighPerfContests(count) { 
+                // A higher weight and steeper curve are used, as this is a strong indicator.
+                // We expect fewer "high-performance" contests with this stricter definition,
+                // so the center of the curve (x0) is at 3.
+                return logisticCurve(count, 60, 0.4, 3); 
+            }
+
+            function getScoreFromPlacements(placements) {
+                if (!placements || placements.length === 0) return 0;
+                const invertedScores = placements.map(p => 100 - p);
+                const avgInvertedScore = invertedScores.reduce((a, b) => a + b, 0) / invertedScores.length;
+                return logisticCurve(avgInvertedScore, 70, 0.08, 75);
+            }
+
+            function getRecencyWeightedSolvedProblemScore(submissions) {
+                let score = 0;
+                const solvedProblemIds = new Set();
+                const now = Date.now() / 1000;
+                const DECAY_CONSTANT = 0.005; // Controls how fast older solves lose value
+                const RATING_BASE = 1200;
+                const GROWTH_FACTOR = 1.15;
+
+                const sortedSubmissions = submissions.sort((a, b) => b.creationTimeSeconds - a.creationTimeSeconds);
+
+                for (const sub of sortedSubmissions) {
+                    if (sub.verdict !== 'OK' || !sub.problem.rating) continue;
+                    const problemId = `${sub.problem.contestId || 'gym'}-${sub.problem.index}`;
+                    if (solvedProblemIds.has(problemId)) continue;
+                    solvedProblemIds.add(problemId);
+
+                    const daysOld = (now - sub.creationTimeSeconds) / (60 * 60 * 24);
+                    const recencyWeight = Math.exp(-DECAY_CONSTANT * daysOld);
+                    const problemScore = Math.pow(GROWTH_FACTOR, (sub.problem.rating - RATING_BASE) / 100);
+                    score += problemScore * recencyWeight;
+                }
+                return logisticCurve(score, 40, 0.002, 1500);
+            }
+
+            function calculateReadinessProbability(stats) {
+                const weights = {
+                    bias: -6.0,
+                    maxRating: 0.02,
+                    avgRating: 0.01,
+                    contestCount: 0.03,
+                    lunaScore: 0.04,
+                    placementScore: 0.08,
+                    div2HighPerfScore: 0.12, // Strong signal for Div. 2 readiness
+                    weightedSolves: 0.07,
+                    daysInactive: -0.02,
+                    skipped: -0.01
+                };
+
+                const z = weights.bias +
+                    (stats.scoreMaxRating * weights.maxRating) +
+                    (stats.scoreAvgRating * weights.avgRating) +
+                    (stats.scoreContestCount * weights.contestCount) +
+                    (stats.scoreFromLunaScore * weights.lunaScore) +
+                    (stats.scoreFromPlacements * weights.placementScore) +
+                    (stats.scoreFromDiv2HighPerfContests * weights.div2HighPerfScore) +
+                    (stats.scoreWeightedSolvedProblems * weights.weightedSolves) +
+                    (stats.daysSinceLastAttempt * weights.daysInactive) +
+                    (stats.skippedSubmissionsCount * weights.skipped);
+
+                return sigmoid(z);
+            }
+
+            // --- UI and Helper Functions ---
+
+            function addManualUserToList() {
+                const handle = handleInput.value.trim();
+                const lunaScore = parseFloat(lunaScoreInput.value);
+                const placementsStr = placementsInput.value.trim();
+
+                if (!handle) { displayError('Please enter a Codeforces handle.'); return; }
+                if (isNaN(lunaScore) || lunaScore < 0 || lunaScore > 200) { displayError('Please enter a valid Luna Score (0-200).'); return; }
+                if (!placementsStr) { displayError('Please enter contest placement percentages.'); return; }
+
+                const placements = placementsStr.split(',').map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
+                if (placements.length === 0 || !placements.every(p => p >= 0 && p <= 100)) {
+                    displayError('Please enter valid, comma-separated percentages (0-100).'); return;
+                }
+
+                const normalizedHandle = handle.toLowerCase();
+                if (usersToAnalyze.some(user => user.handle.toLowerCase() === normalizedHandle)) {
+                    displayError(`User "${handle}" is already in the list.`); return;
+                }
+
+                usersToAnalyze.push({ handle, lunaScore, placements });
+                updateUserListDisplay();
+                handleInput.value = '';
+                lunaScoreInput.value = '';
+                placementsInput.value = '';
+                hideError();
+            }
+
+            function loadCSVFile() {
+                const file = csvFileInput.files[0];
+                if (!file) { displayError('Please select a CSV file.'); return; }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try { parseCSV(e.target.result); hideError(); } 
+                    catch (error) { displayError(`Error parsing CSV: ${error.message}`); }
+                };
+                reader.readAsText(file);
+            }
+
+            function parseCSV(csvString) {
+                const lines = csvString.trim().split('\n');
+                if (lines.length === 0) throw new Error('CSV file is empty or invalid.');
+                
+                const newUsersFromCsv = [];
+                lines.forEach((line, index) => {
+                    const parts = line.split(',');
+                    if (parts.length < 3) {
+                        console.warn(`Skipping row ${index + 1}: must have 3 columns.`);
+                        return;
+                    }
+
+                    const handle = parts[0]?.trim();
+                    const lunaScore = parseFloat(parts[1]?.trim());
+                    const placementsStr = parts.slice(2).join(',').trim().replace(/"/g, ''); // Handle commas in placements
+                    
+                    if (!handle || isNaN(lunaScore) || !placementsStr) {
+                        console.warn(`Skipping row ${index + 1}: Invalid data format.`);
+                        return;
+                    }
+
+                    const placements = placementsStr.split(';').map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
+                    if (placements.length === 0 || !placements.every(p => p >= 0 && p <= 100)) {
+                         console.warn(`Skipping row ${index + 1} (${handle}): Invalid placements data.`);
+                         return;
+                    }
+
+                    const normalizedHandle = handle.toLowerCase();
+                    if (usersToAnalyze.some(u => u.handle.toLowerCase() === normalizedHandle)) {
+                        console.warn(`Skipping duplicate handle "${handle}" from CSV.`);
+                        return;
+                    }
+                    newUsersFromCsv.push({ handle, lunaScore, placements });
+                });
+
+                if (newUsersFromCsv.length === 0) throw new Error('No valid new users found in CSV.');
+                
+                usersToAnalyze.push(...newUsersFromCsv);
+                updateUserListDisplay();
+                displayError(`Loaded ${newUsersFromCsv.length} new users. Total: ${usersToAnalyze.length}`);
+                csvFileInput.value = '';
+            }
+
+            function updateUserListDisplay() {
+                userList.innerHTML = '';
+                userCount.textContent = usersToAnalyze.length;
+                if (usersToAnalyze.length === 0) {
+                    noUsersMessage.classList.remove('hidden');
+                } else {
+                    noUsersMessage.classList.add('hidden');
+                    usersToAnalyze.forEach((user, index) => {
+                        const listItem = document.createElement('li');
+                        listItem.className = 'p-2 bg-white rounded-md text-sm flex justify-between items-center';
+                        listItem.innerHTML = `<span><span class="font-semibold">${user.handle}</span> (Luna: ${user.lunaScore})</span>
+                                            <button data-index="${index}" class="text-red-500 hover:text-red-700 font-bold">×</button>`;
+                        userList.appendChild(listItem);
+                    });
+                    // Add event listeners to new remove buttons
+                    userList.querySelectorAll('button').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            const indexToRemove = parseInt(e.currentTarget.dataset.index, 10);
+                            usersToAnalyze.splice(indexToRemove, 1);
+                            updateUserListDisplay();
+                        });
+                    });
+                }
+            }
+
+            function clearUserList() {
+                usersToAnalyze = [];
+                cachedUserData = [];
+                updateUserListDisplay();
+                resultsTableBody.innerHTML = '';
+                resultsTableContainer.classList.add('hidden');
+                hideError();
+                downloadCsvBtn.disabled = true;
+                csvFileInput.value = '';
+                handleInput.value = '';
+                lunaScoreInput.value = '';
+                placementsInput.value = '';
+            }
+
+            function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+            async function processAllUsers() {
+                if (usersToAnalyze.length === 0) { displayError('Please add users to the list first.'); return; }
+                resultsTableBody.innerHTML = '';
+                resultsTableContainer.classList.remove('hidden');
+                hideError();
+                showLoading();
+                downloadCsvBtn.disabled = true;
+
+                for (let i = 0; i < usersToAnalyze.length; i++) {
+                    const user = usersToAnalyze[i];
+                    let userData;
+                    const cachedUser = cachedUserData.find(data => data.handle.toLowerCase() === user.handle.toLowerCase());
+
+                    if (cachedUser && !cachedUser.error) {
+                        userData = { ...cachedUser, lunaScore: user.lunaScore, placements: user.placements };
+                        userData.scoreFromLunaScore = getScoreFromLunaScore(user.lunaScore);
+                        userData.scoreFromPlacements = getScoreFromPlacements(user.placements);
+                        userData.readinessProbability = calculateReadinessProbability(userData);
+                        console.log(`Reusing and recalculating for cached user ${user.handle}`);
+                    } else {
+                        try {
+                            userData = await fetchStatsForHandle(user.handle, user.lunaScore, user.placements);
+                            console.log(`Fetched new data for ${user.handle}`);
+                        } catch (error) {
+                            console.error(`Error fetching stats for ${user.handle}:`, error);
+                            userData = { handle: user.handle, error: `Error: ${error.message.substring(0, 100)}...` };
+                        }
+
+                        const cacheIndex = cachedUserData.findIndex(data => data.handle.toLowerCase() === user.handle.toLowerCase());
+                        if (cacheIndex > -1) cachedUserData[cacheIndex] = userData;
+                        else cachedUserData.push(userData);
+
+                        if (i < usersToAnalyze.length - 1) await sleep(2000); // API rate limiting
+                    }
+                    appendUserRowToTable(userData);
+                }
+                hideLoading();
+                downloadCsvBtn.disabled = false;
+            }
+            
+            // ** IMPROVED METRIC CALCULATION **
+            // This function calculates a weighted performance score for Div. 2 contests.
+            function calculateDiv2Performance(div2Submissions) {
+                if (!div2Submissions || div2Submissions.length === 0) {
+                    return { highPerfContests: 0 };
+                }
+
+                const solvedInDiv2 = {};
+                for (const sub of div2Submissions) {
+                    if (sub.verdict === 'OK') {
+                        if (!solvedInDiv2[sub.contestId]) solvedInDiv2[sub.contestId] = new Set();
+                        solvedInDiv2[sub.contestId].add(sub.problem.index);
+                    }
+                }
+                
+                // Assign weights to problems. Harder problems are worth more.
+                const problemWeights = { 'A': 1, 'B': 2, 'C': 4, 'D': 8, 'E': 12, 'F': 16 };
+                let highPerfContests = 0;
+
+                for (const contestId in solvedInDiv2) {
+                    const solvedProblems = Array.from(solvedInDiv2[contestId]);
+                    let contestScore = 0;
+                    for (const problemIndex of solvedProblems) {
+                        const problemChar = problemIndex.charAt(0).toUpperCase();
+                        contestScore += problemWeights[problemChar] || 0;
+                    }
+                    
+                    // A "high-performance" contest has a score of 7 or more (e.g., A+B+C solved).
+                    // This is more meaningful than simply solving any 4 problems.
+                    if (contestScore >= 7) {
+                        highPerfContests++;
+                    }
+                }
+                return { highPerfContests };
+            }
+
+
+            async function fetchStatsForHandle(handle, lunaScore, placements) {
+                const userRatingResponse = await fetch(`https://codeforces.com/api/user.rating?handle=${handle}`);
+                if (!userRatingResponse.ok) throw new Error(`API request failed with status ${userRatingResponse.status}`);
+                const userRatingData = await userRatingResponse.json();
+                if (userRatingData.status === 'FAILED') throw new Error(userRatingData.comment);
+                const allRatingChanges = userRatingData.result;
+                
+                const userStatusResponse = await fetch(`https://codeforces.com/api/user.status?handle=${handle}&from=1&count=5000`);
+                if (!userStatusResponse.ok) throw new Error(`API request failed with status ${userStatusResponse.status}`);
+                const userStatusData = await userStatusResponse.json();
+                if (userStatusData.status === 'FAILED') throw new Error(userStatusData.comment);
+                const allSubmissions = userStatusData.result;
+                
+                // --- General Stats ---
+                const totalContestCount = allRatingChanges.length;
+                const sumRatings = allRatingChanges.reduce((acc, curr) => acc + curr.newRating, 0);
+                const averageContestRating = totalContestCount > 0 ? (sumRatings / totalContestCount) : 0;
+                const maxRating = totalContestCount > 0 ? Math.max(...allRatingChanges.map(c => c.newRating)) : 0;
+                let daysSinceLastAttempt = 365;
+                if (allSubmissions.length > 0) {
+                    const sortedSubs = [...allSubmissions].sort((a,b) => b.creationTimeSeconds - a.creationTimeSeconds);
+                    daysSinceLastAttempt = (Date.now() / 1000 - sortedSubs[0].creationTimeSeconds) / (60 * 60 * 24);
+                }
+                const skippedSubmissionsCount = allSubmissions.filter(s => s.verdict === 'SKIPPED').length;
+                
+                // --- Div. 2 Stats using the new performance metric ---
+                const div2Contests = allRatingChanges.filter(c => c.contestName.includes('Div. 2'));
+                const div2ContestIds = new Set(div2Contests.map(c => c.contestId));
+                const div2Submissions = allSubmissions.filter(s => div2ContestIds.has(s.contestId));
+                const div2ContestCount = div2Contests.length;
+                
+                const { highPerfContests: div2HighPerfContests } = calculateDiv2Performance(div2Submissions);
+
+                // --- Calculate all score components ---
+                const scoreMaxRating = getScoreFromMaxRating(maxRating);
+                const scoreAvgRating = getScoreFromAvgRating(averageContestRating);
+                const scoreContestCount = getScoreFromContestCount(totalContestCount);
+                const scoreWeightedSolvedProblems = getRecencyWeightedSolvedProblemScore(allSubmissions);
+                const scoreFromLunaScore = getScoreFromLunaScore(lunaScore);
+                const scoreFromPlacements = getScoreFromPlacements(placements);
+                const scoreFromDiv2HighPerfContests = getScoreFromDiv2HighPerfContests(div2HighPerfContests);
+
+                const stats = {
+                    handle, maxRating, averageContestRating, totalContestCount, lunaScore, placements, 
+                    div2ContestCount, div2HighPerfContests,
+                    skippedSubmissionsCount, daysSinceLastAttempt, 
+                    scoreFromPlacements, scoreFromLunaScore, scoreMaxRating, scoreAvgRating, scoreContestCount,
+                    scoreWeightedSolvedProblems, scoreFromDiv2HighPerfContests,
+                };
+
+                const readinessProbability = calculateReadinessProbability(stats);
+                return { ...stats, readinessProbability };
+            }
+
+            function appendUserRowToTable(userData) {
+                const row = resultsTableBody.insertRow();
+                if (userData.error) {
+                    row.innerHTML = `<td colspan="8" class="px-4 py-3 text-red-600 font-bold">${userData.handle}: ${userData.error}</td>`;
+                    return;
+                }
+
+                const probability = userData.readinessProbability * 100;
+                let probClass = '', confidence = 'Low';
+                if (probability >= 85) { probClass = 'bg-green-100 text-green-800 font-bold'; confidence = 'Very High'; }
+                else if (probability >= 65) { probClass = 'bg-emerald-100 text-emerald-800 font-semibold'; confidence = 'High'; }
+                else if (probability >= 40) { probClass = 'bg-yellow-100 text-yellow-800'; confidence = 'Medium'; }
+                else { probClass = 'bg-red-100 text-red-800'; }
+
+                const avgPlacement = userData.placements.length > 0 ? userData.placements.reduce((a, b) => a + b, 0) / userData.placements.length : 0;
+
+                row.innerHTML = `
+                    <td class="px-4 py-3 whitespace-nowrap font-semibold">${userData.handle}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${userData.maxRating}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${userData.averageContestRating.toFixed(0)}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${userData.totalContestCount}</td>
+                    <td class="px-4 py-3 whitespace-nowrap font-bold">${userData.div2HighPerfContests}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">${userData.lunaScore}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">Top ${avgPlacement.toFixed(1)}%</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-center rounded-md ${probClass}">
+                        <div class="font-bold text-lg">${probability.toFixed(2)}%</div>
+                        <div class="text-xs">${confidence}</div>
+                    </td>
+                `;
+            }
+
+            function downloadFile(content, fileName, mimeType) {
+                const blob = new Blob([content], { type: mimeType });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            function downloadResults() {
+                if (usersToAnalyze.length === 0) { 
+                    displayError('No user data to download.'); 
+                    return; 
+                }
+
+                // --- File 1: Users to Analyze ---
+                const userRows = usersToAnalyze.map(user => {
+                    const placementsStr = `"${user.placements.join(';')}"`;
+                    return [user.handle, user.lunaScore, placementsStr].join(',');
+                });
+                const userCsvString = "handle,luna_score,placements\n" + userRows.join('\n');
+                downloadFile(userCsvString, 'users_to_analyze.csv', 'text/csv;charset=utf-8;');
+
+
+                // --- File 2: Full Results Table ---
+                if (cachedUserData.filter(d => !d.error).length === 0) {
+                    displayError('Process users first to download full results.');
+                    return;
+                }
+
+                const headers = ["Handle", "Readiness Probability (%)", "Confidence", "Luna Score", "Avg Placement (%)", "Total Contests", "Div. 2 Contests", "Div. 2 High-Perf. Contests", "Max Rating", "Avg Rating"];
+                const resultRows = [headers.join(',')];
+                const sortedData = [...cachedUserData].sort((a, b) => (b.readinessProbability || 0) - (a.readinessProbability || 0));
+                
+                sortedData.forEach(data => {
+                    if (data.error) return;
+                    
+                    const probability = data.readinessProbability * 100;
+                    let confidence = 'Low';
+                    if (probability >= 85) { confidence = 'Very High'; }
+                    else if (probability >= 65) { confidence = 'High'; }
+                    else if (probability >= 40) { confidence = 'Medium'; }
+
+                    const avgPlacement = data.placements.length > 0 ? data.placements.reduce((a, b) => a + b, 0) / data.placements.length : 0;
+                    
+                    const rowData = [
+                        data.handle, 
+                        probability.toFixed(2),
+                        confidence,
+                        data.lunaScore,
+                        avgPlacement.toFixed(1),
+                        data.totalContestCount,
+                        data.div2ContestCount,
+                        data.div2HighPerfContests,
+                        data.maxRating, 
+                        data.averageContestRating.toFixed(0)
+                    ];
+                    resultRows.push(rowData.join(','));
+                });
+                
+                const resultCsvString = resultRows.join('\n');
+                setTimeout(() => {
+                    downloadFile(resultCsvString, `readiness_results_${new Date().toISOString().slice(0,10)}.csv`, 'text/csv;charset=utf-8;');
+                }, 500); // Small delay to allow the first download to initiate
+            }
+
+
+            function displayError(message) { errorMessageDiv.textContent = message; errorMessageDiv.classList.remove('hidden'); }
+            function hideError() { errorMessageDiv.classList.add('hidden'); }
+            function showLoading() { loadingIndicator.classList.remove('hidden'); document.querySelectorAll('button, input').forEach(el => el.disabled = true); }
+            function hideLoading() { 
+                loadingIndicator.classList.add('hidden'); 
+                document.querySelectorAll('button, input').forEach(el => el.disabled = false); 
+                if (cachedUserData.filter(d => !d.error).length === 0) {
+                    downloadCsvBtn.disabled = true;
+                } else {
+                    downloadCsvBtn.disabled = false;
+                }
+            }
+
+            // --- Event Listeners ---
+            addManualUserBtn.addEventListener('click', addManualUserToList);
+            loadCsvBtn.addEventListener('click', loadCSVFile);
+            clearListBtn.addEventListener('click', clearUserList);
+            processAllBtn.addEventListener('click', processAllUsers);
+            downloadCsvBtn.addEventListener('click', downloadResults);
+
+            updateUserListDisplay();
+        });
+    </script>
+
+</body>
+</html>
+
