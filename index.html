@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Operation Electi - Readiness Model v2</title>
+    <title>Operation Electi - Readiness Model v8</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,14 +20,12 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
-        /* Modal styles */
         .modal-overlay {
             transition: opacity 0.3s ease;
         }
         .modal-content {
             transition: transform 0.3s ease;
         }
-        /* Table sort indicators */
         .sortable-header {
             cursor: pointer;
             position: relative;
@@ -53,7 +50,6 @@
         .sortable-header.sort-asc:after, .sortable-header.sort-desc:before {
              opacity: 1;
         }
-        /* Heatmap styles */
         .heatmap-day {
             stroke: rgba(27, 31, 35, 0.06);
             stroke-width: 2px;
@@ -62,6 +58,43 @@
             stroke: #555;
             stroke-width: 1px;
         }
+        .tab-btn.active {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .stat-card {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+        }
+        /* Dropdown styles */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            background-color: #f9fafb;
+            min-width: 200px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.1);
+            z-index: 10;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+        .dropdown-content a {
+            color: black;
+            padding: 10px 14px;
+            text-decoration: none;
+            display: block;
+            font-size: 0.875rem;
+        }
+        .dropdown-content a:hover {background-color: #e5e7eb;}
+        .dropdown:hover .dropdown-content {display: block;}
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800">
@@ -72,151 +105,264 @@
                 <img src="https://i.ibb.co/JNyxxBv/logo.png" alt="Operation Electi Logo" class="h-16 w-16" onerror="this.onerror=null; this.src='https://placehold.co/64x64/e0e0e0/333?text=Logo';">
                 <h1 class="text-5xl font-bold text-gray-900">Operation Electi</h1>
             </div>
-            <p class="mt-2 text-lg text-gray-600">A readiness analysis tool for competitive programmers.</p>
+            <p class="mt-2 text-lg text-gray-600">A readiness analysis and user management tool.</p>
         </header>
 
-        <main class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            <!-- Left Column: Inputs and Controls -->
-            <div class="lg:col-span-4 space-y-6">
-                <!-- Manual User Input -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-4">1. Add User Manually</h2>
-                    <div class="space-y-4">
-                        <input type="text" id="handleInput" placeholder="Codeforces Handle" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <div class="grid grid-cols-2 gap-4">
-                            <input type="number" id="lunaNovaScoreInput" placeholder="Luna Nova" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <input type="number" id="lunaHardScoreInput" placeholder="Luna" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <!-- Tab Controls -->
+        <div class="mb-8 border-b border-gray-200">
+            <nav class="flex -mb-px space-x-6" aria-label="Tabs">
+                <button id="tabBtnAnalysis" class="tab-btn active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg">
+                    Readiness Analysis
+                </button>
+                <button id="tabBtnDatabase" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    User Database
+                </button>
+            </nav>
+        </div>
+
+        <!-- Tab Content -->
+        <div id="tabContentAnalysis">
+            <main class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Left Column: Inputs and Controls -->
+                <div class="lg:col-span-4 space-y-6">
+                    <!-- Manual User Input -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-xl font-bold mb-4">1. Add User Manually</h2>
+                         <p class="text-sm text-gray-500 mb-3">Add users here to quickly get their readiness score. For more details, use the User Database tab.</p>
+                        <div class="space-y-4">
+                            <input type="text" id="handleInput" placeholder="Codeforces Handle" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <div class="grid grid-cols-2 gap-4">
+                                <input type="number" step="0.01" id="lunaNovaScoreInput" placeholder="Luna Nova" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <input type="number" step="0.01" id="lunaHardScoreInput" placeholder="Luna" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <input type="text" id="placementsInput" placeholder="Placements (e.g., 15, 22, 8)" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="trustedUserInput" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
+                                <label for="trustedUserInput" class="ml-2 block text-sm text-gray-900">Trusted User</label>
+                            </div>
+                            <button id="addManualUserBtn" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200">Add User</button>
                         </div>
-                        <input type="text" id="placementsInput" placeholder="Placements (e.g., 15, 22, 8)" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <div class="flex items-center">
-                            <input type="checkbox" id="trustedUserInput" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
-                            <label for="trustedUserInput" class="ml-2 block text-sm text-gray-900">Trusted User</label>
-                        </div>
-                        <button id="addManualUserBtn" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200">Add User</button>
                     </div>
-                </div>
 
-                <!-- CSV Upload -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <h2 class="text-xl font-bold mb-4">2. Or Load from CSV</h2>
-                    <p class="text-sm text-gray-500 mb-3">CSV format: `handle,luna_nova_score,luna_hard_score,"placement1;..."`</p>
-                    <input type="file" id="csvFileInput" accept=".csv" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                    <button id="loadCsvBtn" class="w-full mt-4 bg-gray-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200">Load from File</button>
-                </div>
+                    <!-- Data Management -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-xl font-bold mb-4">2. Data Management</h2>
+                        <p class="text-sm text-gray-500 mb-3">Load user data from a previous session.</p>
+                        <input type="file" id="jsonFileInput" accept=".json" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                        <button id="loadJsonBtn" class="w-full mt-4 bg-gray-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200">Load Full Backup</button>
+                    </div>
 
-                <!-- User List -->
-                <div class="bg-white rounded-lg shadow-md p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <h2 class="text-xl font-bold">3. User List (<span id="userCount">0</span>)</h2>
-                        <div class="flex items-center gap-2">
-                             <button id="downloadUserListBtn" class="text-sm text-blue-500 hover:text-blue-700 font-semibold disabled:text-gray-400 disabled:cursor-not-allowed" disabled>Download List</button>
+                    <!-- User List -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-bold">3. User List (<span id="userCount">0</span>)</h2>
                             <button id="clearListBtn" class="text-sm text-red-500 hover:text-red-700 font-semibold">Clear All</button>
                         </div>
-                    </div>
-                    <div id="noUsersMessage" class="text-center text-gray-500 py-4">Add users to get started.</div>
-                    <ul id="userList" class="space-y-2 max-h-60 overflow-y-auto">
-                        <!-- User list items will be injected here -->
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Right Column: Processing and Results -->
-            <div class="lg:col-span-8">
-                <!-- Controls -->
-                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                     <h2 class="text-xl font-bold mb-4">4. Analyze & Download</h2>
-                     <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-4" role="alert"></div>
-                     <div class="flex flex-col sm:flex-row gap-4">
-                        <button id="processAllBtn" class="flex-1 bg-green-600 text-white font-bold py-3 px-4 rounded-md hover:bg-green-700 transition duration-200 flex items-center justify-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
-                            Process All Users
-                        </button>
-                        <button id="downloadResultsBtn" disabled class="flex-1 bg-purple-600 text-white font-bold py-3 px-4 rounded-md hover:bg-purple-700 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
-                            Download Results
-                        </button>
-                     </div>
-                </div>
-
-                <!-- Loading Indicator -->
-                <div id="loadingIndicator" class="hidden text-center py-10">
-                    <p class="mt-4 text-lg font-semibold text-gray-600">Processing users... This may take a moment.</p>
-                    <p class="text-sm text-gray-500">Fetching data from the Codeforces API.</p>
-                </div>
-
-                <!-- Filters -->
-                <div id="resultsContainer" class="hidden">
-                    <div class="bg-white rounded-t-lg p-4 border-b border-gray-200">
-                        <label for="readinessFilter" class="text-sm font-semibold text-gray-600 mr-2">Filter by Readiness:</label>
-                        <select id="readinessFilter" class="rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                            <option value="all">All</option>
-                            <option value="very-high">Very High (85% +)</option>
-                            <option value="high">High (65% - 85%)</option>
-                            <option value="medium">Medium (40% - 65%)</option>
-                            <option value="low">Low (&lt; 40%)</option>
-                        </select>
-                    </div>
-                    <!-- Results Table -->
-                    <div class="bg-white rounded-b-lg shadow-md overflow-x-auto">
-                        <table id="resultsTable" class="w-full text-sm text-left text-gray-600">
-                            <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
-                                <tr>
-                                    <th scope="col" class="px-4 py-3 sortable-header" data-sort-key="handle">Handle</th>
-                                    <th scope="col" class="px-4 py-3 sortable-header" data-sort-key="scoreFromAvgDiv2Performance">Div2 Perf. Score</th>
-                                    <th scope="col" class="px-4 py-3 sortable-header" data-sort-key="avgPlacement">Avg Placement</th>
-                                    <th scope="col" class="px-4 py-3 text-center sortable-header sort-desc" data-sort-key="readinessProbability">Readiness</th>
-                                    <th scope="col" class="px-4 py-3 text-center">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <!-- Result rows will be injected here -->
-                            </tbody>
-                        </table>
+                        <div id="noUsersMessage" class="text-center text-gray-500 py-4">Add users to get started.</div>
+                        <ul id="userList" class="space-y-2 max-h-60 overflow-y-auto"></ul>
                     </div>
                 </div>
+
+                <!-- Right Column: Processing and Results -->
+                <div class="lg:col-span-8">
+                    <!-- Controls -->
+                    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                        <h2 class="text-xl font-bold mb-4">4. Analyze & Download</h2>
+                        <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-4" role="alert"></div>
+                        <div class="flex flex-col sm:flex-row gap-4">
+                            <button id="processAllBtn" class="flex-1 bg-green-600 text-white font-bold py-3 px-4 rounded-md hover:bg-green-700 transition duration-200 flex items-center justify-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                                Process All Users
+                            </button>
+                            <div class="dropdown flex-1">
+                                <button id="downloadAnalysisBtn" disabled class="w-full bg-purple-600 text-white font-bold py-3 px-4 rounded-md hover:bg-purple-700 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                                    Download Results
+                                </button>
+                                <div id="downloadDropdownContent" class="dropdown-content">
+                                    <a href="#" id="downloadAnalysisResultsCsvBtn">Download Full Analysis (CSV)</a>
+                                    <a href="#" id="downloadFilteredHandlesCsvBtn">Download Filtered Handles (CSV)</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="loadingIndicator" class="hidden text-center py-10">
+                        <p class="mt-4 text-lg font-semibold text-gray-600">Processing users... This may take a moment.</p>
+                        <p class="text-sm text-gray-500">Fetching data from the Codeforces API.</p>
+                    </div>
+
+                    <div id="resultsContainer" class="hidden">
+                        <div class="bg-white rounded-t-lg p-4 border-b border-gray-200 flex justify-between items-center">
+                            <div class="flex items-center">
+                                <label for="readinessFilter" class="text-sm font-semibold text-gray-600 mr-2">Filter by Readiness:</label>
+                                <select id="readinessFilter" class="rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                    <option value="all">All</option>
+                                    <option value="very-high">Very High (85% +)</option>
+                                    <option value="high">High (65% - 85%)</option>
+                                    <option value="medium">Medium (40% - 65%)</option>
+                                    <option value="low">Low (&lt; 40%)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="bg-white rounded-b-lg shadow-md overflow-x-auto">
+                            <table id="resultsTable" class="w-full text-sm text-left text-gray-600">
+                                <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-3 sortable-header" data-sort-key="handle">Handle</th>
+                                        <th scope="col" class="px-4 py-3 sortable-header" data-sort-key="scoreFromAvgDiv2Performance">Div2 Perf. Score</th>
+                                        <th scope="col" class="px-4 py-3 sortable-header" data-sort-key="avgPlacement">Avg Placement</th>
+                                        <th scope="col" class="px-4 py-3 text-center sortable-header sort-desc" data-sort-key="readinessProbability">Readiness</th>
+                                        <th scope="col" class="px-4 py-3 text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <div id="tabContentDatabase" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <!-- Left Column: Detailed User Form & Data Editors -->
+                <div class="lg:col-span-4 space-y-6">
+                    <form id="detailedUserForm" class="bg-white rounded-lg shadow-md p-6 space-y-4">
+                        <h2 class="text-xl font-bold mb-2">Add/Update Detailed User Info</h2>
+                        
+                        <input type="text" name="handle" placeholder="Codeforces Handle*" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="text" name="fullName" placeholder="Full Name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="url" name="linkedin" placeholder="LinkedIn Profile URL" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        
+                        <!-- University Input with Datalist -->
+                        <input type="text" name="university" list="university-list" placeholder="University Name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <datalist id="university-list"></datalist>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="number" step="0.01" name="lunaNovaScore" placeholder="Luna Nova Score" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <input type="number" step="0.01" name="lunaHardScore" placeholder="Luna Score" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+
+                        <div>
+                            <label for="acmLevel" class="block text-sm font-medium text-gray-700">ACM Level</label>
+                            <select name="acmLevel" id="acmLevel" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="0">None</option>
+                                <option value="-1">Codeability</option>
+                                <option value="10">Level 0</option>
+                                <option value="1">Level 1</option>
+                                <option value="2">Level 2</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="joinDate" class="block text-sm font-medium text-gray-700">Join Date</label>
+                            <input type="date" id="joinDate" name="joinDate" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        
+                        <hr/>
+                        <h3 class="text-lg font-semibold">Placements</h3>
+                        <div id="placementsContainer" class="space-y-3"></div>
+                        <button type="button" id="addPlacementBtn" class="w-full text-sm bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200">Add Placement</button>
+                        <datalist id="competition-list"></datalist>
+                        <hr/>
+
+                        <div class="flex gap-2">
+                            <button type="submit" class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-md hover:bg-green-700 transition duration-200">Save User</button>
+                            <button type="button" id="clearFormBtn" class="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-600 transition duration-200">Clear Form</button>
+                        </div>
+                    </form>
+
+                    <!-- Competition List Section -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-xl font-bold">Competition Editor</h2>
+                            <a href="#" id="downloadCompetitionsBtn" class="text-sm text-blue-600 hover:text-blue-800 font-semibold">Download CSV</a>
+                        </div>
+                        <div id="competitionEditorContainer" class="space-y-3 max-h-60 overflow-y-auto"></div>
+                        <button type="button" id="addCompetitionBtn" class="w-full mt-4 text-sm bg-blue-100 text-blue-700 font-semibold py-2 px-4 rounded-md hover:bg-blue-200 transition duration-200">Add New Competition</button>
+                    </div>
+                    
+                    <!-- University List Section -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-xl font-bold mb-4">University Editor</h2>
+                        <div id="universityEditorContainer" class="space-y-3 max-h-60 overflow-y-auto"></div>
+                        <button type="button" id="addUniversityBtn" class="w-full mt-4 text-sm bg-indigo-100 text-indigo-700 font-semibold py-2 px-4 rounded-md hover:bg-indigo-200 transition duration-200">Add New University</button>
+                    </div>
+                </div>
+
+                <!-- Right Column: Stats and Detailed User Table -->
+                <div class="lg:col-span-8 space-y-8">
+                    <!-- Statistics Section -->
+                    <div class="stat-card">
+                        <h2 class="text-xl font-bold mb-4">Database Statistics</h2>
+                        <div id="statsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
+                            <div class="p-4 bg-blue-50 rounded-lg">
+                                <p class="text-3xl font-bold text-blue-600" id="statTotalUsers">0</p>
+                                <p class="text-sm text-gray-600">Total Users</p>
+                            </div>
+                            <div class="p-4 bg-green-50 rounded-lg">
+                                <p class="text-3xl font-bold text-green-600" id="statPassedL1">0%</p>
+                                <p class="text-sm text-gray-600">Passed L1+</p>
+                            </div>
+                            <div class="p-4 bg-indigo-50 rounded-lg">
+                                <p class="text-3xl font-bold text-indigo-600" id="statUniqueComps">0</p>
+                                <p class="text-sm text-gray-600">Unique Competitions</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                            <div class="p-4"><canvas id="acmLevelChart"></canvas></div>
+                            <div class="p-4"><canvas id="competitionChart"></canvas></div>
+                        </div>
+                    </div>
+                    
+                    <!-- User Table Section -->
+                    <div class="bg-white rounded-lg shadow-md">
+                        <div class="p-4 border-b border-gray-200 flex flex-wrap justify-between items-center gap-4">
+                             <h2 class="text-xl font-bold">User Database (<span id="databaseUserCount">0</span>)</h2>
+                             <div class="dropdown">
+                                <button class="bg-purple-600 text-white font-bold py-2 px-4 rounded-md hover:bg-purple-700 transition duration-200 flex items-center gap-2">
+                                    Download
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                                </button>
+                                <div class="dropdown-content">
+                                    <a href="#" id="downloadDbReadinessCsvBtn">Download Readiness CSV</a>
+                                    <a href="#" id="downloadDbFullBackupBtn">Download Full Backup (JSON)</a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table id="detailedUserTable" class="w-full text-sm text-left text-gray-600">
+                                <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
+                                    <tr>
+                                        <th class="p-2">Handle</th>
+                                        <th class="p-2">Full Name</th>
+                                        <th class="p-2">University</th>
+                                        <th class="p-2">Last Updated</th>
+                                        <th class="p-2 text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="detailedUserTableBody">
+                                    <tr><td colspan="5" class="p-4 text-center text-gray-500">No users in the database yet.</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </main>
+        </div>
+    </div>
 
-        <!-- Model Explanation -->
-        <section id="modelExplanation" class="mt-12 bg-white rounded-lg shadow-md p-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-4">How It Works: The Readiness Model</h2>
-            <div class="space-y-6 text-gray-700">
-                 <p>This tool estimates a user's readiness for Codeforces Division 2 contests using a model that combines multiple data points. It's not a simple checklist; instead, it weighs different factors to produce a probabilistic score.</p>
-                
-                <div>
-                    <h3 class="text-lg font-semibold mb-2">1. Feature Scoring with Logistic Curves</h3>
-                    <p>Raw statistics (like a rating of 2000 or 100 contests) are not used directly. Instead, each key metric is converted into a standardized score (typically on a 0-100 scale) using a <strong class="font-semibold">logistic function (S-curve)</strong>. This has two benefits:</p>
-                    <ul class="list-disc list-inside mt-2 pl-4 space-y-1">
-                        <li><strong>Diminishing Returns:</strong> The difference between 0 and 20 contests is significant, but the difference between 100 and 120 is less so. S-curves capture this reality.</li>
-                        <li><strong>Normalization:</strong> It puts different metrics (like rating and contest count) onto a comparable scale before they are combined.</li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h3 class="text-lg font-semibold mb-2">2. Key Metrics Used</h3>
-                    <p>The model analyzes the following features:</p>
-                    <ul class="list-disc list-inside mt-2 pl-4 space-y-2">
-                        <li><strong class="font-semibold">Max & Average Rating:</strong> Measures peak performance and overall consistency.</li>
-                        <li><strong class="font-semibold">Contest Count:</strong> A measure of overall experience.</li>
-                        <li><strong class="font-semibold">Recency-Weighted Solved Problems:</strong> Scores all solved problems, giving more weight to harder problems and more recent solves. This rewards continuous practice.</li>
-                        <!-- UPDATED: Activity Score Explanation -->
-                        <li><strong class="font-semibold">Activity Score:</strong> Measures solving consistency and volume. It analyzes all correct submissions, giving more value to days with more accepted solutions (with diminishing returns) and weighting recent activity much more heavily than past activity. This rewards sustained, high-volume practice.</li>
-                        <li><strong class="font-semibold">Average Div. 2 Performance Score:</strong> This metric calculates a weighted score for each Div. 2 contest (A=1, B=2, C=4, etc.) and then finds the *average* score across all Div. 2 contests. This value is then curved to produce a normalized score from 0-100, rewarding consistent high performance.</li>
-                        <li><strong class="font-semibold">Luna Score (Manual Input):</strong> A manually provided score from two versions: Luna Nova (easy) and Luna (hard). The hard version contributes significantly more to the final score to reward participation in more challenging events.</li>
-                        <li><strong class="font-semibold">Placement Score (Manual Input):</strong> This score is derived from user-provided contest placement percentages. To better reward top-tier performance, the model uses a non-linear curve by calculating the <strong class="font-semibold">Root Mean Square (RMS)</strong> of the inverted placements. This gives much greater weight to top placements (e.g., Top 5%) compared to mediocre ones.</li>
-                        <!-- UPDATED: Inactivity explanation -->
-                        <li><strong class="font-semibold">Inactivity Pattern Penalty:</strong> A penalty is applied based on a user's entire activity history. It analyzes the average time between active days, the consistency of these gaps, and how long it's been since the last submission. This provides a more holistic view of consistency than a simple 'last seen' date.</li>
-                        <li><strong class="font-semibold">Trusted User Status:</strong> A manually-set flag. If a user is unchecked (not trusted), their score is heavily penalized. The model drastically reduces the contribution from all Codeforces-derived statistics and applies a smaller penalty to manually-entered scores.</li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h3 class="text-lg font-semibold mb-2">3. Final Probability Calculation</h3>
-                    <p>Each of the feature scores is multiplied by a specific <strong class="font-semibold">weight</strong>, reflecting its importance in the model. These weighted scores are summed up. Finally, this total sum is passed through a <strong class="font-semibold">Sigmoid function</strong>, which squashes the output into a value between 0 and 1, representing the final readiness probability.</p>
-                    <p class="mt-2 text-sm text-gray-600"><strong>Disclaimer:</strong> This is an estimation model based on statistical analysis. It provides a data-driven guideline but is not a definitive judgment of a user's ability or future success.</p>
-                </div>
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative transform scale-95">
+            <h3 id="confirmationModalTitle" class="text-lg font-bold mb-4">Confirm Action</h3>
+            <p id="confirmationModalMessage" class="text-gray-700 mb-6">Are you sure?</p>
+            <div class="flex justify-end gap-4">
+                <button id="confirmCancelBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                <button id="confirmOkBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Confirm</button>
             </div>
-        </section>
+        </div>
     </div>
 
     <!-- Details Modal -->
@@ -225,1049 +371,858 @@
             <button id="closeModalBtn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800">
                 <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
-            <div id="modalContentContainer">
-                <!-- Content will be injected here -->
-            </div>
+            <div id="modalContentContainer"></div>
         </div>
     </div>
 
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- DOM Element References ---
+            // --- STATE VARIABLES ---
+            let usersToAnalyze = [];
+            let userDatabase = []; // Array of detailed user objects
+            let competitionDatabase = {}; // { "Comp Name": { link: "...", total: 100 } }
+            let universityDatabase = []; // [ "Uni Name 1", "Uni Name 2" ]
+            let cachedUserData = []; // Caches results from Codeforces API
+            let ratingChart = null, problemChart = null, acmLevelChart = null, competitionPieChart = null;
+            let sortState = { key: 'readinessProbability', direction: 'desc' };
+            let activeFilter = 'all';
+            let confirmCallback = null;
+
+            // --- DOM ELEMENT REFERENCES ---
+            const tabBtnAnalysis = document.getElementById('tabBtnAnalysis');
+            const tabBtnDatabase = document.getElementById('tabBtnDatabase');
+            const tabContentAnalysis = document.getElementById('tabContentAnalysis');
+            const tabContentDatabase = document.getElementById('tabContentDatabase');
             const handleInput = document.getElementById('handleInput');
             const lunaNovaScoreInput = document.getElementById('lunaNovaScoreInput');
             const lunaHardScoreInput = document.getElementById('lunaHardScoreInput');
             const placementsInput = document.getElementById('placementsInput');
             const trustedUserInput = document.getElementById('trustedUserInput');
             const addManualUserBtn = document.getElementById('addManualUserBtn');
-            const csvFileInput = document.getElementById('csvFileInput');
-            const loadCsvBtn = document.getElementById('loadCsvBtn');
+            const jsonFileInput = document.getElementById('jsonFileInput');
+            const loadJsonBtn = document.getElementById('loadJsonBtn');
             const clearListBtn = document.getElementById('clearListBtn');
             const processAllBtn = document.getElementById('processAllBtn');
-            const downloadResultsBtn = document.getElementById('downloadResultsBtn');
-            const downloadUserListBtn = document.getElementById('downloadUserListBtn');
+            const downloadAnalysisBtn = document.getElementById('downloadAnalysisBtn');
+            const downloadAnalysisResultsCsvBtn = document.getElementById('downloadAnalysisResultsCsvBtn');
+            const downloadFilteredHandlesCsvBtn = document.getElementById('downloadFilteredHandlesCsvBtn');
+            const downloadDbReadinessCsvBtn = document.getElementById('downloadDbReadinessCsvBtn');
+            const downloadDbFullBackupBtn = document.getElementById('downloadDbFullBackupBtn');
+            const downloadCompetitionsBtn = document.getElementById('downloadCompetitionsBtn');
             const userList = document.getElementById('userList');
             const userCount = document.getElementById('userCount');
             const noUsersMessage = document.getElementById('noUsersMessage');
             const resultsContainer = document.getElementById('resultsContainer');
-            const resultsTable = document.getElementById('resultsTable');
             const resultsTableBody = document.querySelector('#resultsTable tbody');
             const resultsTableHeader = document.querySelector('#resultsTable thead');
             const readinessFilter = document.getElementById('readinessFilter');
             const errorMessageDiv = document.getElementById('errorMessage');
             const loadingIndicator = document.getElementById('loadingIndicator');
+            const detailedUserForm = document.getElementById('detailedUserForm');
+            const clearFormBtn = document.getElementById('clearFormBtn');
+            const placementsContainer = document.getElementById('placementsContainer');
+            const addPlacementBtn = document.getElementById('addPlacementBtn');
+            const competitionDataList = document.getElementById('competition-list');
+            const universityDataList = document.getElementById('university-list');
+            const detailedUserTableBody = document.getElementById('detailedUserTableBody');
+            const databaseUserCount = document.getElementById('databaseUserCount');
+            const competitionEditorContainer = document.getElementById('competitionEditorContainer');
+            const addCompetitionBtn = document.getElementById('addCompetitionBtn');
+            const universityEditorContainer = document.getElementById('universityEditorContainer');
+            const addUniversityBtn = document.getElementById('addUniversityBtn');
+            const statTotalUsers = document.getElementById('statTotalUsers');
+            const statPassedL1 = document.getElementById('statPassedL1');
+            const statUniqueComps = document.getElementById('statUniqueComps');
             const detailsModal = document.getElementById('detailsModal');
             const modalContentContainer = document.getElementById('modalContentContainer');
             const closeModalBtn = document.getElementById('closeModalBtn');
+            const confirmationModal = document.getElementById('confirmationModal');
+            const confirmationModalTitle = document.getElementById('confirmationModalTitle');
+            const confirmationModalMessage = document.getElementById('confirmationModalMessage');
+            const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+            const confirmOkBtn = document.getElementById('confirmOkBtn');
 
-            // --- State Variables ---
-            let usersToAnalyze = [];
-            let cachedUserData = [];
-            let ratingChart = null;
-            let problemChart = null;
-            let sortState = { key: 'readinessProbability', direction: 'desc' };
-            let activeFilter = 'all';
+            // --- MODEL WEIGHTS (same as original) ---
+            const weights = { bias: -7.0, maxRating: 0.02, avgRating: 0.01, contestCount: 0.03, lunaScore: 0.04, placementScore: 0.08, avgDiv2PerfScore: 0.16, weightedSolves: 0.05, activityScore: 0.08, inactivityPattern: -0.04, skipped: -0.015, };
+
+            // --- API QUEUE (same as original) ---
+            const apiQueue = { requests: [], isProcessing: false, delay: 1100, add(url) { return new Promise((resolve, reject) => { this.requests.push({ url, resolve, reject }); if (!this.isProcessing) this.processNext(); }); }, async processNext() { if (this.requests.length === 0) { this.isProcessing = false; return; } this.isProcessing = true; const { url, resolve, reject } = this.requests.shift(); try { const response = await fetch(url); if (!response.ok) throw new Error(`API request failed: ${response.status}`); const data = await response.json(); if (data.status === 'FAILED') throw new Error(`Codeforces API error: ${data.comment}`); resolve(data); } catch (error) { reject(error); } setTimeout(() => this.processNext(), this.delay); } };
             
-            // --- Model Weights ---
-            // UPDATED: Weights rebalanced for new activity/inactivity model
-            const weights = {
-                bias: -7.0,
-                maxRating: 0.02,
-                avgRating: 0.01,
-                contestCount: 0.03,
-                lunaScore: 0.04,
-                placementScore: 0.08,
-                avgDiv2PerfScore: 0.16,
-                weightedSolves: 0.05, // Reduced slightly due to overlap with new activity score
-                activityScore: 0.08, // Increased weight for the new, more descriptive metric
-                inactivityPattern: -0.04, 
-                skipped: -0.015,
-            };
-
-            // --- API Request Queue for Rate Limiting ---
-            const apiQueue = {
-                requests: [],
-                isProcessing: false,
-                delay: 1100, // 1.1 second delay to be safe with Codeforces API limits
-                add(url) {
-                    return new Promise((resolve, reject) => {
-                        this.requests.push({ url, resolve, reject });
-                        if (!this.isProcessing) {
-                            this.processNext();
-                        }
-                    });
-                },
-                async processNext() {
-                    if (this.requests.length === 0) {
-                        this.isProcessing = false;
-                        return;
-                    }
-                    this.isProcessing = true;
-                    const { url, resolve, reject } = this.requests.shift();
-                    try {
-                        const response = await fetch(url);
-                        if (!response.ok) throw new Error(`API request failed: ${response.status} ${response.statusText}`);
-                        const data = await response.json();
-                        if (data.status === 'FAILED') throw new Error(`Codeforces API error: ${data.comment}`);
-                        resolve(data);
-                    } catch (error) {
-                        reject(error);
-                    }
-                    setTimeout(() => this.processNext(), this.delay);
-                }
-            };
-
-            // --- Core Calculation Logic & Model ---
+            // --- CORE CALCULATION LOGIC & MODEL (largely unchanged) ---
             const sigmoid = (x) => 1 / (1 + Math.exp(-x));
             const logisticCurve = (x, L, k, x0) => L / (1 + Math.exp(-k * (x - x0)));
-
-            // --- Feature Scoring Functions ---
             function getScoreFromMaxRating(maxRating) { return logisticCurve(maxRating, 60, 0.01, 1750); }
             function getScoreFromAvgRating(avgRating) { return logisticCurve(avgRating, 50, 0.012, 1650); }
             function getScoreFromContestCount(contestCount) { return logisticCurve(contestCount, 25, 0.06, 60); }
             function getScoreFromAvgDiv2Performance(avgScore) { return logisticCurve(avgScore, 100, 0.3, 10); } 
-            function getCombinedLunaScore(lunaNovaScore, lunaHardScore) {
-                const combinedRaw = (lunaNovaScore * 0.5) + (lunaHardScore * 1.5);
-                return logisticCurve(combinedRaw, 50, 0.025, 300);
-            }
-            function getScoreFromPlacements(placements) {
-                if (!placements || placements.length === 0) return 0;
-                const invertedScores = placements.map(p => 100 - p);
-                const sumOfSquares = invertedScores.reduce((acc, score) => acc + score * score, 0);
-                const rms = Math.sqrt(sumOfSquares / invertedScores.length);
-                return logisticCurve(rms, 70, 0.08, 75);
-            }
-            function getRecencyWeightedSolvedProblemScore(submissions) {
-                let score = 0;
-                const solvedProblemIds = new Set();
-                const now = Date.now() / 1000;
-                const DECAY_CONSTANT = 0.005; 
-                const RATING_BASE = 1200;
-                const GROWTH_FACTOR = 1.15;
-                const sortedSubmissions = submissions.sort((a, b) => b.creationTimeSeconds - a.creationTimeSeconds);
-                for (const sub of sortedSubmissions) {
-                    if (sub.verdict !== 'OK' || !sub.problem.rating) continue;
-                    const problemId = `${sub.problem.contestId || 'gym'}-${sub.problem.index}`;
-                    if (solvedProblemIds.has(problemId)) continue;
-                    solvedProblemIds.add(problemId);
-                    const daysOld = (now - sub.creationTimeSeconds) / (60 * 60 * 24);
-                    const recencyWeight = Math.exp(-DECAY_CONSTANT * daysOld);
-                    const problemScore = Math.pow(GROWTH_FACTOR, (sub.problem.rating - RATING_BASE) / 100);
-                    score += problemScore * recencyWeight;
-                }
-                return logisticCurve(score, 40, 0.002, 1500);
-            }
+            function getCombinedLunaScore(lunaNovaScore, lunaHardScore) { const combinedRaw = (lunaNovaScore * 0.5) + (lunaHardScore * 1.5); return logisticCurve(combinedRaw, 50, 0.025, 300); }
+            function getScoreFromPlacements(placements) { if (!placements || placements.length === 0) return 0; const invertedScores = placements.map(p => 100 - p); const sumOfSquares = invertedScores.reduce((acc, score) => acc + score * score, 0); const rms = Math.sqrt(sumOfSquares / invertedScores.length); return logisticCurve(rms, 70, 0.08, 75); }
+            function getRecencyWeightedSolvedProblemScore(submissions) { let score = 0; const solvedProblemIds = new Set(); const now = Date.now() / 1000; const sortedSubmissions = submissions.sort((a, b) => b.creationTimeSeconds - a.creationTimeSeconds); for (const sub of sortedSubmissions) { if (sub.verdict !== 'OK' || !sub.problem.rating) continue; const problemId = `${sub.problem.contestId || 'gym'}-${sub.problem.index}`; if (solvedProblemIds.has(problemId)) continue; solvedProblemIds.add(problemId); const daysOld = (now - sub.creationTimeSeconds) / 86400; const recencyWeight = Math.exp(-0.005 * daysOld); const problemScore = Math.pow(1.15, (sub.problem.rating - 1200) / 100); score += problemScore * recencyWeight; } return logisticCurve(score, 40, 0.002, 1500); }
+            function calculateActivityAndInactivityMetrics(submissions) { const oneDay = 86400000; const now = Date.now(); const dailyActivity = new Map(); submissions.forEach(sub => { if (sub.verdict === 'OK') { const date = new Date(sub.creationTimeSeconds * 1000); date.setHours(0, 0, 0, 0); const dateStr = date.toISOString().split('T')[0]; if (!dailyActivity.has(dateStr)) { dailyActivity.set(dateStr, { count: 0, timestamp: date.getTime() }); } dailyActivity.get(dateStr).count++; } }); let rawActivityScore = 0; for (const data of dailyActivity.values()) { const daysOld = (now - data.timestamp) / oneDay; rawActivityScore += Math.sqrt(data.count) * Math.exp(-0.003 * daysOld); } if (dailyActivity.size < 3) return { rawActivityScore, inactivityScore: 100, avgGap: 365, stdDevGap: 0 }; const sortedTimestamps = Array.from(dailyActivity.values()).map(d => d.timestamp).sort((a, b) => a - b); const gaps = []; for (let i = 1; i < sortedTimestamps.length; i++) { gaps.push((sortedTimestamps[i] - sortedTimestamps[i-1]) / oneDay); } const avgGap = gaps.reduce((a, v) => a + v, 0) / gaps.length; const stdDevGap = Math.sqrt(gaps.reduce((a, v) => a + Math.pow(v - avgGap, 2), 0) / gaps.length); const recencyGap = (now - sortedTimestamps[sortedTimestamps.length - 1]) / oneDay; const rawPenalty = avgGap + (2 * stdDevGap) + (1.5 * recencyGap); const inactivityScore = logisticCurve(rawPenalty, 100, 0.1, 40); return { rawActivityScore, inactivityScore, avgGap, stdDevGap }; }
+            function getScoreFromActivity(rawActivityScore) { return logisticCurve(rawActivityScore, 50, 0.1, 50); }
+            function calculateReadinessProbability(stats) { let { scoreMaxRating, scoreAvgRating, scoreContestCount, scoreFromCombinedLuna, scoreFromPlacements, scoreFromAvgDiv2Performance, scoreWeightedSolvedProblems, scoreFromActivity, inactivityScore } = stats; if (!stats.isTrusted) { const cfPenalty = 0.1, manualPenalty = 0.8; scoreMaxRating *= cfPenalty; scoreAvgRating *= cfPenalty; scoreContestCount *= cfPenalty; scoreFromAvgDiv2Performance *= cfPenalty; scoreWeightedSolvedProblems *= cfPenalty; scoreFromActivity *= cfPenalty; scoreFromCombinedLuna *= manualPenalty; inactivityScore *= 0.5; } const z = weights.bias + (scoreMaxRating * weights.maxRating) + (scoreAvgRating * weights.avgRating) + (scoreContestCount * weights.contestCount) + (scoreFromCombinedLuna * weights.lunaScore) + (scoreFromPlacements * weights.placementScore) + (scoreFromAvgDiv2Performance * weights.avgDiv2PerfScore) + (scoreWeightedSolvedProblems * weights.weightedSolves) + (scoreFromActivity * weights.activityScore) + (inactivityScore * weights.inactivityPattern) + (stats.skippedSubmissionsCount * weights.skipped); return sigmoid(z); }
             
-            // UPDATED: New unified function for activity and inactivity metrics
-            function calculateActivityAndInactivityMetrics(submissions) {
-                const oneDay = 24 * 60 * 60 * 1000;
-                const now = Date.now();
-                const DECAY_CONSTANT = 0.003; // Controls how fast activity score decays
-
-                const dailyActivity = new Map(); // Map<dateString, {count: number, timestamp: number}>
-
-                submissions.forEach(sub => {
-                    if (sub.verdict === 'OK') {
-                        const date = new Date(sub.creationTimeSeconds * 1000);
-                        date.setHours(0, 0, 0, 0);
-                        const dateStr = date.toISOString().split('T')[0];
-                        
-                        if (!dailyActivity.has(dateStr)) {
-                            dailyActivity.set(dateStr, { count: 0, timestamp: date.getTime() });
-                        }
-                        dailyActivity.get(dateStr).count++;
-                    }
-                });
-
-                // 1. Calculate new Activity Score based on volume and recency
-                let rawActivityScore = 0;
-                for (const data of dailyActivity.values()) {
-                    const daysOld = (now - data.timestamp) / oneDay;
-                    const recencyWeight = Math.exp(-DECAY_CONSTANT * daysOld);
-                    // Use square root for diminishing returns on daily submission count
-                    const dailyContribution = Math.sqrt(data.count); 
-                    rawActivityScore += dailyContribution * recencyWeight;
-                }
-
-                // 2. Calculate Inactivity Penalty (similar to before, but using the dailyActivity map)
-                const uniqueActiveDays = dailyActivity.size;
-                if (uniqueActiveDays < 3) {
-                    return { 
-                        rawActivityScore, 
-                        uniqueActiveDays, 
-                        inactivityScore: 100, // High penalty for insufficient data
-                        avgGap: 365, 
-                        stdDevGap: 0 
-                    };
-                }
-
-                const sortedTimestamps = Array.from(dailyActivity.values()).map(d => d.timestamp).sort((a, b) => a - b);
-                
-                const gaps = [];
-                for (let i = 1; i < sortedTimestamps.length; i++) {
-                    const diff = (sortedTimestamps[i] - sortedTimestamps[i-1]) / oneDay;
-                    gaps.push(diff);
-                }
-
-                const sumGaps = gaps.reduce((acc, val) => acc + val, 0);
-                const avgGap = sumGaps / gaps.length;
-
-                const variance = gaps.reduce((acc, val) => acc + Math.pow(val - avgGap, 2), 0) / gaps.length;
-                const stdDevGap = Math.sqrt(variance);
-
-                const lastSubTimestamp = sortedTimestamps[sortedTimestamps.length - 1];
-                const recencyGap = (now - lastSubTimestamp) / oneDay;
-
-                // Combine metrics into a single raw penalty score. Recency is weighted heavily.
-                const rawPenalty = avgGap + (2 * stdDevGap) + (1.5 * recencyGap);
-                
-                // Normalize the penalty score
-                const inactivityScore = logisticCurve(rawPenalty, 100, 0.1, 40);
-
-                return { rawActivityScore, uniqueActiveDays, inactivityScore, avgGap, stdDevGap };
+            // --- DATE HELPERS ---
+            function formatDateForInput(date) { // Date object to YYYY-MM-DD
+                if (!date || !(date instanceof Date)) return '';
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
             }
 
-            // UPDATED: New normalization function for the raw activity score
-            function getScoreFromActivity(rawActivityScore) {
-                // The logistic curve parameters (L, k, x0) are tuned for the new raw score.
-                // A raw score of ~50 is considered a strong signal of activity.
-                return logisticCurve(rawActivityScore, 50, 0.1, 50); 
-            }
-
-            function calculateReadinessProbability(stats) {
-                let { 
-                    scoreMaxRating, scoreAvgRating, scoreContestCount, scoreFromCombinedLuna,
-                    scoreFromPlacements, scoreFromAvgDiv2Performance, scoreWeightedSolvedProblems,
-                    scoreFromActivity, inactivityScore
-                } = stats;
-
-                if (!stats.isTrusted) {
-                    const cfPenaltyFactor = 0.1;
-                    const manualPenaltyFactor = 0.8;
-                    scoreMaxRating *= cfPenaltyFactor;
-                    scoreAvgRating *= cfPenaltyFactor;
-                    scoreContestCount *= cfPenaltyFactor;
-                    scoreFromAvgDiv2Performance *= cfPenaltyFactor;
-                    scoreWeightedSolvedProblems *= cfPenaltyFactor;
-                    scoreFromActivity *= cfPenaltyFactor;
-                    scoreFromCombinedLuna *= manualPenaltyFactor;
-                    inactivityScore *= 0.5; 
-                }
-
-                const z = weights.bias +
-                    (scoreMaxRating * weights.maxRating) +
-                    (scoreAvgRating * weights.avgRating) +
-                    (scoreContestCount * weights.contestCount) +
-                    (scoreFromCombinedLuna * weights.lunaScore) +
-                    (scoreFromPlacements * weights.placementScore) +
-                    (scoreFromAvgDiv2Performance * weights.avgDiv2PerfScore) +
-                    (scoreWeightedSolvedProblems * weights.weightedSolves) +
-                    (scoreFromActivity * weights.activityScore) + // Using new activity score
-                    (inactivityScore * weights.inactivityPattern) +
-                    (stats.skippedSubmissionsCount * weights.skipped);
-
-                return sigmoid(z);
-            }
+            // --- CONFIRMATION MODAL ---
+            function showConfirmationModal(title, message, onConfirm) { confirmationModalTitle.textContent = title; confirmationModalMessage.textContent = message; confirmCallback = onConfirm; confirmationModal.classList.remove('hidden'); setTimeout(() => { confirmationModal.querySelector('.modal-overlay')?.classList.remove('opacity-0'); confirmationModal.querySelector('.modal-content')?.classList.remove('scale-95'); }, 10); }
+            function hideConfirmationModal() { confirmationModal.querySelector('.modal-overlay')?.classList.add('opacity-0'); confirmationModal.querySelector('.modal-content')?.classList.add('scale-95'); setTimeout(() => { confirmationModal.classList.add('hidden'); confirmCallback = null; }, 300); }
 
             // --- UI and Helper Functions ---
+            function addOrUpdateUserInAnalysisList(user) {
+                const normalizedHandle = user.handle.toLowerCase();
+                const existingUserIndex = usersToAnalyze.findIndex(u => u.handle.toLowerCase() === normalizedHandle);
+                if (existingUserIndex > -1) { usersToAnalyze[existingUserIndex] = { ...usersToAnalyze[existingUserIndex], ...user }; } 
+                else { usersToAnalyze.push(user); }
+                updateUserListDisplay();
+            }
+
             function addManualUserToList() {
                 const handle = handleInput.value.trim();
+                if (!handle) { displayError('Please enter a Codeforces handle.'); return; }
                 const lunaNovaScore = parseFloat(lunaNovaScoreInput.value) || 0;
                 const lunaHardScore = parseFloat(lunaHardScoreInput.value) || 0;
                 const placementsStr = placementsInput.value.trim();
                 const isTrusted = trustedUserInput.checked;
-
-                if (!handle) { displayError('Please enter a Codeforces handle.'); return; }
-                if (lunaNovaScore < 0 || lunaNovaScore > 200 || lunaHardScore < 0 || lunaHardScore > 200) { displayError('Please enter valid Luna Scores (0-200).'); return; }
+                if (lunaNovaScore < 0 || lunaHardScore < 0) { displayError('Luna Scores cannot be negative.'); return; }
                 if (!placementsStr) { displayError('Please enter contest placement percentages.'); return; }
-                
                 const placements = placementsStr.split(',').map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
-                if (placements.length === 0 || !placements.every(p => p >= 0 && p <= 100)) {
-                    displayError('Please enter valid, comma-separated percentages (0-100).'); return;
-                }
-                
+                if (placements.length === 0 || !placements.every(p => p >= 0 && p <= 100)) { displayError('Please enter valid, comma-separated percentages (0-100).'); return; }
+                const newUser = { handle, lunaNovaScore, lunaHardScore, placements, isTrusted };
                 const normalizedHandle = handle.toLowerCase();
-                if (usersToAnalyze.some(user => user.handle.toLowerCase() === normalizedHandle)) {
-                    displayError(`User "${handle}" is already in the list.`); return;
-                }
-
-                usersToAnalyze.push({ handle, lunaNovaScore, lunaHardScore, placements, isTrusted });
-                updateUserListDisplay();
-                handleInput.value = '';
-                lunaNovaScoreInput.value = '';
-                lunaHardScoreInput.value = '';
-                placementsInput.value = '';
-                trustedUserInput.checked = true;
-                hideError();
-            }
-
-            function loadCSVFile() {
-                const file = csvFileInput.files[0];
-                if (!file) { displayError('Please select a CSV file.'); return; }
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try { parseCSV(e.target.result); hideError(); } 
-                    catch (error) { displayError(`Error parsing CSV: ${error.message}`); }
-                };
-                reader.readAsText(file);
-            }
-
-            function parseCSV(csvString) {
-                const lines = csvString.trim().split('\n');
-                if (lines.length === 0) throw new Error('CSV file is empty or invalid.');
-                const newUsersFromCsv = [];
-                const startLine = lines[0].toLowerCase().includes('handle') ? 1 : 0;
-                for(let i = startLine; i < lines.length; i++) {
-                    const line = lines[i];
-                    const parts = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
-                    if (parts.length < 4) continue;
-                    const handle = parts[0]?.trim();
-                    const lunaNovaScore = parseFloat(parts[1]?.trim()) || 0;
-                    const lunaHardScore = parseFloat(parts[2]?.trim()) || 0;
-                    const placementsStr = parts[3]?.trim().replace(/"/g, ''); 
-                    if (!handle || !placementsStr) continue;
-                    const placements = placementsStr.split(/[;,]/).map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
-                    if (placements.length === 0 || !placements.every(p => p >= 0 && p <= 100)) continue;
-                    const normalizedHandle = handle.toLowerCase();
-                    if (usersToAnalyze.some(u => u.handle.toLowerCase() === normalizedHandle)) continue;
-                    newUsersFromCsv.push({ handle, lunaNovaScore, lunaHardScore, placements, isTrusted: true });
-                }
-                if (newUsersFromCsv.length === 0) throw new Error('No valid new users found in CSV.');
-                usersToAnalyze.push(...newUsersFromCsv);
-                updateUserListDisplay();
-                displayError(`Loaded ${newUsersFromCsv.length} new users. Total: ${usersToAnalyze.length}`);
-                csvFileInput.value = '';
-            }
-
-            function updateUserListDisplay() {
-                userList.innerHTML = '';
-                userCount.textContent = usersToAnalyze.length;
-                downloadUserListBtn.disabled = usersToAnalyze.length === 0;
-                if (usersToAnalyze.length === 0) {
-                    noUsersMessage.classList.remove('hidden');
+                const existingUserIndex = usersToAnalyze.findIndex(user => user.handle.toLowerCase() === normalizedHandle);
+                if (existingUserIndex > -1) {
+                    showConfirmationModal('Update User?', `User "${handle}" is already in the list. Do you want to update their information?`, () => {
+                        usersToAnalyze[existingUserIndex] = newUser;
+                        updateUserListDisplay();
+                        clearManualInputs();
+                        hideError();
+                    });
                 } else {
-                    noUsersMessage.classList.add('hidden');
-                    usersToAnalyze.forEach((user, index) => {
-                        const handleClass = user.isTrusted ? 'font-semibold' : 'font-semibold text-red-600';
-                        const listItem = document.createElement('li');
-                        listItem.className = 'p-2 bg-gray-50 rounded-md text-sm flex justify-between items-center border border-gray-200';
-                        listItem.innerHTML = `
-                            <div class="flex items-center gap-2">
-                                <input type="checkbox" data-index="${index}" class="user-trust-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${user.isTrusted ? 'checked' : ''}>
-                                <span><span class="${handleClass}">${user.handle}</span> (Luna: ${user.lunaNovaScore}/${user.lunaHardScore})</span>
-                            </div>
-                            <button data-index="${index}" class="remove-list-btn text-red-500 hover:text-red-700 font-bold px-2">×</button>`;
-                        userList.appendChild(listItem);
-                    });
+                    usersToAnalyze.push(newUser);
+                    updateUserListDisplay();
+                    clearManualInputs();
+                    hideError();
+                }
+            }
 
-                    userList.querySelectorAll('.remove-list-btn').forEach(btn => {
-                        btn.addEventListener('click', (e) => {
-                            const indexToRemove = parseInt(e.currentTarget.dataset.index, 10);
-                            usersToAnalyze.splice(indexToRemove, 1);
-                            updateUserListDisplay();
+            function clearManualInputs() { handleInput.value = ''; lunaNovaScoreInput.value = ''; lunaHardScoreInput.value = ''; placementsInput.value = ''; trustedUserInput.checked = true; }
+            
+            function loadJsonFile() { 
+                const file = jsonFileInput.files[0]; 
+                if (!file) { displayError('Please select a JSON backup file.'); return; } 
+                const reader = new FileReader(); 
+                reader.onload = (e) => { 
+                    try { 
+                        const data = JSON.parse(e.target.result);
+                        if (!data.users || !data.competitions) {
+                            throw new Error("Invalid backup file format. Must contain 'users' and 'competitions' keys.");
+                        }
+                        showConfirmationModal('Overwrite Data?', 'Loading this backup will overwrite all current users, competitions, and universities. Are you sure?', () => {
+                            userDatabase = data.users.map(u => ({...u, updatedAt: new Date(u.updatedAt), joinDate: u.joinDate ? new Date(u.joinDate) : null })); // Re-hydrate dates
+                            competitionDatabase = data.competitions || {};
+                            universityDatabase = data.universities || []; // Load universities
+                            // Sync analysis list with the new database
+                            usersToAnalyze = userDatabase.map(dbUser => {
+                                const placementPercentages = dbUser.placements.map(p => (p.rank / p.total) * 100);
+                                return {
+                                    handle: dbUser.handle,
+                                    lunaNovaScore: dbUser.lunaNovaScore,
+                                    lunaHardScore: dbUser.lunaHardScore,
+                                    placements: placementPercentages,
+                                    isTrusted: true
+                                };
+                            });
+                            cachedUserData = []; // Clear old API cache
+                            renderAll();
+                            displayError(`Successfully loaded backup. ${userDatabase.length} users, ${Object.keys(competitionDatabase).length} competitions, and ${universityDatabase.length} universities restored.`);
                         });
-                    });
-
-                    userList.querySelectorAll('.user-trust-checkbox').forEach(checkbox => {
-                        checkbox.addEventListener('change', (e) => {
-                            const indexToUpdate = parseInt(e.currentTarget.dataset.index, 10);
-                            usersToAnalyze[indexToUpdate].isTrusted = e.currentTarget.checked;
-                            updateUserListDisplay();
-                        });
-                    });
-                }
-            }
-
-            function clearUserList() {
-                usersToAnalyze = [];
-                cachedUserData = [];
-                updateUserListDisplay();
-                resultsTableBody.innerHTML = '';
-                resultsContainer.classList.add('hidden');
-                hideError();
-                downloadResultsBtn.disabled = true;
-                csvFileInput.value = '';
-                handleInput.value = '';
-                lunaNovaScoreInput.value = '';
-                lunaHardScoreInput.value = '';
-                placementsInput.value = '';
-            }
-
-            async function processSingleUser(user, rowElement) {
-                rowElement.innerHTML = `<td colspan="5" class="px-4 py-3 text-center text-gray-500">
-                    <div class="flex items-center justify-center gap-2">
-                        <div class="spinner h-4 w-4 rounded-full border-2 border-gray-200"></div>
-                        <span>Processing ${user.handle}...</span>
-                    </div>
-                </td>`;
-                try {
-                    const userData = await fetchStatsForHandle(user.handle, user.lunaNovaScore, user.lunaHardScore, user.placements, user.isTrusted);
-                    const cacheIndex = cachedUserData.findIndex(data => data.handle.toLowerCase() === user.handle.toLowerCase());
-                    if (cacheIndex > -1) cachedUserData[cacheIndex] = userData;
-                    else cachedUserData.push(userData);
-                    updateTableRow(rowElement, userData);
-                } catch (error) {
-                    console.error(`Error fetching stats for ${user.handle}:`, error);
-                    const errorData = { handle: user.handle, error: `API Error: ${error.message.substring(0, 60)}...` };
-                    const cacheIndex = cachedUserData.findIndex(data => data.handle.toLowerCase() === user.handle.toLowerCase());
-                    if (cacheIndex > -1) cachedUserData[cacheIndex] = errorData;
-                    else cachedUserData.push(errorData);
-                    updateTableRow(rowElement, errorData);
-                }
-            }
-
-            async function processAllUsers() {
-                if (usersToAnalyze.length === 0) {
-                    displayError('Please add users to the list first.');
-                    return;
-                }
-                
-                resultsContainer.classList.remove('hidden');
-                hideError();
-                showLoading();
-
-                const usersToProcess = usersToAnalyze.filter(user => {
-                    const cachedUser = cachedUserData.find(cached => cached.handle.toLowerCase() === user.handle.toLowerCase() && !cached.error);
-                    return !cachedUser || cachedUser.isTrusted !== user.isTrusted || cachedUser.lunaNovaScore !== user.lunaNovaScore || cachedUser.lunaHardScore !== user.lunaHardScore;
-                });
-
-
-                if (usersToProcess.length === 0) {
-                     hideLoading();
-                     displayError("All users in the list are up-to-date.");
-                     return;
-                }
-
-                for (let i = 0; i < usersToProcess.length; i++) {
-                    const user = usersToProcess[i];
-                    const loadingMessage = document.querySelector('#loadingIndicator p:first-child');
-                    if (loadingMessage) loadingMessage.textContent = `Processing user ${i + 1} of ${usersToProcess.length}: ${user.handle}...`;
-                    
-                    let row = document.getElementById(`row-${user.handle.toLowerCase()}`);
-                    if (!row) {
-                        row = resultsTableBody.insertRow();
-                        row.id = `row-${user.handle.toLowerCase()}`;
-                    }
-                    await processSingleUser(user, row);
-                }
-                
-                hideLoading();
-                downloadResultsBtn.disabled = cachedUserData.filter(d => !d.error).length === 0;
-                updateTableView();
-            }
-
-            function calculateAvgDiv2PerformanceScore(div2Submissions, div2ContestCount) {
-                if (!div2Submissions || div2Submissions.length === 0 || div2ContestCount === 0) return 0;
-                const solvedInDiv2 = {};
-                for (const sub of div2Submissions) {
-                    if (sub.verdict === 'OK') {
-                        if (!solvedInDiv2[sub.contestId]) solvedInDiv2[sub.contestId] = new Set();
-                        solvedInDiv2[sub.contestId].add(sub.problem.index);
-                    }
-                }
-                const problemWeights = { 'A': 1, 'B': 2, 'C': 4, 'D': 8, 'E': 12, 'F': 16 };
-                let totalPerformanceScore = 0;
-                for (const contestId in solvedInDiv2) {
-                    const solvedProblems = Array.from(solvedInDiv2[contestId]);
-                    let contestScore = 0;
-                    for (const problemIndex of solvedProblems) {
-                        const problemChar = problemIndex.charAt(0).toUpperCase();
-                        contestScore += problemWeights[problemChar] || 0;
-                    }
-                    totalPerformanceScore += contestScore;
-                }
-                return totalPerformanceScore / div2ContestCount;
-            }
-
-            // UPDATED: fetchStatsForHandle to use new activity/inactivity model
-            async function fetchStatsForHandle(handle, lunaNovaScore, lunaHardScore, placements, isTrusted) {
-	    	    if (handle == 'MrMoon') throw new Error("MrMoon is off the grid");
-                const userInfoData = await apiQueue.add(`https://codeforces.com/api/user.info?handles=${handle}`);
-                const userRatingData = await apiQueue.add(`https://codeforces.com/api/user.rating?handle=${handle}`);
-                const userStatusData = await apiQueue.add(`https://codeforces.com/api/user.status?handle=${handle}&from=1&count=5000`);
-                
-                const userInfo = userInfoData.result[0];
-                const allRatingChanges = userRatingData.result;
-                const allSubmissions = userStatusData.result;
-                
-                const totalContestCount = allRatingChanges.length;
-                const sumRatings = allRatingChanges.reduce((acc, curr) => acc + curr.newRating, 0);
-                const averageContestRating = totalContestCount > 0 ? (sumRatings / totalContestCount) : 0;
-                const maxRating = totalContestCount > 0 ? Math.max(...allRatingChanges.map(c => c.newRating)) : 0;
-                
-                const skippedSubmissionsCount = allSubmissions.filter(s => s.verdict === 'SKIPPED').length;
-                const div2Contests = allRatingChanges.filter(c => c.contestName.includes('Div. 2'));
-                const div2ContestIds = new Set(div2Contests.map(c => c.contestId));
-                const div2Submissions = allSubmissions.filter(s => div2ContestIds.has(s.contestId));
-                const div2ContestCount = div2Contests.length;
-                const avgDiv2PerformanceScore = calculateAvgDiv2PerformanceScore(div2Submissions, div2ContestCount);
-                const avgPlacement = placements.length > 0 ? placements.reduce((a, b) => a + b, 0) / placements.length : 0;
-                
-                const { rawActivityScore, uniqueActiveDays, inactivityScore, avgGap, stdDevGap } = calculateActivityAndInactivityMetrics(allSubmissions);
-
-                const stats = {
-                    handle, maxRating, averageContestRating, totalContestCount, lunaNovaScore, lunaHardScore, placements, avgPlacement,
-                    div2ContestCount, avgDiv2PerformanceScore, skippedSubmissionsCount, 
-                    rawActivityScore, uniqueActiveDays, inactivityScore, avgGap, stdDevGap, isTrusted,
-                    scoreFromPlacements: getScoreFromPlacements(placements), 
-                    scoreFromCombinedLuna: getCombinedLunaScore(lunaNovaScore, lunaHardScore), 
-                    scoreMaxRating: getScoreFromMaxRating(maxRating), 
-                    scoreAvgRating: getScoreFromAvgRating(averageContestRating), 
-                    scoreContestCount: getScoreFromContestCount(totalContestCount),
-                    scoreWeightedSolvedProblems: getRecencyWeightedSolvedProblemScore(allSubmissions), 
-                    scoreFromAvgDiv2Performance: getScoreFromAvgDiv2Performance(avgDiv2PerformanceScore),
-                    scoreFromActivity: getScoreFromActivity(rawActivityScore), // Using new normalized activity score
-                    userInfo, allRatingChanges, allSubmissions
-                };
-                const readinessProbability = calculateReadinessProbability(stats);
-                return { ...stats, readinessProbability };
-            }
-
-            function getConfidenceCategory(probability) {
-                if (probability >= 0.85) return 'very-high';
-                if (probability >= 0.65) return 'high';
-                if (probability >= 0.40) return 'medium';
-                return 'low';
-            }
-
-            function updateTableView() {
-                let filteredData = cachedUserData.filter(user => {
-                    if (user.error) return true;
-                    if (activeFilter === 'all') return true;
-                    const category = getConfidenceCategory(user.readinessProbability);
-                    return category === activeFilter;
-                });
-                const { key, direction } = sortState;
-                const sortedData = [...filteredData].sort((a, b) => {
-                    if (a.error) return 1;
-                    if (b.error) return -1;
-                    const valA = a[key];
-                    const valB = b[key];
-                    if (typeof valA === 'string') {
-                        return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
-                    }
-                    return direction === 'asc' ? valA - valB : valB - valA;
-                });
-                resultsTableBody.innerHTML = '';
-                sortedData.forEach(userData => {
-                    const row = resultsTableBody.insertRow();
-                    row.id = `row-${userData.handle.toLowerCase()}`;
-                    updateTableRow(row, userData);
-                });
-                updateSortIndicators();
-            }
-
-            function updateSortIndicators() {
-                resultsTableHeader.querySelectorAll('th').forEach(th => {
-                    th.classList.remove('sort-asc', 'sort-desc');
-                    if (th.dataset.sortKey === sortState.key) {
-                        th.classList.add(`sort-${sortState.direction}`);
-                    }
-                });
-            }
-
-            function updateTableRow(row, userData) {
-                if (userData.error) {
-                    row.innerHTML = `
-                        <td class="px-4 py-3 font-semibold">${userData.handle}</td>
-                        <td colspan="3" class="px-4 py-3 text-red-600">${userData.error}</td>
-                        <td class="px-4 py-3 text-center">
-                            <button class="retry-btn bg-blue-100 text-blue-700 text-xs font-bold py-1 px-3 rounded-full hover:bg-blue-200" data-handle="${userData.handle}">
-                                Retry
-                            </button>
-                        </td>`;
-                    return;
-                }
-
-                const probability = userData.readinessProbability * 100;
-                let probClass = '', confidence = 'Low';
-                const category = getConfidenceCategory(userData.readinessProbability);
-                if (category === 'very-high') { probClass = 'bg-green-100 text-green-800'; confidence = 'Very High'; }
-                else if (category === 'high') { probClass = 'bg-emerald-100 text-emerald-800'; confidence = 'High'; }
-                else if (category === 'medium') { probClass = 'bg-yellow-100 text-yellow-800'; confidence = 'Medium'; }
-                else { probClass = 'bg-red-100 text-red-800'; }
-                
-                const handleClass = userData.isTrusted ? 'font-semibold' : 'font-semibold text-red-600';
-
-                row.innerHTML = `
-                    <td class="px-4 py-3 whitespace-nowrap ${handleClass}">${userData.handle}</td>
-                    <td class="px-4 py-3 whitespace-nowrap font-bold text-center">${userData.scoreFromAvgDiv2Performance.toFixed(2)}</td>
-                    <td class="px-4 py-3 whitespace-nowrap">Top ${userData.avgPlacement.toFixed(1)}%</td>
-                    <td class="px-4 py-3 whitespace-nowrap text-center rounded-md ${probClass}">
-                        <div class="font-bold text-lg">${probability.toFixed(2)}%</div>
-                        <div class="text-xs font-semibold">${confidence}</div>
-                    </td>
-                    <td class="px-4 py-3 whitespace-nowrap text-center">
-                        <button class="details-btn bg-indigo-100 text-indigo-700 text-xs font-bold py-1 px-3 rounded-full hover:bg-indigo-200" data-handle="${userData.handle}">
-                            Details
-                        </button>
-                         <button class="remove-result-btn text-red-500 hover:text-red-700 font-bold px-2 ml-2" data-handle="${userData.handle}" title="Remove User">×</button>
-                    </td>
-                `;
-            }
-
-            function getFormattedDateTimeString() {
-                const now = new Date();
-                const pad = (num) => num.toString().padStart(2, '0');
-                const year = now.getFullYear();
-                const month = pad(now.getMonth() + 1);
-                const day = pad(now.getDate());
-                const hours = pad(now.getHours());
-                const minutes = pad(now.getMinutes());
-                return `${year}${month}${day}_${hours}${minutes}`;
-            }
-
-            function downloadFile(content, fileName, mimeType) {
-                const blob = new Blob([content], { type: mimeType });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = fileName;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
-
-            function downloadUserList() {
-                if (usersToAnalyze.length === 0) { displayError('User list is empty.'); return; }
-                const userRows = usersToAnalyze.map(user => {
-                    const placementsStr = `"${user.placements.join(';')}"`;
-                    return [user.handle, user.lunaNovaScore, user.lunaHardScore, placementsStr, user.isTrusted].join(',');
-                });
-                const userCsvString = "handle,luna_nova_score,luna_hard_score,placements,is_trusted\n" + userRows.join('\n');
-                const fileName = `user_list_${getFormattedDateTimeString()}.csv`;
-                downloadFile(userCsvString, fileName, 'text/csv;charset=utf-8;');
+                    } catch (error) { 
+                        displayError(`Error parsing JSON: ${error.message}`); 
+                    } 
+                }; 
+                reader.readAsText(file); 
+                jsonFileInput.value = '';
             }
             
-            function downloadResults() {
-                if (cachedUserData.filter(d => !d.error).length === 0) {
-                    displayError('No processed results to download.');
+            function updateUserListDisplay() { userList.innerHTML = ''; userCount.textContent = usersToAnalyze.length; noUsersMessage.classList.toggle('hidden', usersToAnalyze.length > 0); usersToAnalyze.forEach((user, index) => { const handleClass = user.isTrusted ? 'font-semibold' : 'font-semibold text-red-600'; const listItem = document.createElement('li'); listItem.className = 'p-2 bg-gray-50 rounded-md text-sm flex justify-between items-center border border-gray-200'; listItem.innerHTML = `<div class="flex items-center gap-2"><input type="checkbox" data-index="${index}" class="user-trust-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${user.isTrusted ? 'checked' : ''}><span><span class="${handleClass}">${user.handle}</span> (Luna: ${user.lunaNovaScore}/${user.lunaHardScore})</span></div><button data-index="${index}" class="remove-list-btn text-red-500 hover:text-red-700 font-bold px-2">×</button>`; userList.appendChild(listItem); }); }
+            function clearUserList() { showConfirmationModal('Clear User List?', 'This will remove all users from the analysis list and clear any processed results. Are you sure?', () => { usersToAnalyze = []; cachedUserData = []; updateUserListDisplay(); resultsTableBody.innerHTML = ''; resultsContainer.classList.add('hidden'); hideError(); downloadAnalysisBtn.disabled = true; clearManualInputs(); jsonFileInput.value = ''; }); }
+            async function processSingleUser(user, rowElement) { rowElement.innerHTML = `<td colspan="5" class="px-4 py-3 text-center text-gray-500"><div class="flex items-center justify-center gap-2"><div class="spinner h-4 w-4 rounded-full border-2 border-gray-200"></div><span>Processing ${user.handle}...</span></div></td>`; try { const userData = await fetchStatsForHandle(user.handle, user.lunaNovaScore, user.lunaHardScore, user.placements, user.isTrusted); const cacheIndex = cachedUserData.findIndex(data => data.handle.toLowerCase() === user.handle.toLowerCase()); if (cacheIndex > -1) cachedUserData[cacheIndex] = userData; else cachedUserData.push(userData); updateTableRow(rowElement, userData); } catch (error) { console.error(`Error fetching stats for ${user.handle}:`, error); const errorData = { handle: user.handle, error: `API Error: ${error.message.substring(0, 60)}...` }; const cacheIndex = cachedUserData.findIndex(data => data.handle.toLowerCase() === user.handle.toLowerCase()); if (cacheIndex > -1) cachedUserData[cacheIndex] = errorData; else cachedUserData.push(errorData); updateTableRow(rowElement, errorData); } }
+            async function processAllUsers() { if (usersToAnalyze.length === 0) { displayError('Please add users to the list first.'); return; } resultsContainer.classList.remove('hidden'); hideError(); showLoading(); const usersToProcess = usersToAnalyze.filter(user => { const cachedUser = cachedUserData.find(cached => cached.handle.toLowerCase() === user.handle.toLowerCase() && !cached.error); return !cachedUser || cachedUser.isTrusted !== user.isTrusted || cachedUser.lunaNovaScore !== user.lunaNovaScore || cachedUser.lunaHardScore !== user.lunaHardScore; }); if (usersToProcess.length === 0) { hideLoading(); displayError("All users in the list are up-to-date."); updateTableView(); return; } for (let i = 0; i < usersToProcess.length; i++) { const user = usersToProcess[i]; const loadingMessage = document.querySelector('#loadingIndicator p:first-child'); if (loadingMessage) loadingMessage.textContent = `Processing user ${i + 1} of ${usersToProcess.length}: ${user.handle}...`; let row = document.getElementById(`row-${user.handle.toLowerCase()}`); if (!row) { row = resultsTableBody.insertRow(); row.id = `row-${user.handle.toLowerCase()}`; } await processSingleUser(user, row); } hideLoading(); downloadAnalysisBtn.disabled = cachedUserData.filter(d => !d.error).length === 0; updateTableView(); }
+
+            // --- Database Tab Logic ---
+            function addPlacementInput(placement = null) {
+                const placementDiv = document.createElement('div');
+                placementDiv.className = 'p-3 border border-gray-200 rounded-md space-y-2 placement-entry bg-gray-50 relative';
+                
+                const compName = placement ? placement.name : '';
+                const compLink = placement ? (competitionDatabase[compName]?.link || '') : '';
+
+                placementDiv.innerHTML = `
+                    <button type="button" class="remove-placement-btn absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center font-bold text-xs hover:bg-red-600">&times;</button>
+                    <input type="text" list="competition-list" placeholder="Competition Name*" class="comp-name-input w-full text-sm px-2 py-1 border border-gray-300 rounded-md" value="${compName}" required>
+                    <input type="url" placeholder="Competition Link*" class="comp-link-input w-full text-sm px-2 py-1 border border-gray-300 rounded-md" value="${compLink}" required>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="number" placeholder="Rank*" min="1" class="w-full text-sm px-2 py-1 border border-gray-300 rounded-md" value="${placement ? placement.rank : ''}" required>
+                        <input type="number" placeholder="Total*" min="1" class="comp-total-input w-full text-sm px-2 py-1 border border-gray-300 rounded-md" value="${placement ? placement.total : ''}" required>
+                    </div>
+                `;
+                placementsContainer.appendChild(placementDiv);
+                placementDiv.querySelector('.remove-placement-btn').addEventListener('click', () => {
+                    showConfirmationModal('Remove Placement?', 'Are you sure you want to remove this placement entry?', () => {
+                        placementDiv.remove();
+                    });
+                });
+
+                const nameInput = placementDiv.querySelector('.comp-name-input');
+                const linkInput = placementDiv.querySelector('.comp-link-input');
+                const totalInput = placementDiv.querySelector('.comp-total-input');
+
+                nameInput.addEventListener('change', () => {
+                    const compName = nameInput.value;
+                    if (competitionDatabase[compName]) {
+                        if(competitionDatabase[compName].total) {
+                            totalInput.value = competitionDatabase[compName].total;
+                            totalInput.readOnly = true;
+                        }
+                        if(competitionDatabase[compName].link) {
+                            linkInput.value = competitionDatabase[compName].link;
+                            linkInput.readOnly = true;
+                        }
+                    } else {
+                        totalInput.readOnly = false;
+                        linkInput.readOnly = false;
+                    }
+                });
+                // Trigger change event if there's an initial value
+                if (placement) nameInput.dispatchEvent(new Event('change'));
+            }
+
+            function handleDetailedUserFormSubmit(e) {
+                e.preventDefault();
+                const formData = new FormData(detailedUserForm);
+                const handle = formData.get('handle').trim();
+                if (!handle) { alert("Handle is required."); return; }
+
+                const placements = [];
+                let placementError = false;
+                document.querySelectorAll('.placement-entry').forEach(entry => {
+                    if (placementError) return;
+                    const nameInput = entry.querySelector('.comp-name-input');
+                    const linkInput = entry.querySelector('.comp-link-input');
+                    const rankInput = entry.querySelector('input[placeholder="Rank*"]');
+                    const totalInput = entry.querySelector('.comp-total-input');
+
+                    const name = nameInput.value.trim();
+                    const link = linkInput.value.trim();
+                    const rankStr = rankInput.value;
+                    const totalStr = totalInput.value;
+
+                    if (!name || !rankStr || !totalStr || !link) {
+                        alert('All placement fields (Name, Link, Rank, Total) are required.');
+                        placementError = true;
+                        return;
+                    }
+                    const rank = parseInt(rankStr, 10);
+                    const total = parseInt(totalStr, 10);
+
+                    if (rank > total) {
+                         alert(`Placement error for "${name}": Rank (${rank}) cannot be greater than Total (${total}).`);
+                         placementError = true;
+                         return;
+                    }
+
+                    placements.push({ name, rank, total });
+                    // Add/update competition in the central database
+                    if (!competitionDatabase[name] || !competitionDatabase[name].total || !competitionDatabase[name].link) {
+                        competitionDatabase[name] = { link, total };
+                    }
+                });
+
+                if (placementError) return;
+                
+                const universityName = formData.get('university').trim();
+                if (universityName && !universityDatabase.includes(universityName)) {
+                    universityDatabase.push(universityName);
+                    universityDatabase.sort();
+                }
+
+                const newUser = {
+                    id: handle.toLowerCase(),
+                    handle: handle,
+                    fullName: formData.get('fullName').trim(),
+                    linkedin: formData.get('linkedin').trim(),
+                    university: universityName,
+                    lunaNovaScore: parseFloat(formData.get('lunaNovaScore')) || 0,
+                    lunaHardScore: parseFloat(formData.get('lunaHardScore')) || 0,
+                    acmLevel: parseInt(formData.get('acmLevel'), 10),
+                    joinDate: formData.get('joinDate') ? new Date(formData.get('joinDate')) : null,
+                    placements: placements,
+                    updatedAt: new Date()
+                };
+
+                const existingIndex = userDatabase.findIndex(u => u.id === newUser.id);
+                if (existingIndex > -1) {
+                    userDatabase[existingIndex] = newUser;
+                } else {
+                    userDatabase.push(newUser);
+                }
+                updateAnalysisListFromDatabase(newUser);
+                clearDetailedUserForm();
+                renderAll();
+            }
+            
+            function clearDetailedUserForm() {
+                detailedUserForm.reset();
+                placementsContainer.innerHTML = '';
+                detailedUserForm.querySelector('[name="handle"]').readOnly = false;
+            }
+
+            function updateAnalysisListFromDatabase(dbUser) {
+                const placementPercentages = dbUser.placements.map(p => (p.rank / p.total) * 100);
+                const analysisUser = {
+                    handle: dbUser.handle,
+                    lunaNovaScore: dbUser.lunaNovaScore,
+                    lunaHardScore: dbUser.lunaHardScore,
+                    placements: placementPercentages,
+                    isTrusted: true
+                };
+                addOrUpdateUserInAnalysisList(analysisUser);
+            }
+
+            function renderAll() {
+                renderUserDatabaseTable();
+                updateAndRenderStatistics();
+                renderCompetitionEditor();
+                updateCompetitionDatalist();
+                renderUniversityEditor();
+                updateUniversityDatalist();
+            }
+
+            function renderUserDatabaseTable() {
+                detailedUserTableBody.innerHTML = '';
+                databaseUserCount.textContent = userDatabase.length;
+
+                if (userDatabase.length === 0) {
+                    detailedUserTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-500">No users in the database yet.</td></tr>`;
                     return;
                 }
-                
-                const tableRows = resultsTableBody.querySelectorAll('tr');
-                let resultCsvString;
-                let fileName;
 
-                if (activeFilter !== 'all') {
-                    const headers = ["Handle"];
-                    const resultRows = [headers.join(',')];
-                    tableRows.forEach(row => {
-                        const handle = row.querySelector('td:first-child')?.textContent.split(' ')[0];
-                        if (handle) {
-                            const data = cachedUserData.find(d => d.handle === handle && !d.error);
-                            if (data) resultRows.push(handle);
-                        }
-                    });
-                    resultCsvString = resultRows.join('\n');
-                    fileName = `filtered_handles_${activeFilter}_${getFormattedDateTimeString()}.csv`;
-                } else {
-                    const headers = ["Handle", "Is Trusted", "Readiness Probability (%)", "Confidence", "Norm. Div. 2 Perf Score", "Luna Nova Score", "Luna Hard Score", "Avg Placement (%)", "Total Contests", "Max Rating", "Avg Rating", "Unique Active Days", "Avg Gap (Days)", "Gap Std Dev"];
-                    const resultRows = [headers.join(',')];
-                    tableRows.forEach(row => {
-                        const handle = row.querySelector('td:first-child')?.textContent.split(' ')[0];
-                        if (!handle) return;
-                        const data = cachedUserData.find(d => d.handle === handle && !d.error);
-                        if (!data) return;
-                        const probability = data.readinessProbability * 100;
-                        let confidence = 'Low';
-                        if (probability >= 85) { confidence = 'Very High'; }
-                        else if (probability >= 65) { confidence = 'High'; }
-                        else if (probability >= 40) { confidence = 'Medium'; }
-                        const rowData = [
-                            data.handle, 
-                            data.isTrusted,
-                            probability.toFixed(2),
-                            confidence,
-                            data.scoreFromAvgDiv2Performance.toFixed(2),
-                            data.lunaNovaScore,
-                            data.lunaHardScore,
-                            data.avgPlacement.toFixed(1),
-                            data.totalContestCount,
-                            data.maxRating, 
-                            data.averageContestRating.toFixed(0),
-                            data.uniqueActiveDays,
-                            data.avgGap.toFixed(1),
-                            data.stdDevGap.toFixed(1)
-                        ];
-                        resultRows.push(rowData.join(','));
-                    });
-                     resultCsvString = resultRows.join('\n');
-                     fileName = `readiness_results_${getFormattedDateTimeString()}.csv`;
-                }
-                
-                downloadFile(resultCsvString, fileName, 'text/csv;charset=utf-8;');
+                userDatabase.sort((a,b) => b.updatedAt - a.updatedAt);
+
+                userDatabase.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.className = 'border-b hover:bg-gray-50';
+                    row.dataset.id = user.id;
+                    const formattedDate = user.updatedAt.toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    row.innerHTML = `
+                        <td class="p-2 font-semibold">${user.handle}</td>
+                        <td class="p-2">${user.fullName || 'N/A'}</td>
+                        <td class="p-2">${user.university || 'N/A'}</td>
+                        <td class="p-2 text-xs text-gray-600">${formattedDate}</td>
+                        <td class="p-2 text-center">
+                            <button class="details-db-user-btn text-indigo-600 hover:text-indigo-800 text-sm font-medium">Details</button>
+                            <button class="edit-db-user-btn text-blue-600 hover:text-blue-800 text-sm ml-2">Edit</button>
+                            <button class="delete-db-user-btn text-red-600 hover:text-red-800 ml-2 text-sm">Delete</button>
+                        </td>
+                    `;
+                    detailedUserTableBody.appendChild(row);
+                });
+            }
+            
+            function downloadDbReadinessCSV() {
+                if (userDatabase.length === 0) { alert("No users in the database to download."); return; }
+                const csvRows = userDatabase.map(user => {
+                    const placementsStr = user.placements.map(p => `${((p.rank / p.total)*100).toFixed(4)}`).join(';');
+                    return [user.handle, user.lunaNovaScore, user.lunaHardScore, `"${placementsStr}"`].join(',');
+                });
+                const csvString = "handle,luna_nova_score,luna_hard_score,placements\n" + csvRows.join('\n');
+                downloadFile(csvString, `db_readiness_format_${getFormattedDateTimeString()}.csv`, 'text/csv;charset=utf-8;');
             }
 
-            // --- Modal Functions ---
-            function formatAccountAge(registrationTimeSeconds) {
-                const registrationDate = new Date(registrationTimeSeconds * 1000);
-                const now = new Date();
-                const diffMillis = now.getTime() - registrationDate.getTime();
-                const diffDays = diffMillis / (1000 * 3600 * 24);
-                if (diffDays < 1) return `Less than a day`;
-                if (diffDays < 30.44) return `${Math.floor(diffDays)} day(s)`;
-                if (diffDays < 365.25) return `${Math.floor(diffDays / 30.44)} month(s)`;
-                return `${(diffDays / 365.25).toFixed(1)} year(s)`;
+            function downloadDbFullBackup() {
+                if (userDatabase.length === 0 && Object.keys(competitionDatabase).length === 0 && universityDatabase.length === 0) {
+                    alert("No data to back up.");
+                    return;
+                }
+                const backupData = {
+                    users: userDatabase,
+                    competitions: competitionDatabase,
+                    universities: universityDatabase,
+                    createdAt: new Date().toISOString()
+                };
+                const jsonString = JSON.stringify(backupData, null, 2);
+                downloadFile(jsonString, `electi_backup_${getFormattedDateTimeString()}.json`, 'application/json');
             }
 
-            function createActivityHeatmap(submissions) {
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const oneYearAgo = new Date(today);
-                oneYearAgo.setFullYear(today.getFullYear() - 1);
-
-                const activity = new Map();
-                submissions.forEach(sub => {
-                    if (sub.verdict === 'OK') {
-                        const date = new Date(sub.creationTimeSeconds * 1000);
-                        date.setHours(0, 0, 0, 0);
-                        const dateStr = date.toISOString().split('T')[0];
-                        activity.set(dateStr, (activity.get(dateStr) || 0) + 1);
-                    }
+            // --- Competition Editor ---
+            function updateCompetitionDatalist() {
+                competitionDataList.innerHTML = '';
+                Object.keys(competitionDatabase).sort().forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    competitionDataList.appendChild(option);
                 });
+            }
 
-                const daySize = 12;
-                const weekWidth = daySize + 2;
-                const monthLabelHeight = 20;
-                const svgWidth = weekWidth * 53;
-                const svgHeight = (daySize + 2) * 7 + monthLabelHeight;
-                
-                let svg = `<svg width="${svgWidth}" height="${svgHeight}" class="mx-auto">`;
-                svg += `<g transform="translate(0, ${monthLabelHeight})">`;
-
-                const colors = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
-                let maxActivity = 0;
-                activity.forEach(count => { maxActivity = Math.max(maxActivity, count) });
-
-                const monthLabels = [];
-
-                for (let i = 0; i < 365; i++) {
-                    const date = new Date(oneYearAgo);
-                    date.setDate(oneYearAgo.getDate() + i);
-                    if (date > today) continue;
-
-                    const dayOfWeek = date.getDay();
-                    const weekOfYear = Math.floor((date - oneYearAgo) / (1000 * 60 * 60 * 24 * 7));
-                    
-                    const x = weekOfYear * weekWidth;
-                    const y = dayOfWeek * (daySize + 2);
-
-                    const dateStr = date.toISOString().split('T')[0];
-                    const count = activity.get(dateStr) || 0;
-                    
-                    let colorIndex = 0;
-                    if (count > 0) {
-                        colorIndex = Math.min(colors.length - 1, Math.ceil(count / maxActivity * (colors.length - 1)));
-                    }
-
-                    svg += `<rect class="heatmap-day" width="${daySize}" height="${daySize}" x="${x}" y="${y}" fill="${colors[colorIndex]}" rx="2" ry="2" data-date="${dateStr}" data-count="${count}">
-                                <title>${count} submissions on ${date.toDateString()}</title>
-                            </rect>`;
-                    
-                    if (date.getDate() === 1) {
-                        monthLabels.push({ x, month: date.toLocaleString('default', { month: 'short' }) });
-                    }
+            function renderCompetitionEditor() {
+                competitionEditorContainer.innerHTML = '';
+                const sortedComps = Object.keys(competitionDatabase).sort();
+                if (sortedComps.length === 0) {
+                    competitionEditorContainer.innerHTML = `<p class="text-center text-gray-500 text-sm py-2">No competitions added yet.</p>`;
+                    return;
                 }
-                svg += `</g>`;
-                
-                svg += `<g class="text-xs text-gray-500">`;
-                monthLabels.forEach(label => {
-                     svg += `<text x="${label.x}" y="${monthLabelHeight - 5}">${label.month}</text>`;
+                sortedComps.forEach(name => {
+                    const comp = competitionDatabase[name];
+                    const div = document.createElement('div');
+                    div.className = 'p-2 border rounded-md space-y-2 text-sm bg-white';
+                    div.innerHTML = `
+                        <input type="text" value="${name}" class="comp-edit-name w-full p-1 border rounded-md font-semibold" placeholder="Competition Name*">
+                        <input type="url" value="${comp.link || ''}" placeholder="Competition Link*" class="comp-edit-link w-full p-1 border rounded-md">
+                        <input type="number" value="${comp.total || ''}" placeholder="Total Participants*" class="comp-edit-total w-full p-1 border rounded-md">
+                        <div class="flex justify-end gap-2">
+                           <button data-original-name="${name}" class="comp-save-btn text-blue-600 hover:text-blue-800 font-semibold">Save</button>
+                           <button data-name="${name}" class="comp-delete-btn text-red-600 hover:text-red-800 font-semibold">Delete</button>
+                        </div>
+                    `;
+                    competitionEditorContainer.appendChild(div);
                 });
-                svg += `</g>`;
+            }
 
-                svg += `</svg>`;
-                return svg;
+            function handleCompetitionEditorClick(e) {
+                const target = e.target;
+                if (target.classList.contains('comp-save-btn')) {
+                    const originalName = target.dataset.originalName;
+                    const container = target.closest('div.p-2');
+                    const newName = container.querySelector('.comp-edit-name').value.trim();
+                    const newLink = container.querySelector('.comp-edit-link').value.trim();
+                    const newTotalStr = container.querySelector('.comp-edit-total').value;
+
+                    if (!newName || !newLink || !newTotalStr) { alert("Competition Name, Link, and Total are required."); return; }
+                    const newTotal = parseInt(newTotalStr, 10);
+
+                    // Delete old entry if name changed
+                    if (originalName !== newName && competitionDatabase[originalName]) {
+                        delete competitionDatabase[originalName];
+                        // Also update all users who had the old competition name
+                        userDatabase.forEach(user => {
+                            user.placements.forEach(p => {
+                                if (p.name === originalName) p.name = newName;
+                            });
+                        });
+                    }
+                    
+                    competitionDatabase[newName] = { link: newLink, total: newTotal };
+                    renderAll();
+                } else if (target.classList.contains('comp-delete-btn')) {
+                    const nameToDelete = target.dataset.name;
+                    showConfirmationModal('Delete Competition?', `Are you sure you want to delete "${nameToDelete}"? This will NOT remove placements from users, but will unlink them from this competition definition.`, () => {
+                        delete competitionDatabase[nameToDelete];
+                        renderAll();
+                    });
+                }
+            }
+            
+            function downloadCompetitionsCSV() {
+                if (Object.keys(competitionDatabase).length === 0) {
+                    alert("No competitions to download.");
+                    return;
+                }
+                const headers = ["Competition Name", "Link", "Total Participants"];
+                const rows = Object.entries(competitionDatabase).map(([name, data]) => {
+                    return [`"${name.replace(/"/g, '""')}"`, data.link, data.total].join(',');
+                });
+                const csvString = [headers.join(','), ...rows].join('\n');
+                downloadFile(csvString, `competitions_${getFormattedDateTimeString()}.csv`, 'text/csv;charset=utf-8;');
+            }
+
+            // --- University Editor ---
+            function renderUniversityEditor() {
+                universityEditorContainer.innerHTML = '';
+                if (universityDatabase.length === 0) {
+                    universityEditorContainer.innerHTML = `<p class="text-center text-gray-500 text-sm py-2">No universities added yet.</p>`;
+                    return;
+                }
+                universityDatabase.forEach((uni, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center gap-2 p-2 bg-white border rounded-md';
+                    div.innerHTML = `
+                        <input type="text" value="${uni}" data-index="${index}" class="uni-edit-name flex-grow p-1 border-gray-300 rounded-md text-sm">
+                        <button data-index="${index}" class="uni-delete-btn text-red-500 hover:text-red-700 font-bold px-2 text-lg">&times;</button>
+                    `;
+                    universityEditorContainer.appendChild(div);
+                });
+            }
+
+            function handleUniversityEditorChange(e) {
+                const target = e.target;
+                if (target.classList.contains('uni-edit-name')) {
+                    const index = parseInt(target.dataset.index, 10);
+                    const originalName = universityDatabase[index];
+                    const newName = target.value.trim();
+                    if (newName && newName !== originalName) {
+                        // Update university name for all users
+                        userDatabase.forEach(user => {
+                            if (user.university === originalName) {
+                                user.university = newName;
+                            }
+                        });
+                        universityDatabase[index] = newName;
+                        universityDatabase.sort();
+                        renderAll();
+                    } else {
+                        target.value = originalName; // Revert if empty
+                    }
+                } else if (target.classList.contains('uni-delete-btn')) {
+                    const index = parseInt(target.dataset.index, 10);
+                    const nameToDelete = universityDatabase[index];
+                    showConfirmationModal('Delete University?', `Are you sure you want to delete "${nameToDelete}"? This will NOT remove the university from existing users, but will remove it from the list.`, () => {
+                        universityDatabase.splice(index, 1);
+                        renderAll();
+                    });
+                }
+            }
+
+            function updateUniversityDatalist() {
+                universityDataList.innerHTML = '';
+                universityDatabase.forEach(name => {
+                    const option = document.createElement('option');
+                    option.value = name;
+                    universityDataList.appendChild(option);
+                });
+            }
+
+            // --- STATISTICS LOGIC ---
+            function updateAndRenderStatistics() {
+                const totalUsers = userDatabase.length;
+                statTotalUsers.textContent = totalUsers;
+                statUniqueComps.textContent = Object.keys(competitionDatabase).length;
+
+                if (totalUsers === 0) {
+                    statPassedL1.textContent = '0%';
+                    if(acmLevelChart) acmLevelChart.destroy();
+                    if(competitionPieChart) competitionPieChart.destroy();
+                    document.getElementById('acmLevelChart').parentElement.innerHTML = '<canvas id="acmLevelChart"></canvas>';
+                    document.getElementById('competitionChart').parentElement.innerHTML = '<canvas id="competitionChart"></canvas>';
+                    return;
+                }
+
+                const passedL1Count = userDatabase.filter(u => u.acmLevel >= 1 && u.acmLevel !== 10).length;
+                statPassedL1.textContent = `${((passedL1Count / totalUsers) * 100).toFixed(0)}%`;
+
+                // ACM Level Chart
+                const acmLevels = { '0': 0, '-1': 0, '10': 0, '1': 0, '2': 0 }; // None, Codeability, L0, L1, L2
+                userDatabase.forEach(u => { 
+                    if (acmLevels.hasOwnProperty(u.acmLevel)) {
+                       acmLevels[u.acmLevel]++;
+                    }
+                });
+                const acmData = { 
+                    labels: ['None', 'Codeability', 'Level 0', 'Level 1', 'Level 2'], 
+                    datasets: [{ 
+                        data: [acmLevels['0'], acmLevels['-1'], acmLevels['10'], acmLevels['1'], acmLevels['2']], 
+                        backgroundColor: ['#6b7280', '#a1a1aa', '#10b981', '#f59e0b', '#ef4444'], 
+                    }] 
+                };
+                if (acmLevelChart) acmLevelChart.destroy();
+                acmLevelChart = new Chart(document.getElementById('acmLevelChart').getContext('2d'), { type: 'pie', data: acmData, options: { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: 'ACM Level Breakdown' } } } });
+
+                // Competition Chart
+                const compCounts = userDatabase.flatMap(u => u.placements.map(p => p.name)).reduce((acc, name) => { acc[name] = (acc[name] || 0) + 1; return acc; }, {});
+                const sortedCompCounts = Object.entries(compCounts).sort(([,a],[,b]) => b-a).slice(0, 10); // Top 10
+                const compData = { labels: sortedCompCounts.map(([name]) => name), datasets: [{ label: 'Participants', data: sortedCompCounts.map(([,count]) => count), backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#6b7280', '#ec4899', '#6366f1', '#f97316', '#06b6d4'], }] };
+                if (competitionPieChart) competitionPieChart.destroy();
+                competitionPieChart = new Chart(document.getElementById('competitionChart').getContext('2d'), { type: 'doughnut', data: compData, options: { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Top 10 Competitions by Participants' } } } });
+            }
+            
+            // --- Original functions (fetchStatsForHandle, table updates, etc.) ---
+            function calculateAvgDiv2PerformanceScore(div2Submissions, div2ContestCount) { if (!div2Submissions || div2Submissions.length === 0 || div2ContestCount === 0) return 0; const solvedInDiv2 = {}; for (const sub of div2Submissions) { if (sub.verdict === 'OK') { if (!solvedInDiv2[sub.contestId]) solvedInDiv2[sub.contestId] = new Set(); solvedInDiv2[sub.contestId].add(sub.problem.index); } } const problemWeights = { 'A': 1, 'B': 2, 'C': 4, 'D': 8, 'E': 12, 'F': 16 }; let totalPerformanceScore = 0; for (const contestId in solvedInDiv2) { const solvedProblems = Array.from(solvedInDiv2[contestId]); let contestScore = 0; for (const problemIndex of solvedProblems) { const problemChar = problemIndex.charAt(0).toUpperCase(); contestScore += problemWeights[problemChar] || 0; } totalPerformanceScore += contestScore; } return totalPerformanceScore / div2ContestCount; }
+            async function fetchStatsForHandle(handle, lunaNovaScore, lunaHardScore, placements, isTrusted) { if (handle == 'MrMoon') throw new Error("MrMoon is off the grid"); const userInfoData = await apiQueue.add(`https://codeforces.com/api/user.info?handles=${handle}`); const userRatingData = await apiQueue.add(`https://codeforces.com/api/user.rating?handle=${handle}`); const userStatusData = await apiQueue.add(`https://codeforces.com/api/user.status?handle=${handle}&from=1&count=5000`); const userInfo = userInfoData.result[0]; const allRatingChanges = userRatingData.result; const allSubmissions = userStatusData.result; const totalContestCount = allRatingChanges.length; const sumRatings = allRatingChanges.reduce((acc, curr) => acc + curr.newRating, 0); const averageContestRating = totalContestCount > 0 ? (sumRatings / totalContestCount) : 0; const maxRating = totalContestCount > 0 ? Math.max(...allRatingChanges.map(c => c.newRating)) : 0; const skippedSubmissionsCount = allSubmissions.filter(s => s.verdict === 'SKIPPED').length; const div2Contests = allRatingChanges.filter(c => c.contestName.includes('Div. 2')); const div2ContestIds = new Set(div2Contests.map(c => c.contestId)); const div2Submissions = allSubmissions.filter(s => div2ContestIds.has(s.contestId)); const div2ContestCount = div2Contests.length; const avgDiv2PerformanceScore = calculateAvgDiv2PerformanceScore(div2Submissions, div2ContestCount); const avgPlacement = placements.length > 0 ? placements.reduce((a, b) => a + b, 0) / placements.length : 0; const { rawActivityScore, inactivityScore, avgGap, stdDevGap } = calculateActivityAndInactivityMetrics(allSubmissions); const stats = { handle, maxRating, averageContestRating, totalContestCount, lunaNovaScore, lunaHardScore, placements, avgPlacement, div2ContestCount, avgDiv2PerformanceScore, skippedSubmissionsCount, rawActivityScore, inactivityScore, avgGap, stdDevGap, isTrusted, scoreFromPlacements: getScoreFromPlacements(placements), scoreFromCombinedLuna: getCombinedLunaScore(lunaNovaScore, lunaHardScore), scoreMaxRating: getScoreFromMaxRating(maxRating), scoreAvgRating: getScoreFromAvgRating(averageContestRating), scoreContestCount: getScoreFromContestCount(totalContestCount), scoreWeightedSolvedProblems: getRecencyWeightedSolvedProblemScore(allSubmissions), scoreFromAvgDiv2Performance: getScoreFromAvgDiv2Performance(avgDiv2PerformanceScore), scoreFromActivity: getScoreFromActivity(rawActivityScore), userInfo, allRatingChanges, allSubmissions }; const readinessProbability = calculateReadinessProbability(stats); return { ...stats, readinessProbability }; }
+            function getConfidenceCategory(probability) { if (probability >= 0.85) return 'very-high'; if (probability >= 0.65) return 'high'; if (probability >= 0.40) return 'medium'; return 'low'; }
+            function updateTableView() { let filteredData = cachedUserData.filter(user => { if (user.error) return true; if (activeFilter === 'all') return true; return getConfidenceCategory(user.readinessProbability) === activeFilter; }); const { key, direction } = sortState; const sortedData = [...filteredData].sort((a, b) => { if (a.error) return 1; if (b.error) return -1; const valA = a[key]; const valB = b[key]; if (valA === undefined || valA === null) return 1; if (valB === undefined || valB === null) return -1; return direction === 'asc' ? String(valA).localeCompare(String(valB), undefined, {numeric: true}) : String(valB).localeCompare(String(valA), undefined, {numeric: true}); }); resultsTableBody.innerHTML = ''; sortedData.forEach(userData => { const row = resultsTableBody.insertRow(); row.id = `row-${userData.handle.toLowerCase()}`; updateTableRow(row, userData); }); updateSortIndicators(); }
+            function updateSortIndicators() { resultsTableHeader.querySelectorAll('th').forEach(th => { th.classList.remove('sort-asc', 'sort-desc'); if (th.dataset.sortKey === sortState.key) th.classList.add(`sort-${sortState.direction}`); }); }
+            function updateTableRow(row, userData) { if (userData.error) { row.innerHTML = `<td class="px-4 py-3 font-semibold">${userData.handle}</td><td colspan="3" class="px-4 py-3 text-red-600">${userData.error}</td><td class="px-4 py-3 text-center"><button class="retry-btn bg-blue-100 text-blue-700 text-xs font-bold py-1 px-3 rounded-full hover:bg-blue-200" data-handle="${userData.handle}">Retry</button></td>`; return; } const probability = userData.readinessProbability * 100; let probClass = '', confidence = 'Low'; const category = getConfidenceCategory(userData.readinessProbability); if (category === 'very-high') { probClass = 'bg-green-100 text-green-800'; confidence = 'Very High'; } else if (category === 'high') { probClass = 'bg-emerald-100 text-emerald-800'; confidence = 'High'; } else if (category === 'medium') { probClass = 'bg-yellow-100 text-yellow-800'; confidence = 'Medium'; } else { probClass = 'bg-red-100 text-red-800'; } const handleClass = userData.isTrusted ? 'font-semibold' : 'font-semibold text-red-600'; row.innerHTML = `<td class="px-4 py-3 whitespace-nowrap ${handleClass}">${userData.handle}</td><td class="px-4 py-3 whitespace-nowrap font-bold text-center">${userData.scoreFromAvgDiv2Performance.toFixed(2)}</td><td class="px-4 py-3 whitespace-nowrap">Top ${userData.avgPlacement.toFixed(1)}%</td><td class="px-4 py-3 whitespace-nowrap text-center rounded-md ${probClass}"><div class="font-bold text-lg">${probability.toFixed(2)}%</div><div class="text-xs font-semibold">${confidence}</div></td><td class="px-4 py-3 whitespace-nowrap text-center"><button class="details-btn bg-indigo-100 text-indigo-700 text-xs font-bold py-1 px-3 rounded-full hover:bg-indigo-200" data-handle="${userData.handle}">Details</button><button class="remove-result-btn text-red-500 hover:text-red-700 font-bold px-2 ml-2" data-handle="${userData.handle}" title="Remove User">×</button></td>`; }
+            function getFormattedDateTimeString() { const now = new Date(); const pad = (num) => num.toString().padStart(2, '0'); return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`; }
+            function downloadFile(content, fileName, mimeType) { const blob = new Blob([content], { type: mimeType }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = fileName; document.body.appendChild(link); link.click(); document.body.removeChild(link); }
+            
+            function downloadAnalysisResults() {
+                if (cachedUserData.filter(d => !d.error).length === 0) { displayError('No processed results to download.'); return; }
+                const headers = ["Handle", "Is Trusted", "Readiness Probability (%)", "Confidence", "Norm. Div. 2 Perf Score", "Luna Nova Score", "Luna Hard Score", "Avg Placement (%)", "Total Contests", "Max Rating", "Avg Rating"];
+                const resultRows = [headers.join(',')];
+                cachedUserData.filter(d => !d.error).forEach(data => {
+                    const probability = data.readinessProbability * 100;
+                    let confidence = getConfidenceCategory(data.readinessProbability).replace('-', ' ');
+                    confidence = confidence.charAt(0).toUpperCase() + confidence.slice(1);
+                    const rowData = [data.handle, data.isTrusted, probability.toFixed(2), confidence, data.scoreFromAvgDiv2Performance.toFixed(2), data.lunaNovaScore, data.lunaHardScore, data.avgPlacement.toFixed(1), data.totalContestCount, data.maxRating, data.averageContestRating.toFixed(0)];
+                    resultRows.push(rowData.join(','));
+                });
+                downloadFile(resultRows.join('\n'), `readiness_analysis_${getFormattedDateTimeString()}.csv`, 'text/csv;charset=utf-8;');
+            }
+
+            function downloadFilteredHandles() {
+                const filteredHandles = Array.from(resultsTableBody.querySelectorAll('tr'))
+                    .map(row => row.querySelector('td:first-child')?.textContent)
+                    .filter(Boolean);
+                if (filteredHandles.length === 0) { displayError('No filtered users to download.'); return; }
+                downloadFile(filteredHandles.join('\n'), `filtered_handles_${activeFilter}_${getFormattedDateTimeString()}.csv`, 'text/csv;charset=utf-8;');
             }
 
             function showUserDetailsModal(handle) {
-                const userData = cachedUserData.find(d => d.handle.toLowerCase() === handle.toLowerCase() && !d.error);
-                if (!userData) return;
-                const { userInfo, allRatingChanges, allSubmissions } = userData;
-                const registrationDate = new Date(userInfo.registrationTimeSeconds * 1000);
-                const accountAge = formatAccountAge(userInfo.registrationTimeSeconds);
-                const name = `${userInfo.firstName || ''} ${userInfo.lastName || ''}`.trim() || 'N/A';
+                const apiData = cachedUserData.find(d => d.handle.toLowerCase() === handle.toLowerCase() && !d.error);
+                const dbData = userDatabase.find(d => d.id === handle.toLowerCase());
+
+                if (!apiData && !dbData) { alert('Could not find data for this user.'); return; }
                 
-                modalContentContainer.innerHTML = `
-                    <div class="mb-6">
-                        <h2 class="text-3xl font-bold text-gray-900">${userInfo.handle}</h2>
-                        <p class="text-md text-gray-600">Name: <span class="font-semibold">${name}</span></p>
-                        <p class="text-md text-gray-600">Account Age: <span class="font-semibold">${accountAge}</span> (since ${registrationDate.toLocaleDateString()})</p>
-                    </div>
-                    
-                    <div class="mb-8">
-                        <h3 class="text-xl font-bold mb-2">Submission Activity (Last Year)</h3>
-                        <div id="activityHeatmapContainer" class="p-2 bg-gray-50 rounded-lg overflow-x-auto"></div>
-                    </div>
+                let content = `<h2 class="text-3xl font-bold mb-4">${handle}</h2>`;
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                        <div>
-                            <h3 class="text-xl font-bold mb-2">Rating History</h3>
-                            <canvas id="ratingChartCanvas"></canvas>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold mb-2">Solved Problem Distribution</h3>
-                            <canvas id="problemChartCanvas"></canvas>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <h3 class="text-xl font-bold mb-4">Calculation Breakdown</h3>
-                            <div id="calculationDetails" class="space-y-3 text-sm bg-gray-50 p-4 rounded-lg"></div>
-                        </div>
-                        <div>
-                            <h3 class="text-xl font-bold mb-4">Penalties & Other Factors</h3>
-                            <div id="penaltiesDetails" class="space-y-3 text-sm bg-gray-50 p-4 rounded-lg"></div>
-                        </div>
-                    </div>
-                `;
-
-                document.getElementById('activityHeatmapContainer').innerHTML = createActivityHeatmap(allSubmissions);
-                createRatingChart(allRatingChanges);
-                createProblemDistributionChart(allSubmissions);
-                populateCalculationDetails(userData);
-                populatePenaltiesDetails(userData);
-
-                detailsModal.classList.remove('hidden');
-                setTimeout(() => {
-                    detailsModal.querySelector('.modal-overlay')?.classList.remove('opacity-0');
-                    detailsModal.querySelector('.modal-content')?.classList.remove('scale-95');
-                }, 10);
-            }
-
-            function hideModal() {
-                detailsModal.querySelector('.modal-overlay')?.classList.add('opacity-0');
-                detailsModal.querySelector('.modal-content')?.classList.add('scale-95');
-                setTimeout(() => {
-                    detailsModal.classList.add('hidden');
-                    modalContentContainer.innerHTML = ''; 
-                    if (ratingChart) ratingChart.destroy();
-                    if (problemChart) problemChart.destroy();
-                }, 300);
-            }
-
-            function createRatingChart(ratingData) {
-                const ctx = document.getElementById('ratingChartCanvas').getContext('2d');
-                const labels = ratingData.map(d => new Date(d.ratingUpdateTimeSeconds * 1000).toLocaleDateString());
-                const data = ratingData.map(d => d.newRating);
-                if (ratingChart) ratingChart.destroy();
-                ratingChart = new Chart(ctx, {
-                    type: 'line', data: { labels: labels, datasets: [{ label: 'Rating', data: data, borderColor: 'rgb(75, 192, 192)', tension: 0.1, fill: false }] },
-                    options: { responsive: true, maintainAspectRatio: true }
-                });
-            }
-
-            function createProblemDistributionChart(submissionData) {
-                const ctx = document.getElementById('problemChartCanvas').getContext('2d');
-                const solvedProblems = new Map();
-                submissionData.forEach(sub => {
-                    if (sub.verdict === 'OK' && sub.problem.rating) {
-                        const problemId = `${sub.problem.contestId}-${sub.problem.index}`;
-                        solvedProblems.set(problemId, sub.problem.rating);
-                    }
-                });
-                const ratingBuckets = {};
-                for (let rating = 800; rating <= 3500; rating += 100) { ratingBuckets[rating] = 0; }
-                solvedProblems.forEach(rating => {
-                    const bucket = Math.floor(rating / 100) * 100;
-                    if (ratingBuckets[bucket] !== undefined) { ratingBuckets[bucket]++; }
-                });
-                if (problemChart) problemChart.destroy();
-                problemChart = new Chart(ctx, {
-                    type: 'bar', data: { labels: Object.keys(ratingBuckets), datasets: [{ label: '# of Solved Problems', data: Object.values(ratingBuckets), backgroundColor: 'rgba(153, 102, 255, 0.6)' }] },
-                    options: { scales: { y: { beginAtZero: true } }, responsive: true, maintainAspectRatio: true }
-                });
-            }
-
-            // UPDATED: Calculation details with new activity/inactivity model
-            function populateCalculationDetails(data) {
-                const container = document.getElementById('calculationDetails');
-                const p = (num) => num.toFixed(2);
-                const p3 = (num) => num.toFixed(3);
-
-                const cfPenaltyFactor = data.isTrusted ? 1.0 : 0.1;
-                const manualPenaltyFactor = data.isTrusted ? 1.0 : 0.8;
-                let inactivityScore = data.inactivityScore;
-                if(!data.isTrusted) inactivityScore *= 0.5;
-
-                const weightedMaxRating = (data.scoreMaxRating * cfPenaltyFactor) * weights.maxRating;
-                const weightedAvgRating = (data.scoreAvgRating * cfPenaltyFactor) * weights.avgRating;
-                const weightedContestCount = (data.scoreContestCount * cfPenaltyFactor) * weights.contestCount;
-                const weightedDiv2Perf = (data.scoreFromAvgDiv2Performance * cfPenaltyFactor) * weights.avgDiv2PerfScore;
-                const weightedActivity = (data.scoreFromActivity * cfPenaltyFactor) * weights.activityScore;
-                const weightedSolvedProblems = (data.scoreWeightedSolvedProblems * cfPenaltyFactor) * weights.weightedSolves;
-                const weightedPlacements = (data.scoreFromPlacements * manualPenaltyFactor) * weights.placementScore;
-                const weightedLuna = (data.scoreFromCombinedLuna * manualPenaltyFactor) * weights.lunaScore;
-                const inactivityPenalty = inactivityScore * weights.inactivityPattern;
-                const skippedPenalty = data.skippedSubmissionsCount * weights.skipped;
-                const bias = weights.bias;
-
-                let breakdownHtml = `
-                    <div class="grid grid-cols-3 gap-x-4 text-xs font-mono mb-2 text-gray-500 border-b border-gray-200 pb-1">
-                        <span class="font-semibold">Factor</span>
-                        <span class="font-semibold text-right">Norm. Score</span>
-                        <span class="font-semibold text-right">Contribution</span>
-                    </div>
-                    <div class="space-y-1">
-                `;
-
-                const createRow = (label, score, contribution) => {
-                    const contributionClass = contribution >= 0 ? 'text-green-600' : 'text-red-600';
-                    return `
-                        <div class="grid grid-cols-3 gap-x-4 items-center">
-                            <strong class="text-sm font-normal">${label}</strong>
-                            <span class="font-mono text-sm text-right">${p(score)}</span>
-                            <span class="font-mono text-sm font-bold text-right ${contributionClass}">${contribution > 0 ? '+' : ''}${p3(contribution)}</span>
-                        </div>
-                    `;
-                };
-
-                breakdownHtml += createRow('Max Rating', data.scoreMaxRating, weightedMaxRating);
-                breakdownHtml += createRow('Avg Rating', data.scoreAvgRating, weightedAvgRating);
-                breakdownHtml += createRow('Contest Count', data.scoreContestCount, weightedContestCount);
-                breakdownHtml += createRow('Div. 2 Perf.', data.scoreFromAvgDiv2Performance, weightedDiv2Perf);
-                breakdownHtml += createRow('Activity Score', data.scoreFromActivity, weightedActivity);
-                breakdownHtml += createRow('Solved Problems', data.scoreWeightedSolvedProblems, weightedSolvedProblems);
-                breakdownHtml += createRow('Placements (RMS)', data.scoreFromPlacements, weightedPlacements);
-                breakdownHtml += createRow('Luna (Combined)', data.scoreFromCombinedLuna, weightedLuna);
-                breakdownHtml += `</div>`;
-
-                breakdownHtml += `<hr class="my-2 border-dashed"/>`;
-                breakdownHtml += `<div class="space-y-1">`;
-                breakdownHtml += createRow('Inactivity Penalty', data.inactivityScore, inactivityPenalty);
-                breakdownHtml += createRow('Skipped Penalty', data.skippedSubmissionsCount, skippedPenalty);
-                breakdownHtml += createRow('Model Bias', 1, bias);
-                breakdownHtml += `</div>`;
-
-                const totalZ = bias + weightedMaxRating + weightedAvgRating + weightedContestCount + weightedDiv2Perf + weightedActivity + weightedSolvedProblems + weightedPlacements + weightedLuna + inactivityPenalty + skippedPenalty;
-
-                breakdownHtml += `<hr class="my-2"/>`;
-                breakdownHtml += `
-                    <div class="grid grid-cols-3 gap-x-4 items-center mt-2">
-                            <strong class="text-sm col-span-2">Pre-Sigmoid Sum (z)</strong>
-                            <span class="font-mono font-bold text-right col-span-1 text-base">${p3(totalZ)}</span>
-                    </div>
-                    <div class="grid grid-cols-3 gap-x-4 items-center mt-2 bg-gray-100 p-2 rounded-md">
-                            <strong class="text-base col-span-2">Final Probability</strong>
-                            <span class="font-mono font-bold text-right col-span-1 text-xl">${p(data.readinessProbability * 100)}%</span>
-                    </div>
-                `;
-
-                container.innerHTML = breakdownHtml;
-            }
-            
-            function populatePenaltiesDetails(data) {
-                const container = document.getElementById('penaltiesDetails');
-                const p3 = (num) => num.toFixed(3);
-
-                let penaltyHtml = `
-                    <p><strong>Raw Activity Score:</strong> <span class="font-mono font-bold float-right">${data.rawActivityScore.toFixed(2)}</span></p>
-                    <p class="text-sm text-gray-500 mt-1">This score reflects recency-weighted daily submission volume.</p>
-                    <hr class="my-2 border-gray-200"/>
-                    <p><strong>Avg. Gap Between Active Days:</strong> <span class="font-mono font-bold float-right">${data.avgGap.toFixed(1)} days</span></p>
-                    <p><strong>Consistency (Gap Std. Dev):</strong> <span class="font-mono font-bold float-right">${data.stdDevGap.toFixed(1)} days</span></p>
-                    <p class="text-sm text-gray-500 mt-1">Lower average and standard deviation for gaps indicate better consistency.</p>
-                    <hr class="my-2 border-gray-200"/>
-                    <p><strong>Trusted User Status:</strong> <span class="font-mono font-bold float-right ${data.isTrusted ? 'text-green-600' : 'text-red-600'}">${data.isTrusted ? 'Trusted' : 'Not Trusted'}</span></p>
-                    <p class="text-sm text-gray-500 mt-1">A significant penalty is applied if a user is not marked as trusted, reducing the contribution from their stats.</p>
-                `;
-
-                if (!data.isTrusted) {
-                    const cfPenaltyFactor = 0.1;
-                    const manualPenaltyFactor = 0.8;
-
-                    const trustedCfScoreContribution =
-                        (data.scoreMaxRating * weights.maxRating) +
-                        (data.scoreAvgRating * weights.avgRating) +
-                        (data.scoreContestCount * weights.contestCount) +
-                        (data.scoreFromAvgDiv2Performance * weights.avgDiv2PerfScore) +
-                        (data.scoreWeightedSolvedProblems * weights.weightedSolves) +
-                        (data.scoreFromActivity * weights.activityScore);
-
-                    const trustedManualScoreContribution =
-                        (data.scoreFromCombinedLuna * weights.lunaScore) +
-                        (data.scoreFromPlacements * weights.placementScore);
-
-                    penaltyHtml += `
-                            <hr class="my-2 border-gray-200"/>
-                            <p class="font-semibold">Impact of "Not Trusted":</p>
-                            <div class="text-sm space-y-1 mt-1">
-                                <p>CF Stats Contribution: <span class="font-mono float-right">${p3(trustedCfScoreContribution * cfPenaltyFactor)} (reduced from ${p3(trustedCfScoreContribution)})</span></p>
-                                <p>Manual Stats Contribution: <span class="font-mono float-right">${p3(trustedManualScoreContribution * manualPenaltyFactor)} (reduced from ${p3(trustedManualScoreContribution)})</span></p>
-                            </div>
-                    `;
+                // --- Detailed Info Section ---
+                if (dbData) {
+                    const levelMap = { '0': 'None', '-1': 'Codeability', '10': 'Level 0', '1': 'Level 1', '2': 'Level 2'};
+                    content += `
+                    <div class="mb-6 p-4 bg-gray-50 rounded-lg grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div><strong class="block text-gray-500">Full Name</strong> <span class="text-lg">${dbData.fullName || 'N/A'}</span></div>
+                        <div><strong class="block text-gray-500">University</strong> <span class="text-lg">${dbData.university || 'N/A'}</span></div>
+                        <div><strong class="block text-gray-500">ACM Level</strong> <span class="text-lg">${levelMap[dbData.acmLevel] || 'N/A'}</span></div>
+                        <div><strong class="block text-gray-500">LinkedIn</strong> ${dbData.linkedin ? `<a href="${dbData.linkedin}" target="_blank" class="text-blue-600 hover:underline text-lg">Profile</a>` : '<span class="text-lg">N/A</span>'}</div>
+                    </div>`;
                 }
-                 container.innerHTML = penaltyHtml;
+
+                // --- Placements Table ---
+                if (dbData && dbData.placements.length > 0) {
+                    content += `<h3 class="text-xl font-semibold mb-2">Placements</h3>
+                                <div class="overflow-x-auto mb-6 max-h-48 border rounded-lg">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="bg-gray-100 text-xs uppercase sticky top-0"><tr>
+                                        <th class="p-2">Competition</th><th class="p-2">Rank</th><th class="p-2">Total</th><th class="p-2">Placement</th><th class="p-2">Link</th>
+                                    </tr></thead><tbody>`;
+                    dbData.placements.forEach(p => {
+                        const placementPercent = ((p.rank / p.total) * 100).toFixed(2);
+                        const compLink = competitionDatabase[p.name]?.link;
+                        content += `<tr class="border-b">
+                                        <td class="p-2 font-medium">${p.name}</td>
+                                        <td class="p-2">${p.rank}</td>
+                                        <td class="p-2">${p.total}</td>
+                                        <td class="p-2 font-bold">Top ${placementPercent}%</td>
+                                        <td class="p-2">${compLink ? `<a href="${compLink}" target="_blank" class="text-blue-600 hover:underline">View</a>` : 'N/A'}</td>
+                                    </tr>`;
+                    });
+                    content += `</tbody></table></div>`;
+                }
+
+                // --- CF Analysis Section ---
+                if (apiData) {
+                    content += `<h3 class="text-xl font-semibold mb-4">Codeforces Analysis</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div><canvas id="modalRatingChart"></canvas></div>
+                                    <div><canvas id="modalProblemChart"></canvas></div>
+                                </div>
+                                <div class="mt-6"><h4 class="font-semibold mb-2">Submission Heatmap (Last Year)</h4><div id="modalHeatmapContainer" class="p-2 border rounded-lg overflow-x-auto"></div></div>`;
+                } else {
+                    content += `<div class="text-center p-6 bg-yellow-50 text-yellow-700 rounded-lg">Run the analysis on the main page to see detailed Codeforces stats.</div>`;
+                }
+
+                modalContentContainer.innerHTML = content;
+                detailsModal.classList.remove('hidden');
+
+                // Render charts if data is available
+                if (apiData) {
+                    renderModalCharts(apiData);
+                }
             }
 
-            function displayError(message) { errorMessageDiv.textContent = message; errorMessageDiv.classList.remove('hidden'); }
+            function renderModalCharts(userData) {
+                if (ratingChart) ratingChart.destroy();
+                if (problemChart) problemChart.destroy();
+                const ratingCtx = document.getElementById('modalRatingChart')?.getContext('2d');
+                const problemCtx = document.getElementById('modalProblemChart')?.getContext('2d');
+                const heatmapContainer = document.getElementById('modalHeatmapContainer');
+
+                if(ratingCtx) {
+                    ratingChart = new Chart(ratingCtx, {
+                        type: 'line',
+                        data: {
+                            labels: userData.allRatingChanges.map(c => new Date(c.ratingUpdateTimeSeconds * 1000).toLocaleDateString()),
+                            datasets: [{
+                                label: 'Rating',
+                                data: userData.allRatingChanges.map(c => c.newRating),
+                                borderColor: 'rgb(75, 192, 192)',
+                                tension: 0.1
+                            }]
+                        },
+                        options: { plugins: { title: { display: true, text: 'Rating History' } } }
+                    });
+                }
+
+                if(problemCtx) {
+                    const solvedProblems = {};
+                    userData.allSubmissions.forEach(sub => {
+                        if (sub.verdict === 'OK' && sub.problem.rating) {
+                            solvedProblems[sub.problem.rating] = (solvedProblems[sub.problem.rating] || 0) + 1;
+                        }
+                    });
+                    const ratings = Object.keys(solvedProblems).sort((a,b) => a-b);
+                    problemChart = new Chart(problemCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: ratings,
+                            datasets: [{
+                                label: 'Solved Problems',
+                                data: ratings.map(r => solvedProblems[r]),
+                                backgroundColor: 'rgba(153, 102, 255, 0.6)'
+                            }]
+                        },
+                        options: { plugins: { title: { display: true, text: 'Solved Problems by Rating' } } }
+                    });
+                }
+                
+                if(heatmapContainer) {
+                    const heatmapData = {};
+                    userData.allSubmissions.forEach(sub => {
+                        if (sub.verdict === 'OK') {
+                            const date = new Date(sub.creationTimeSeconds * 1000).toISOString().slice(0, 10);
+                            heatmapData[date] = (heatmapData[date] || 0) + 1;
+                        }
+                    });
+                    const today = new Date();
+                    const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+                    let svg = `<svg width="722" height="112"><g transform="translate(10, 20)">`;
+                    const daySize = 12; const dayMargin = 2;
+                    for (let i = 0; i < 53; i++) {
+                        for (let j = 0; j < 7; j++) {
+                            const date = new Date(oneYearAgo);
+                            date.setDate(date.getDate() + (i * 7 + j));
+                            if (date > today) continue;
+                            const dateString = date.toISOString().slice(0, 10);
+                            const count = heatmapData[dateString] || 0;
+                            let color = '#ebedf0';
+                            if (count > 0) color = '#9be9a8';
+                            if (count > 3) color = '#40c463';
+                            if (count > 6) color = '#30a14e';
+                            if (count > 9) color = '#216e39';
+                            svg += `<rect class="heatmap-day" width="${daySize}" height="${daySize}" x="${i * (daySize + dayMargin)}" y="${j * (daySize + dayMargin)}" fill="${color}" data-date="${dateString}" data-count="${count}"><title>${count} submissions on ${dateString}</title></rect>`;
+                        }
+                    }
+                    svg += '</g></svg>';
+                    heatmapContainer.innerHTML = svg;
+                }
+            }
+
+            function hideModal() { detailsModal.classList.add('hidden'); if (ratingChart) ratingChart.destroy(); if (problemChart) problemChart.destroy(); }
+            function displayError(message) { errorMessageDiv.textContent = message; errorMessageDiv.classList.remove('hidden'); setTimeout(() => hideError(), 5000); }
             function hideError() { errorMessageDiv.classList.add('hidden'); }
             function showLoading() { loadingIndicator.classList.remove('hidden'); document.querySelectorAll('button, input, select').forEach(el => el.disabled = true); }
-            function hideLoading() { 
-                loadingIndicator.classList.add('hidden'); 
-                document.querySelectorAll('button, input, select').forEach(el => el.disabled = false); 
-                if (cachedUserData.filter(d => !d.error).length === 0) { downloadResultsBtn.disabled = true; } else { downloadResultsBtn.disabled = false; } 
-            }
+            function hideLoading() { loadingIndicator.classList.add('hidden'); document.querySelectorAll('button, input, select').forEach(el => el.disabled = false); downloadAnalysisBtn.disabled = cachedUserData.filter(d => !d.error).length === 0; }
 
-            // --- Event Listeners ---
+            // --- EVENT LISTENERS ---
+            tabBtnAnalysis.addEventListener('click', () => { tabBtnAnalysis.classList.add('active'); tabBtnDatabase.classList.remove('active'); tabContentAnalysis.classList.remove('hidden'); tabContentDatabase.classList.add('hidden'); });
+            tabBtnDatabase.addEventListener('click', () => { tabBtnDatabase.classList.add('active'); tabBtnAnalysis.classList.remove('active'); tabContentDatabase.classList.remove('hidden'); tabContentAnalysis.classList.add('hidden'); });
             addManualUserBtn.addEventListener('click', addManualUserToList);
-            loadCsvBtn.addEventListener('click', loadCSVFile);
+            loadJsonBtn.addEventListener('click', loadJsonFile);
             clearListBtn.addEventListener('click', clearUserList);
             processAllBtn.addEventListener('click', processAllUsers);
-            downloadResultsBtn.addEventListener('click', downloadResults);
-            downloadUserListBtn.addEventListener('click', downloadUserList);
-            readinessFilter.addEventListener('change', (e) => {
-                activeFilter = e.target.value;
-                updateTableView();
+            downloadAnalysisResultsCsvBtn.addEventListener('click', downloadAnalysisResults);
+            downloadFilteredHandlesCsvBtn.addEventListener('click', downloadFilteredHandles);
+            downloadDbReadinessCsvBtn.addEventListener('click', downloadDbReadinessCSV);
+            downloadDbFullBackupBtn.addEventListener('click', downloadDbFullBackup);
+            downloadCompetitionsBtn.addEventListener('click', downloadCompetitionsCSV);
+            readinessFilter.addEventListener('change', (e) => { activeFilter = e.target.value; updateTableView(); });
+            [handleInput, lunaNovaScoreInput, lunaHardScoreInput, placementsInput].forEach(input => { input.addEventListener('keypress', (e) => { if(e.key === 'Enter') addManualUserToList() }); });
+            userList.addEventListener('click', (e) => { if (e.target.classList.contains('remove-list-btn')) { const indexToRemove = parseInt(e.target.dataset.index, 10); const handle = usersToAnalyze[indexToRemove].handle; showConfirmationModal('Remove User?', `Are you sure you want to remove ${handle} from the list?`, () => { usersToAnalyze.splice(indexToRemove, 1); updateUserListDisplay(); }); } else if (e.target.classList.contains('user-trust-checkbox')) { const indexToUpdate = parseInt(e.target.dataset.index, 10); usersToAnalyze[indexToUpdate].isTrusted = e.target.checked; updateUserListDisplay(); } });
+            detailedUserForm.addEventListener('submit', handleDetailedUserFormSubmit);
+            clearFormBtn.addEventListener('click', () => {
+                showConfirmationModal('Clear Form?', 'Are you sure you want to clear all fields in the user form?', clearDetailedUserForm);
             });
-            handleInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') addManualUserToList() });
-            lunaNovaScoreInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') addManualUserToList() });
-            lunaHardScoreInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') addManualUserToList() });
-            placementsInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') addManualUserToList() });
+            addPlacementBtn.addEventListener('click', () => addPlacementInput());
+            addCompetitionBtn.addEventListener('click', () => {
+                competitionDatabase['New Competition'] = { link: '', total: 0 };
+                renderCompetitionEditor();
+            });
+            competitionEditorContainer.addEventListener('click', handleCompetitionEditorClick);
+            addUniversityBtn.addEventListener('click', () => {
+                const newUni = "New University";
+                if (!universityDatabase.includes(newUni)) {
+                    universityDatabase.push(newUni);
+                    universityDatabase.sort();
+                    renderUniversityEditor();
+                }
+            });
+            universityEditorContainer.addEventListener('input', handleUniversityEditorChange);
+            universityEditorContainer.addEventListener('click', handleUniversityEditorChange);
+            detailedUserTableBody.addEventListener('click', e => {
+                const target = e.target; const row = target.closest('tr'); if (!row) return; const userId = row.dataset.id; const user = userDatabase.find(u => u.id === userId); if (!user) return;
+                if (target.classList.contains('delete-db-user-btn')) {
+                    showConfirmationModal('Delete User?', `Permanently delete ${user.handle} from the database? This cannot be undone.`, () => {
+                        userDatabase = userDatabase.filter(u => u.id !== userId);
+                        usersToAnalyze = usersToAnalyze.filter(u => u.handle.toLowerCase() !== userId);
+                        cachedUserData = cachedUserData.filter(u => u.handle.toLowerCase() !== userId);
+                        renderAll(); updateUserListDisplay(); updateTableView();
+                    });
+                } else if (target.classList.contains('edit-db-user-btn')) {
+                    clearDetailedUserForm();
+                    detailedUserForm.querySelector('[name="handle"]').value = user.handle;
+                    detailedUserForm.querySelector('[name="handle"]').readOnly = true;
+                    detailedUserForm.querySelector('[name="fullName"]').value = user.fullName;
+                    detailedUserForm.querySelector('[name="linkedin"]').value = user.linkedin;
+                    detailedUserForm.querySelector('[name="university"]').value = user.university;
+                    detailedUserForm.querySelector('[name="lunaNovaScore"]').value = user.lunaNovaScore;
+                    detailedUserForm.querySelector('[name="lunaHardScore"]').value = user.lunaHardScore;
+                    detailedUserForm.querySelector('[name="acmLevel"]').value = user.acmLevel;
+                    detailedUserForm.querySelector('[name="joinDate"]').value = formatDateForInput(user.joinDate);
+                    placementsContainer.innerHTML = '';
+                    user.placements.forEach(p => addPlacementInput(p));
+                    detailedUserForm.scrollIntoView({ behavior: 'smooth' });
+                } else if (target.classList.contains('details-db-user-btn')) {
+                    showUserDetailsModal(user.handle);
+                }
+            });
             closeModalBtn.addEventListener('click', hideModal);
             detailsModal.addEventListener('click', (e) => { if (e.target === detailsModal) hideModal(); });
-            
-            resultsTableBody.addEventListener('click', async (e) => {
-                const button = e.target.closest('button');
-                if (!button) return;
+            confirmCancelBtn.addEventListener('click', hideConfirmationModal);
+            confirmOkBtn.addEventListener('click', () => { if (confirmCallback) confirmCallback(); hideConfirmationModal(); });
+            resultsTableBody.addEventListener('click', async (e) => { const button = e.target.closest('button'); if (!button) return; const handle = button.dataset.handle; if (button.classList.contains('details-btn')) { showUserDetailsModal(handle); } else if (button.classList.contains('retry-btn')) { const user = usersToAnalyze.find(u => u.handle.toLowerCase() === handle.toLowerCase()); if (user && button.closest('tr')) await processSingleUser(user, button.closest('tr')); } else if (button.classList.contains('remove-result-btn')) { showConfirmationModal('Remove User?', `Remove ${handle} from the results and the analysis list?`, () => { const handleLower = handle.toLowerCase(); button.closest('tr').remove(); cachedUserData = cachedUserData.filter(u => u.handle.toLowerCase() !== handleLower); usersToAnalyze = usersToAnalyze.filter(u => u.handle.toLowerCase() !== handleLower); updateUserListDisplay(); downloadAnalysisBtn.disabled = cachedUserData.filter(d => !d.error).length === 0; }); } });
+            resultsTableHeader.addEventListener('click', (e) => { const header = e.target.closest('th.sortable-header'); if (!header) return; const key = header.dataset.sortKey; let direction = 'desc'; if (sortState.key === key) direction = sortState.direction === 'desc' ? 'asc' : 'desc'; sortState = { key, direction }; updateTableView(); });
 
-                const handle = button.dataset.handle;
+            // --- LOCAL STORAGE PERSISTENCE ---
+            function saveDataToLocalStorage() {
+                const dataToSave = {
+                    users: userDatabase,
+                    competitions: competitionDatabase,
+                    universities: universityDatabase
+                };
+                localStorage.setItem('electiToolDataV2', JSON.stringify(dataToSave));
+            }
 
-                if (button.classList.contains('details-btn')) {
-                    showUserDetailsModal(handle);
-                } else if (button.classList.contains('retry-btn')) {
-                    const user = usersToAnalyze.find(u => u.handle.toLowerCase() === handle.toLowerCase());
-                    const row = button.closest('tr');
-                    if (user && row) {
-                        await processSingleUser(user, row);
-                        updateTableView();
-                        downloadResultsBtn.disabled = cachedUserData.filter(d => !d.error).length === 0;
-                    }
-                } else if (button.classList.contains('remove-result-btn')) {
-                    const handleLower = handle.toLowerCase();
-                    button.closest('tr').remove();
-                    cachedUserData = cachedUserData.filter(u => u.handle.toLowerCase() !== handleLower);
-                    usersToAnalyze = usersToAnalyze.filter(u => u.handle.toLowerCase() !== handleLower);
-                    updateUserListDisplay();
-                    downloadResultsBtn.disabled = cachedUserData.filter(d => !d.error).length === 0;
+            function loadDataFromLocalStorage() {
+                const savedData = localStorage.getItem('electiToolDataV2');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    userDatabase = data.users.map(u => ({...u, updatedAt: new Date(u.updatedAt), joinDate: u.joinDate ? new Date(u.joinDate) : null })) || [];
+                    competitionDatabase = data.competitions || {};
+                    universityDatabase = data.universities || [];
+                    // Sync analysis list
+                    usersToAnalyze = userDatabase.map(dbUser => {
+                        const placementPercentages = dbUser.placements.map(p => (p.rank / p.total) * 100);
+                        return { handle: dbUser.handle, lunaNovaScore: dbUser.lunaNovaScore, lunaHardScore: dbUser.lunaHardScore, placements: placementPercentages, isTrusted: true };
+                    });
                 }
-            });
+            }
 
-            resultsTableHeader.addEventListener('click', (e) => {
-                const header = e.target.closest('th.sortable-header');
-                if (!header) return;
-                const key = header.dataset.sortKey;
-                let direction = 'desc';
-                if (sortState.key === key) {
-                    direction = sortState.direction === 'desc' ? 'asc' : 'desc';
-                }
-                sortState = { key, direction };
-                updateTableView();
-            });
+            // Automatically save on changes
+            window.addEventListener('beforeunload', saveDataToLocalStorage);
 
+            // Initial setup
+            loadDataFromLocalStorage();
             updateUserListDisplay();
             updateSortIndicators();
+            renderAll();
         });
     </script>
 </body>
