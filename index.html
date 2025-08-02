@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Operation Electi - Readiness Model v8</title>
+    <title>Operation Electi - Readiness Model v2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -29,39 +30,26 @@
         .sortable-header {
             cursor: pointer;
             position: relative;
+            user-select: none;
         }
-        .sortable-header:after, .sortable-header:before {
-            content: '';
+        .sortable-header .sort-icon {
             position: absolute;
             right: 10px;
-            border: 4px solid transparent;
+            top: 50%;
+            transform: translateY(-50%);
             opacity: 0.3;
         }
-        .sortable-header:before {
-            bottom: 50%;
-            margin-bottom: -1px;
-            border-bottom-color: currentColor;
-        }
-        .sortable-header:after {
-            top: 50%;
-            margin-top: -1px;
-            border-top-color: currentColor;
-        }
-        .sortable-header.sort-asc:after, .sortable-header.sort-desc:before {
+        .sortable-header.sort-asc .sort-icon, .sortable-header.sort-desc .sort-icon {
              opacity: 1;
-        }
-        .heatmap-day {
-            stroke: rgba(27, 31, 35, 0.06);
-            stroke-width: 2px;
-        }
-        .heatmap-day:hover {
-            stroke: #555;
-            stroke-width: 1px;
         }
         .tab-btn.active {
             border-color: #3b82f6;
             color: #3b82f6;
             background-color: #eff6ff;
+        }
+        .editor-tab-btn.active {
+            background-color: #3b82f6;
+            color: white;
         }
         .stat-card {
             background-color: white;
@@ -69,7 +57,6 @@
             padding: 1.5rem;
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
         }
-        /* Dropdown styles */
         .dropdown {
             position: relative;
             display: inline-block;
@@ -86,15 +73,91 @@
             overflow: hidden;
             border: 1px solid #e5e7eb;
         }
-        .dropdown-content a {
+        .dropdown-content a, .dropdown-content button {
             color: black;
             padding: 10px 14px;
             text-decoration: none;
             display: block;
             font-size: 0.875rem;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            cursor: pointer;
         }
-        .dropdown-content a:hover {background-color: #e5e7eb;}
+        .dropdown-content a:hover, .dropdown-content button:hover {background-color: #e5e7eb;}
         .dropdown:hover .dropdown-content {display: block;}
+        .file-input-label {
+            cursor: pointer;
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            color: white;
+            background-color: #4f46e5;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        .file-input-label:hover {
+            background-color: #4338ca;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        #detailedUserTable thead tr:nth-child(2) th, .editor-table thead tr:nth-child(2) th {
+            padding: 0.5rem;
+        }
+        #detailedUserTable thead input[type="text"], .editor-table thead input[type="text"] {
+            width: 100%;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+        }
+        .editor-table input, .editor-table textarea, .editor-table select {
+            width: 100%;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+            background-color: #f9fafb;
+        }
+         .editor-table textarea {
+            min-height: 60px;
+         }
+         #detailedUserForm input, #detailedUserForm select {
+             width: 100%;
+             padding: 6px 10px;
+             border-radius: 0.375rem;
+             border: 1px solid #d1d5db;
+         }
+         #detailedUserForm label {
+             font-weight: 500;
+             font-size: 0.875rem;
+             color: #374151;
+             margin-bottom: 0.25rem;
+             display: block;
+         }
+        .sub-tab-btn {
+            transition: all 0.2s ease-in-out;
+        }
+         .sub-tab-btn.active {
+            background-color: #e0e7ff;
+            color: #4338ca;
+            font-weight: 600;
+        }
+        .placement-entry {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            background-color: #f9fafb;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+            position: relative;
+        }
+        .placement-fields {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800">
@@ -116,6 +179,12 @@
                 </button>
                 <button id="tabBtnDatabase" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">
                     User Database
+                </button>
+                 <button id="tabBtnEditors" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    Data Editors
+                </button>
+                 <button id="tabBtnAnalyticsDashboard" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    Advanced Analytics
                 </button>
             </nav>
         </div>
@@ -144,22 +213,14 @@
                         </div>
                     </div>
 
-                    <!-- Data Management -->
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <h2 class="text-xl font-bold mb-4">2. Data Management</h2>
-                        <p class="text-sm text-gray-500 mb-3">Load user data from a previous session.</p>
-                        <input type="file" id="jsonFileInput" accept=".json" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
-                        <button id="loadJsonBtn" class="w-full mt-4 bg-gray-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200">Load Full Backup</button>
-                    </div>
-
                     <!-- User List -->
                     <div class="bg-white rounded-lg shadow-md p-6">
                         <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-xl font-bold">3. User List (<span id="userCount">0</span>)</h2>
+                            <h2 class="text-xl font-bold">2. User List (<span id="userCount">0</span>)</h2>
                             <button id="clearListBtn" class="text-sm text-red-500 hover:text-red-700 font-semibold">Clear All</button>
                         </div>
                         <div id="noUsersMessage" class="text-center text-gray-500 py-4">Add users to get started.</div>
-                        <ul id="userList" class="space-y-2 max-h-60 overflow-y-auto"></ul>
+                        <ul id="userList" class="space-y-2 max-h-96 overflow-y-auto"></ul>
                     </div>
                 </div>
 
@@ -167,7 +228,7 @@
                 <div class="lg:col-span-8">
                     <!-- Controls -->
                     <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                        <h2 class="text-xl font-bold mb-4">4. Analyze & Download</h2>
+                        <h2 class="text-xl font-bold mb-4">3. Analyze & Download</h2>
                         <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-4" role="alert"></div>
                         <div class="flex flex-col sm:flex-row gap-4">
                             <button id="processAllBtn" class="flex-1 bg-green-600 text-white font-bold py-3 px-4 rounded-md hover:bg-green-700 transition duration-200 flex items-center justify-center gap-2">
@@ -209,10 +270,10 @@
                             <table id="resultsTable" class="w-full text-sm text-left text-gray-600">
                                 <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
                                     <tr>
-                                        <th scope="col" class="px-4 py-3 sortable-header" data-sort-key="handle">Handle</th>
-                                        <th scope="col" class="px-4 py-3 sortable-header" data-sort-key="scoreFromAvgDiv2Performance">Div2 Perf. Score</th>
-                                        <th scope="col" class="px-4 py-3 sortable-header" data-sort-key="avgPlacement">Avg Placement</th>
-                                        <th scope="col" class="px-4 py-3 text-center sortable-header sort-desc" data-sort-key="readinessProbability">Readiness</th>
+                                        <th scope="col" class="px-4 py-3 sortable-header" data-sort-key="handle">Handle <span class="sort-icon"></span></th>
+                                        <th scope="col" class="px-4 py-3 sortable-header" data-sort-key="scoreFromAvgDiv2Performance">Div2 Perf. Score <span class="sort-icon"></span></th>
+                                        <th scope="col" class="px-4 py-3 sortable-header" data-sort-key="avgPlacement">Avg Placement <span class="sort-icon"></span></th>
+                                        <th scope="col" class="px-4 py-3 text-center sortable-header sort-desc" data-sort-key="readinessProbability">Readiness <span class="sort-icon"></span></th>
                                         <th scope="col" class="px-4 py-3 text-center">Actions</th>
                                     </tr>
                                 </thead>
@@ -226,89 +287,141 @@
 
         <div id="tabContentDatabase" class="hidden">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <!-- Left Column: Detailed User Form & Data Editors -->
+                <!-- Left Column: Data Management -->
                 <div class="lg:col-span-4 space-y-6">
-                    <form id="detailedUserForm" class="bg-white rounded-lg shadow-md p-6 space-y-4">
-                        <h2 class="text-xl font-bold mb-2">Add/Update Detailed User Info</h2>
-                        
-                        <input type="text" name="handle" placeholder="Codeforces Handle*" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <input type="text" name="fullName" placeholder="Full Name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <input type="url" name="linkedin" placeholder="LinkedIn Profile URL" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        
-                        <!-- University Input with Datalist -->
-                        <input type="text" name="university" list="university-list" placeholder="University Name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <datalist id="university-list"></datalist>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <input type="number" step="0.01" name="lunaNovaScore" placeholder="Luna Nova Score" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <input type="number" step="0.01" name="lunaHardScore" placeholder="Luna Score" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <div class="bg-white rounded-lg shadow-md p-6 sticky top-8">
+                        <h2 class="text-xl font-bold mb-4">Data Management</h2>
+                        <div class="grid grid-cols-1 gap-6">
+                            <!-- Upload Section -->
+                            <div class="space-y-4">
+                                <h3 class="text-lg font-semibold text-gray-800">Upload Data</h3>
+                                <div class="p-4 border rounded-lg bg-gray-50">
+                                    <p class="font-medium text-gray-700">Upload Users (CSV)</p>
+                                    <p class="text-xs text-gray-500 mb-2">Replaces existing users with the same handle.</p>
+                                    <label for="uploadUsersCsv" class="file-input-label bg-green-600 hover:bg-green-700">Choose File</label>
+                                    <input type="file" id="uploadUsersCsv" accept=".csv">
+                                </div>
+                                <div class="p-4 border rounded-lg bg-gray-50">
+                                    <p class="font-medium text-gray-700">Upload Competitions (CSV)</p>
+                                    <p class="text-xs text-gray-500 mb-2">Adds or updates competitions.</p>
+                                    <label for="uploadCompetitionsCsv" class="file-input-label bg-blue-600 hover:bg-blue-700">Choose File</label>
+                                    <input type="file" id="uploadCompetitionsCsv" accept=".csv">
+                                </div>
+                                <div class="p-4 border rounded-lg bg-gray-50">
+                                    <p class="font-medium text-gray-700">Upload Universities (CSV)</p>
+                                    <p class="text-xs text-gray-500 mb-2">Adds new universities to the list.</p>
+                                    <label for="uploadUniversitiesCsv" class="file-input-label bg-indigo-600 hover:bg-indigo-700">Choose File</label>
+                                    <input type="file" id="uploadUniversitiesCsv" accept=".csv">
+                                </div>
+                            </div>
+                            <!-- Backup Section -->
+                            <div class="space-y-4">
+                                <h3 class="text-lg font-semibold text-gray-800">Backup & Restore</h3>
+                                <div class="p-4 border rounded-lg bg-gray-50">
+                                    <p class="font-medium text-gray-700">Full System Backup (JSON)</p>
+                                    <p class="text-xs text-gray-500 mb-2">Save all users, competitions, and universities.</p>
+                                    <button id="downloadDbFullBackupBtn" class="file-input-label bg-purple-600 hover:bg-purple-700 w-full text-center">Download Backup</button>
+                                </div>
+                                <div class="p-4 border rounded-lg bg-gray-50">
+                                    <p class="font-medium text-gray-700">Restore from Backup (JSON)</p>
+                                    <p class="text-xs text-gray-500 mb-2">Overwrite all existing data.</p>
+                                    <label for="jsonFileInput" class="file-input-label bg-red-600 hover:bg-red-700 w-full text-center">Restore from File</label>
+                                    <input type="file" id="jsonFileInput" accept=".json">
+                                </div>
+                            </div>
                         </div>
-
-                        <div>
-                            <label for="acmLevel" class="block text-sm font-medium text-gray-700">ACM Level</label>
-                            <select name="acmLevel" id="acmLevel" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="0">None</option>
-                                <option value="-1">Codeability</option>
-                                <option value="10">Level 0</option>
-                                <option value="1">Level 1</option>
-                                <option value="2">Level 2</option>
-                            </select>
-                        </div>
-                        
-                        <div>
-                            <label for="joinDate" class="block text-sm font-medium text-gray-700">Join Date</label>
-                            <input type="date" id="joinDate" name="joinDate" class="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
-                        
-                        <hr/>
-                        <h3 class="text-lg font-semibold">Placements</h3>
-                        <div id="placementsContainer" class="space-y-3"></div>
-                        <button type="button" id="addPlacementBtn" class="w-full text-sm bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200">Add Placement</button>
-                        <datalist id="competition-list"></datalist>
-                        <hr/>
-
-                        <div class="flex gap-2">
-                            <button type="submit" class="w-full bg-green-600 text-white font-bold py-2 px-4 rounded-md hover:bg-green-700 transition duration-200">Save User</button>
-                            <button type="button" id="clearFormBtn" class="w-full bg-gray-500 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-600 transition duration-200">Clear Form</button>
-                        </div>
-                    </form>
-
-                    <!-- Competition List Section -->
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-xl font-bold">Competition Editor</h2>
-                            <a href="#" id="downloadCompetitionsBtn" class="text-sm text-blue-600 hover:text-blue-800 font-semibold">Download CSV</a>
-                        </div>
-                        <div id="competitionEditorContainer" class="space-y-3 max-h-60 overflow-y-auto"></div>
-                        <button type="button" id="addCompetitionBtn" class="w-full mt-4 text-sm bg-blue-100 text-blue-700 font-semibold py-2 px-4 rounded-md hover:bg-blue-200 transition duration-200">Add New Competition</button>
-                    </div>
-                    
-                    <!-- University List Section -->
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <h2 class="text-xl font-bold mb-4">University Editor</h2>
-                        <div id="universityEditorContainer" class="space-y-3 max-h-60 overflow-y-auto"></div>
-                        <button type="button" id="addUniversityBtn" class="w-full mt-4 text-sm bg-indigo-100 text-indigo-700 font-semibold py-2 px-4 rounded-md hover:bg-indigo-200 transition duration-200">Add New University</button>
                     </div>
                 </div>
 
-                <!-- Right Column: Stats and Detailed User Table -->
+                <!-- Right Column: Form, Stats, and Table -->
                 <div class="lg:col-span-8 space-y-8">
+                    <!-- Add/Update User Form -->
+                    <div class="bg-white rounded-lg shadow-md p-6">
+                        <h2 class="text-2xl font-bold mb-4">Add/Update User Info</h2>
+                        <form id="detailedUserForm" class="space-y-4">
+                             <!-- User Info Row -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label for="handleField">Codeforces Handle*</label>
+                                    <input type="text" id="handleField" name="handle" placeholder="e.g., tourist" required>
+                                </div>
+                                <div>
+                                    <label for="fullNameField">Full Name</label>
+                                    <input type="text" id="fullNameField" name="fullName" placeholder="e.g., Gennady Korotkevich">
+                                </div>
+                                <div>
+                                    <label for="linkedinField">LinkedIn Profile</label>
+                                    <input type="url" id="linkedinField" name="linkedin" placeholder="https://linkedin.com/in/...">
+                                </div>
+                            </div>
+                            <!-- University & Scores Row -->
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div class="md:col-span-2">
+                                    <label for="universityInput">University</label>
+                                    <input type="text" list="university-list" name="university" id="universityInput" placeholder="Type or select university">
+                                    <datalist id="university-list"></datalist>
+                                </div>
+                                <div>
+                                    <label for="lunaNovaScoreField">Luna Nova Score</label>
+                                    <input type="number" step="0.01" id="lunaNovaScoreField" name="lunaNovaScore" placeholder="0.00">
+                                </div>
+                                <div>
+                                    <label for="lunaHardScoreField">Luna Score</label>
+                                    <input type="number" step="0.01" id="lunaHardScoreField" name="lunaHardScore" placeholder="0.00">
+                                </div>
+                            </div>
+                             <!-- Other Info Row -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                                <div>
+                                    <label for="acmLevel">ACM Level</label>
+                                    <select name="acmLevel" id="acmLevel">
+                                        <option value="0">None</option>
+                                        <option value="-1">Codeability</option>
+                                        <option value="10">Level 0</option>
+                                        <option value="1">Level 1</option>
+                                        <option value="2">Level 2</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="joinDate">Join Date</label>
+                                    <input type="month" id="joinDate" name="joinDate">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700">Profile Picture</label>
+                                    <div class="flex items-center gap-2">
+                                        <input type="text" name="profilePicUrl" id="profilePicUrl" placeholder="Image URL" class="bg-gray-50">
+                                        <label for="profilePicFile" class="file-input-label bg-gray-600 hover:bg-gray-700 text-sm !px-3 !py-1.5 whitespace-nowrap">Choose</label>
+                                        <input type="file" id="profilePicFile" accept="image/*">
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Placements Section -->
+                            <hr class="!my-6"/>
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-semibold">Placements</h3>
+                                <div class="flex items-center">
+                                    <input type="checkbox" name="isTrusted" id="isTrustedCheckbox" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
+                                    <label for="isTrustedCheckbox" class="ml-2 !mb-0 block text-sm font-medium text-gray-900">This is a trusted user</label>
+                                </div>
+                            </div>
+                            <div id="placementsContainer" class="space-y-4 max-h-96 overflow-y-auto pr-2"></div>
+                            <button type="button" id="addPlacementBtn" class="w-full text-sm bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200">Add Placement</button>
+                            <datalist id="competition-list"></datalist>
+                            <datalist id="team-list"></datalist>
+                            <hr class="!my-6"/>
+                            <!-- Action Buttons -->
+                            <div class="flex gap-4">
+                                <button type="submit" class="w-full bg-green-600 text-white font-bold py-2.5 px-4 rounded-md hover:bg-green-700 transition duration-200">Save User</button>
+                                <button type="button" id="clearFormBtn" class="w-full bg-gray-500 text-white font-bold py-2.5 px-4 rounded-md hover:bg-gray-600 transition duration-200">Clear Form</button>
+                            </div>
+                        </form>
+                    </div>
+
                     <!-- Statistics Section -->
                     <div class="stat-card">
                         <h2 class="text-xl font-bold mb-4">Database Statistics</h2>
-                        <div id="statsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-center">
-                            <div class="p-4 bg-blue-50 rounded-lg">
-                                <p class="text-3xl font-bold text-blue-600" id="statTotalUsers">0</p>
-                                <p class="text-sm text-gray-600">Total Users</p>
-                            </div>
-                            <div class="p-4 bg-green-50 rounded-lg">
-                                <p class="text-3xl font-bold text-green-600" id="statPassedL1">0%</p>
-                                <p class="text-sm text-gray-600">Passed L1+</p>
-                            </div>
-                            <div class="p-4 bg-indigo-50 rounded-lg">
-                                <p class="text-3xl font-bold text-indigo-600" id="statUniqueComps">0</p>
-                                <p class="text-sm text-gray-600">Unique Competitions</p>
-                            </div>
+                        <div id="statsContainer" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 text-center">
+                            <!-- Stats will be dynamically inserted here -->
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                             <div class="p-4"><canvas id="acmLevelChart"></canvas></div>
@@ -326,8 +439,9 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                 </button>
                                 <div class="dropdown-content">
-                                    <a href="#" id="downloadDbReadinessCsvBtn">Download Readiness CSV</a>
-                                    <a href="#" id="downloadDbFullBackupBtn">Download Full Backup (JSON)</a>
+                                    <button id="downloadSelectedUsersCsvBtn">Download Selected Users (CSV)</button>
+                                    <button id="downloadAllUsersCsvBtn">Download All Users (CSV)</button>
+                                    <button id="downloadDbFullBackupBtn_dummy">Download Full Backup (JSON)</button>
                                 </div>
                             </div>
                         </div>
@@ -335,15 +449,24 @@
                             <table id="detailedUserTable" class="w-full text-sm text-left text-gray-600">
                                 <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
                                     <tr>
-                                        <th class="p-2">Handle</th>
-                                        <th class="p-2">Full Name</th>
-                                        <th class="p-2">University</th>
-                                        <th class="p-2">Last Updated</th>
+                                        <th class="p-2 w-10 text-center"><input type="checkbox" id="selectAllUsersCheckbox"></th>
+                                        <th class="p-2 sortable-header" data-sort-key="handle">Handle <span class="sort-icon"></span></th>
+                                        <th class="p-2 sortable-header" data-sort-key="fullName">Full Name <span class="sort-icon"></span></th>
+                                        <th class="p-2 sortable-header" data-sort-key="university">University <span class="sort-icon"></span></th>
+                                        <th class="p-2 sortable-header" data-sort-key="updatedAt">Last Updated <span class="sort-icon"></span></th>
                                         <th class="p-2 text-center">Actions</th>
+                                    </tr>
+                                    <tr>
+                                        <th></th>
+                                        <th><input type="text" data-filter-key="handle" placeholder="Filter..."></th>
+                                        <th><input type="text" data-filter-key="fullName" placeholder="Filter..."></th>
+                                        <th><input type="text" data-filter-key="university" placeholder="Filter..."></th>
+                                        <th></th>
+                                        <th></th>
                                     </tr>
                                 </thead>
                                 <tbody id="detailedUserTableBody">
-                                    <tr><td colspan="5" class="p-4 text-center text-gray-500">No users in the database yet.</td></tr>
+                                    <tr><td colspan="6" class="p-4 text-center text-gray-500">No users in the database yet.</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -351,6 +474,39 @@
                 </div>
             </div>
         </div>
+
+        <div id="tabContentEditors" class="hidden">
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="border-b border-gray-200 mb-4">
+                    <nav class="flex space-x-1" aria-label="Editor Tabs">
+                        <button data-editor="competitions" class="editor-tab-btn active font-medium px-4 py-2 rounded-t-lg">Competitions</button>
+                        <button data-editor="universities" class="editor-tab-btn font-medium px-4 py-2 rounded-t-lg text-gray-600">Universities</button>
+                        <button data-editor="teams" class="editor-tab-btn font-medium px-4 py-2 rounded-t-lg text-gray-600">Teams</button>
+                    </nav>
+                </div>
+
+                <div id="editorContainer">
+                    <!-- This container will hold the editor sub-tabs and content -->
+                </div>
+            </div>
+        </div>
+        
+        <div id="tabContentAnalyticsDashboard" class="hidden">
+             <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="border-b border-gray-200 mb-4">
+                    <nav id="analyticsSubTabs" class="flex flex-wrap -mb-px" aria-label="Analytics Tabs">
+                        <button data-analytics-view="global" class="sub-tab-btn active font-medium px-4 py-2 rounded-t-lg">Global</button>
+                        <button data-analytics-view="universities" class="sub-tab-btn font-medium px-4 py-2 rounded-t-lg text-gray-600">Universities</button>
+                        <button data-analytics-view="competitions" class="sub-tab-btn font-medium px-4 py-2 rounded-t-lg text-gray-600">Competitions</button>
+                        <button data-analytics-view="individuals" class="sub-tab-btn font-medium px-4 py-2 rounded-t-lg text-gray-600">Individuals</button>
+                    </nav>
+                </div>
+                <div id="advancedStatsContainer">
+                    <!-- Advanced analytics content will be rendered here -->
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <!-- Confirmation Modal -->
@@ -380,20 +536,35 @@
         document.addEventListener('DOMContentLoaded', () => {
             // --- STATE VARIABLES ---
             let usersToAnalyze = [];
-            let userDatabase = []; // Array of detailed user objects
-            let competitionDatabase = {}; // { "Comp Name": { link: "...", total: 100 } }
-            let universityDatabase = []; // [ "Uni Name 1", "Uni Name 2" ]
-            let cachedUserData = []; // Caches results from Codeforces API
-            let ratingChart = null, problemChart = null, acmLevelChart = null, competitionPieChart = null;
-            let sortState = { key: 'readinessProbability', direction: 'desc' };
+            let userDatabase = [];
+            let teamDatabase = [];
+            let competitionDatabase = {};
+            let universityDatabase = [];
+            let cachedUserData = [];
+            let charts = {}; // Object to hold all chart instances
+            let analysisSortState = { key: 'readinessProbability', direction: 'desc' };
+            let dbSortState = { key: 'updatedAt', direction: 'desc' };
+            let dbFilters = {};
             let activeFilter = 'all';
             let confirmCallback = null;
 
             // --- DOM ELEMENT REFERENCES ---
-            const tabBtnAnalysis = document.getElementById('tabBtnAnalysis');
-            const tabBtnDatabase = document.getElementById('tabBtnDatabase');
-            const tabContentAnalysis = document.getElementById('tabContentAnalysis');
-            const tabContentDatabase = document.getElementById('tabContentDatabase');
+            const tabButtons = {
+                analysis: document.getElementById('tabBtnAnalysis'),
+                database: document.getElementById('tabBtnDatabase'),
+                editors: document.getElementById('tabBtnEditors'),
+                analyticsdashboard: document.getElementById('tabBtnAnalyticsDashboard'),
+            };
+            const tabContents = {
+                analysis: document.getElementById('tabContentAnalysis'),
+                database: document.getElementById('tabContentDatabase'),
+                editors: document.getElementById('tabContentEditors'),
+                analyticsdashboard: document.getElementById('tabContentAnalyticsDashboard'),
+            };
+            const editorTabButtons = document.querySelectorAll('.editor-tab-btn');
+            const editorContainer = document.getElementById('editorContainer');
+            const analyticsSubTabs = document.getElementById('analyticsSubTabs');
+
             const handleInput = document.getElementById('handleInput');
             const lunaNovaScoreInput = document.getElementById('lunaNovaScoreInput');
             const lunaHardScoreInput = document.getElementById('lunaHardScoreInput');
@@ -401,21 +572,21 @@
             const trustedUserInput = document.getElementById('trustedUserInput');
             const addManualUserBtn = document.getElementById('addManualUserBtn');
             const jsonFileInput = document.getElementById('jsonFileInput');
-            const loadJsonBtn = document.getElementById('loadJsonBtn');
             const clearListBtn = document.getElementById('clearListBtn');
             const processAllBtn = document.getElementById('processAllBtn');
             const downloadAnalysisBtn = document.getElementById('downloadAnalysisBtn');
             const downloadAnalysisResultsCsvBtn = document.getElementById('downloadAnalysisResultsCsvBtn');
             const downloadFilteredHandlesCsvBtn = document.getElementById('downloadFilteredHandlesCsvBtn');
-            const downloadDbReadinessCsvBtn = document.getElementById('downloadDbReadinessCsvBtn');
+            const downloadSelectedUsersCsvBtn = document.getElementById('downloadSelectedUsersCsvBtn');
+            const downloadAllUsersCsvBtn = document.getElementById('downloadAllUsersCsvBtn');
             const downloadDbFullBackupBtn = document.getElementById('downloadDbFullBackupBtn');
-            const downloadCompetitionsBtn = document.getElementById('downloadCompetitionsBtn');
+            const downloadDbFullBackupBtn_dummy = document.getElementById('downloadDbFullBackupBtn_dummy');
             const userList = document.getElementById('userList');
             const userCount = document.getElementById('userCount');
             const noUsersMessage = document.getElementById('noUsersMessage');
             const resultsContainer = document.getElementById('resultsContainer');
             const resultsTableBody = document.querySelector('#resultsTable tbody');
-            const resultsTableHeader = document.querySelector('#resultsTable thead');
+            const analysisResultsTableHeader = document.querySelector('#resultsTable thead');
             const readinessFilter = document.getElementById('readinessFilter');
             const errorMessageDiv = document.getElementById('errorMessage');
             const loadingIndicator = document.getElementById('loadingIndicator');
@@ -424,16 +595,15 @@
             const placementsContainer = document.getElementById('placementsContainer');
             const addPlacementBtn = document.getElementById('addPlacementBtn');
             const competitionDataList = document.getElementById('competition-list');
+            const teamDataList = document.getElementById('team-list');
+            const universityInput = document.getElementById('universityInput');
             const universityDataList = document.getElementById('university-list');
+            const detailedUserTable = document.getElementById('detailedUserTable');
             const detailedUserTableBody = document.getElementById('detailedUserTableBody');
             const databaseUserCount = document.getElementById('databaseUserCount');
-            const competitionEditorContainer = document.getElementById('competitionEditorContainer');
-            const addCompetitionBtn = document.getElementById('addCompetitionBtn');
-            const universityEditorContainer = document.getElementById('universityEditorContainer');
-            const addUniversityBtn = document.getElementById('addUniversityBtn');
-            const statTotalUsers = document.getElementById('statTotalUsers');
-            const statPassedL1 = document.getElementById('statPassedL1');
-            const statUniqueComps = document.getElementById('statUniqueComps');
+            
+            const statsContainer = document.getElementById('statsContainer');
+            const advancedStatsContainer = document.getElementById('advancedStatsContainer');
             const detailsModal = document.getElementById('detailsModal');
             const modalContentContainer = document.getElementById('modalContentContainer');
             const closeModalBtn = document.getElementById('closeModalBtn');
@@ -442,12 +612,33 @@
             const confirmationModalMessage = document.getElementById('confirmationModalMessage');
             const confirmCancelBtn = document.getElementById('confirmCancelBtn');
             const confirmOkBtn = document.getElementById('confirmOkBtn');
+            const uploadUsersCsvInput = document.getElementById('uploadUsersCsv');
+            const uploadCompetitionsCsvInput = document.getElementById('uploadCompetitionsCsv');
+            const uploadUniversitiesCsvInput = document.getElementById('uploadUniversitiesCsv');
+            const profilePicFileInput = document.getElementById('profilePicFile');
+            const profilePicUrlInput = document.getElementById('profilePicUrl');
 
             // --- MODEL WEIGHTS (same as original) ---
             const weights = { bias: -7.0, maxRating: 0.02, avgRating: 0.01, contestCount: 0.03, lunaScore: 0.04, placementScore: 0.08, avgDiv2PerfScore: 0.16, weightedSolves: 0.05, activityScore: 0.08, inactivityPattern: -0.04, skipped: -0.015, };
 
             // --- API QUEUE (same as original) ---
             const apiQueue = { requests: [], isProcessing: false, delay: 1100, add(url) { return new Promise((resolve, reject) => { this.requests.push({ url, resolve, reject }); if (!this.isProcessing) this.processNext(); }); }, async processNext() { if (this.requests.length === 0) { this.isProcessing = false; return; } this.isProcessing = true; const { url, resolve, reject } = this.requests.shift(); try { const response = await fetch(url); if (!response.ok) throw new Error(`API request failed: ${response.status}`); const data = await response.json(); if (data.status === 'FAILED') throw new Error(`Codeforces API error: ${data.comment}`); resolve(data); } catch (error) { reject(error); } setTimeout(() => this.processNext(), this.delay); } };
+            
+            // --- CHART HELPERS ---
+            function destroyChart(chartId) {
+                if (charts[chartId]) {
+                    charts[chartId].destroy();
+                    delete charts[chartId];
+                }
+            }
+
+            function renderChart(chartId, type, data, options) {
+                destroyChart(chartId); // Ensure old chart is destroyed
+                const ctx = document.getElementById(chartId)?.getContext('2d');
+                if (ctx) {
+                    charts[chartId] = new Chart(ctx, { type, data, options });
+                }
+            }
             
             // --- CORE CALCULATION LOGIC & MODEL (largely unchanged) ---
             const sigmoid = (x) => 1 / (1 + Math.exp(-x));
@@ -461,15 +652,12 @@
             function getRecencyWeightedSolvedProblemScore(submissions) { let score = 0; const solvedProblemIds = new Set(); const now = Date.now() / 1000; const sortedSubmissions = submissions.sort((a, b) => b.creationTimeSeconds - a.creationTimeSeconds); for (const sub of sortedSubmissions) { if (sub.verdict !== 'OK' || !sub.problem.rating) continue; const problemId = `${sub.problem.contestId || 'gym'}-${sub.problem.index}`; if (solvedProblemIds.has(problemId)) continue; solvedProblemIds.add(problemId); const daysOld = (now - sub.creationTimeSeconds) / 86400; const recencyWeight = Math.exp(-0.005 * daysOld); const problemScore = Math.pow(1.15, (sub.problem.rating - 1200) / 100); score += problemScore * recencyWeight; } return logisticCurve(score, 40, 0.002, 1500); }
             function calculateActivityAndInactivityMetrics(submissions) { const oneDay = 86400000; const now = Date.now(); const dailyActivity = new Map(); submissions.forEach(sub => { if (sub.verdict === 'OK') { const date = new Date(sub.creationTimeSeconds * 1000); date.setHours(0, 0, 0, 0); const dateStr = date.toISOString().split('T')[0]; if (!dailyActivity.has(dateStr)) { dailyActivity.set(dateStr, { count: 0, timestamp: date.getTime() }); } dailyActivity.get(dateStr).count++; } }); let rawActivityScore = 0; for (const data of dailyActivity.values()) { const daysOld = (now - data.timestamp) / oneDay; rawActivityScore += Math.sqrt(data.count) * Math.exp(-0.003 * daysOld); } if (dailyActivity.size < 3) return { rawActivityScore, inactivityScore: 100, avgGap: 365, stdDevGap: 0 }; const sortedTimestamps = Array.from(dailyActivity.values()).map(d => d.timestamp).sort((a, b) => a - b); const gaps = []; for (let i = 1; i < sortedTimestamps.length; i++) { gaps.push((sortedTimestamps[i] - sortedTimestamps[i-1]) / oneDay); } const avgGap = gaps.reduce((a, v) => a + v, 0) / gaps.length; const stdDevGap = Math.sqrt(gaps.reduce((a, v) => a + Math.pow(v - avgGap, 2), 0) / gaps.length); const recencyGap = (now - sortedTimestamps[sortedTimestamps.length - 1]) / oneDay; const rawPenalty = avgGap + (2 * stdDevGap) + (1.5 * recencyGap); const inactivityScore = logisticCurve(rawPenalty, 100, 0.1, 40); return { rawActivityScore, inactivityScore, avgGap, stdDevGap }; }
             function getScoreFromActivity(rawActivityScore) { return logisticCurve(rawActivityScore, 50, 0.1, 50); }
-            function calculateReadinessProbability(stats) { let { scoreMaxRating, scoreAvgRating, scoreContestCount, scoreFromCombinedLuna, scoreFromPlacements, scoreFromAvgDiv2Performance, scoreWeightedSolvedProblems, scoreFromActivity, inactivityScore } = stats; if (!stats.isTrusted) { const cfPenalty = 0.1, manualPenalty = 0.8; scoreMaxRating *= cfPenalty; scoreAvgRating *= cfPenalty; scoreContestCount *= cfPenalty; scoreFromAvgDiv2Performance *= cfPenalty; scoreWeightedSolvedProblems *= cfPenalty; scoreFromActivity *= cfPenalty; scoreFromCombinedLuna *= manualPenalty; inactivityScore *= 0.5; } const z = weights.bias + (scoreMaxRating * weights.maxRating) + (scoreAvgRating * weights.avgRating) + (scoreContestCount * weights.contestCount) + (scoreFromCombinedLuna * weights.lunaScore) + (scoreFromPlacements * weights.placementScore) + (scoreFromAvgDiv2Performance * weights.avgDiv2PerfScore) + (scoreWeightedSolvedProblems * weights.weightedSolves) + (scoreFromActivity * weights.activityScore) + (inactivityScore * weights.inactivityPattern) + (stats.skippedSubmissionsCount * weights.skipped); return sigmoid(z); }
+            function calculateReadinessProbability(stats) { let { scoreMaxRating, scoreAvgRating, scoreContestCount, scoreFromCombinedLuna, scoreFromPlacements, scoreFromAvgDiv2Performance, scoreWeightedSolvedProblems, scoreFromActivity, inactivityScore } = stats; if (!stats.isTrusted) { const cfPenalty = 0.1, manualPenalty = 0.8; scoreMaxRating *= cfPenalty; scoreAvgRating *= cfPenalty; scoreContestCount *= cfPenalty; scoreFromAvgDiv2Performance *= cfPenalty; scoreWeightedSolvedProblems *= cfPenalty; scoreFromActivity *= cfPenalty; scoreFromCombinedLuna *= manualPenalty; inactivityScore *= 0.5; } const z = weights.bias + (scoreMaxRating * weights.maxRating) + (scoreAvgRating * weights.avgRating) + (scoreContestCount * weights.contestCount) + (scoreFromCombinedLuna * weights.lunaScore) + (scoreFromPlacements * weights.placementScore) + (scoreFromAvgDiv2PerfScore * weights.avgDiv2PerfScore) + (scoreWeightedSolvedProblems * weights.weightedSolves) + (scoreFromActivity * weights.activityScore) + (inactivityScore * weights.inactivityPattern) + (stats.skippedSubmissionsCount * weights.skipped); return sigmoid(z); }
             
             // --- DATE HELPERS ---
-            function formatDateForInput(date) { // Date object to YYYY-MM-DD
-                if (!date || !(date instanceof Date)) return '';
-                const year = date.getFullYear();
-                const month = String(date.getMonth() + 1).padStart(2, '0');
-                const day = String(date.getDate()).padStart(2, '0');
-                return `${year}-${month}-${day}`;
+            function formatDateForInput(dateStr) {
+                if (!dateStr) return '';
+                return dateStr.slice(0, 7); 
             }
 
             // --- CONFIRMATION MODAL ---
@@ -516,94 +704,149 @@
 
             function clearManualInputs() { handleInput.value = ''; lunaNovaScoreInput.value = ''; lunaHardScoreInput.value = ''; placementsInput.value = ''; trustedUserInput.checked = true; }
             
-            function loadJsonFile() { 
-                const file = jsonFileInput.files[0]; 
+            function loadJsonFile(file) { 
                 if (!file) { displayError('Please select a JSON backup file.'); return; } 
                 const reader = new FileReader(); 
                 reader.onload = (e) => { 
                     try { 
                         const data = JSON.parse(e.target.result);
-                        if (!data.users || !data.competitions) {
-                            throw new Error("Invalid backup file format. Must contain 'users' and 'competitions' keys.");
+                        if (!data.users || !data.competitions || !data.universities || !data.teams) {
+                            throw new Error("Invalid backup file format. Must contain 'users', 'competitions', 'universities', and 'teams' keys.");
                         }
-                        showConfirmationModal('Overwrite Data?', 'Loading this backup will overwrite all current users, competitions, and universities. Are you sure?', () => {
-                            userDatabase = data.users.map(u => ({...u, updatedAt: new Date(u.updatedAt), joinDate: u.joinDate ? new Date(u.joinDate) : null })); // Re-hydrate dates
+                        showConfirmationModal('Overwrite Data?', 'Loading this backup will overwrite all current data. Are you sure?', () => {
+                            userDatabase = data.users.map(u => ({...u, updatedAt: new Date(u.updatedAt) })) || [];
                             competitionDatabase = data.competitions || {};
-                            universityDatabase = data.universities || []; // Load universities
-                            // Sync analysis list with the new database
+                            universityDatabase = data.universities || [];
+                            teamDatabase = data.teams || [];
                             usersToAnalyze = userDatabase.map(dbUser => {
                                 const placementPercentages = dbUser.placements.map(p => (p.rank / p.total) * 100);
-                                return {
-                                    handle: dbUser.handle,
-                                    lunaNovaScore: dbUser.lunaNovaScore,
-                                    lunaHardScore: dbUser.lunaHardScore,
-                                    placements: placementPercentages,
-                                    isTrusted: true
-                                };
+                                return { handle: dbUser.handle, lunaNovaScore: dbUser.lunaNovaScore, lunaHardScore: dbUser.lunaHardScore, placements: placementPercentages, isTrusted: dbUser.isTrusted !== false };
                             });
-                            cachedUserData = []; // Clear old API cache
+                            cachedUserData = [];
                             renderAll();
-                            displayError(`Successfully loaded backup. ${userDatabase.length} users, ${Object.keys(competitionDatabase).length} competitions, and ${universityDatabase.length} universities restored.`);
+                            displayError(`Successfully loaded backup.`);
                         });
                     } catch (error) { 
                         displayError(`Error parsing JSON: ${error.message}`); 
                     } 
                 }; 
                 reader.readAsText(file); 
-                jsonFileInput.value = '';
             }
             
             function updateUserListDisplay() { userList.innerHTML = ''; userCount.textContent = usersToAnalyze.length; noUsersMessage.classList.toggle('hidden', usersToAnalyze.length > 0); usersToAnalyze.forEach((user, index) => { const handleClass = user.isTrusted ? 'font-semibold' : 'font-semibold text-red-600'; const listItem = document.createElement('li'); listItem.className = 'p-2 bg-gray-50 rounded-md text-sm flex justify-between items-center border border-gray-200'; listItem.innerHTML = `<div class="flex items-center gap-2"><input type="checkbox" data-index="${index}" class="user-trust-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${user.isTrusted ? 'checked' : ''}><span><span class="${handleClass}">${user.handle}</span> (Luna: ${user.lunaNovaScore}/${user.lunaHardScore})</span></div><button data-index="${index}" class="remove-list-btn text-red-500 hover:text-red-700 font-bold px-2">×</button>`; userList.appendChild(listItem); }); }
-            function clearUserList() { showConfirmationModal('Clear User List?', 'This will remove all users from the analysis list and clear any processed results. Are you sure?', () => { usersToAnalyze = []; cachedUserData = []; updateUserListDisplay(); resultsTableBody.innerHTML = ''; resultsContainer.classList.add('hidden'); hideError(); downloadAnalysisBtn.disabled = true; clearManualInputs(); jsonFileInput.value = ''; }); }
+            function clearUserList() { showConfirmationModal('Clear User List?', 'This will remove all users from the analysis list and clear any processed results. Are you sure?', () => { usersToAnalyze = []; cachedUserData = []; updateUserListDisplay(); resultsTableBody.innerHTML = ''; resultsContainer.classList.add('hidden'); hideError(); downloadAnalysisBtn.disabled = true; clearManualInputs(); }); }
             async function processSingleUser(user, rowElement) { rowElement.innerHTML = `<td colspan="5" class="px-4 py-3 text-center text-gray-500"><div class="flex items-center justify-center gap-2"><div class="spinner h-4 w-4 rounded-full border-2 border-gray-200"></div><span>Processing ${user.handle}...</span></div></td>`; try { const userData = await fetchStatsForHandle(user.handle, user.lunaNovaScore, user.lunaHardScore, user.placements, user.isTrusted); const cacheIndex = cachedUserData.findIndex(data => data.handle.toLowerCase() === user.handle.toLowerCase()); if (cacheIndex > -1) cachedUserData[cacheIndex] = userData; else cachedUserData.push(userData); updateTableRow(rowElement, userData); } catch (error) { console.error(`Error fetching stats for ${user.handle}:`, error); const errorData = { handle: user.handle, error: `API Error: ${error.message.substring(0, 60)}...` }; const cacheIndex = cachedUserData.findIndex(data => data.handle.toLowerCase() === user.handle.toLowerCase()); if (cacheIndex > -1) cachedUserData[cacheIndex] = errorData; else cachedUserData.push(errorData); updateTableRow(rowElement, errorData); } }
-            async function processAllUsers() { if (usersToAnalyze.length === 0) { displayError('Please add users to the list first.'); return; } resultsContainer.classList.remove('hidden'); hideError(); showLoading(); const usersToProcess = usersToAnalyze.filter(user => { const cachedUser = cachedUserData.find(cached => cached.handle.toLowerCase() === user.handle.toLowerCase() && !cached.error); return !cachedUser || cachedUser.isTrusted !== user.isTrusted || cachedUser.lunaNovaScore !== user.lunaNovaScore || cachedUser.lunaHardScore !== user.lunaHardScore; }); if (usersToProcess.length === 0) { hideLoading(); displayError("All users in the list are up-to-date."); updateTableView(); return; } for (let i = 0; i < usersToProcess.length; i++) { const user = usersToProcess[i]; const loadingMessage = document.querySelector('#loadingIndicator p:first-child'); if (loadingMessage) loadingMessage.textContent = `Processing user ${i + 1} of ${usersToProcess.length}: ${user.handle}...`; let row = document.getElementById(`row-${user.handle.toLowerCase()}`); if (!row) { row = resultsTableBody.insertRow(); row.id = `row-${user.handle.toLowerCase()}`; } await processSingleUser(user, row); } hideLoading(); downloadAnalysisBtn.disabled = cachedUserData.filter(d => !d.error).length === 0; updateTableView(); }
+            async function processAllUsers() { if (usersToAnalyze.length === 0) { displayError('Please add users to the list first.'); return; } resultsContainer.classList.remove('hidden'); hideError(); showLoading(); const usersToProcess = usersToAnalyze.filter(user => { const cachedUser = cachedUserData.find(cached => cached.handle.toLowerCase() === user.handle.toLowerCase() && !cached.error); return !cachedUser || cachedUser.isTrusted !== user.isTrusted || cachedUser.lunaNovaScore !== user.lunaNovaScore || cachedUser.lunaHardScore !== user.lunaHardScore; }); if (usersToProcess.length === 0) { hideLoading(); displayError("All users in the list are up-to-date."); updateAnalysisTableView(); return; } for (let i = 0; i < usersToProcess.length; i++) { const user = usersToProcess[i]; const loadingMessage = document.querySelector('#loadingIndicator p:first-child'); if (loadingMessage) loadingMessage.textContent = `Processing user ${i + 1} of ${usersToProcess.length}: ${user.handle}...`; let row = document.getElementById(`row-${user.handle.toLowerCase()}`); if (!row) { row = resultsTableBody.insertRow(); row.id = `row-${user.handle.toLowerCase()}`; } await processSingleUser(user, row); } hideLoading(); downloadAnalysisBtn.disabled = cachedUserData.filter(d => !d.error).length === 0; updateAnalysisTableView(); }
 
-            // --- Database Tab Logic ---
+            // --- Database Tab Logic (REFACTORED) ---
             function addPlacementInput(placement = null) {
                 const placementDiv = document.createElement('div');
-                placementDiv.className = 'p-3 border border-gray-200 rounded-md space-y-2 placement-entry bg-gray-50 relative';
+                placementDiv.className = 'placement-entry';
+                const uniqueId = `placement_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                placementDiv.id = uniqueId;
                 
                 const compName = placement ? placement.name : '';
-                const compLink = placement ? (competitionDatabase[compName]?.link || '') : '';
+                const compData = competitionDatabase[compName] || {};
+                const teamId = placement ? placement.teamId : '';
+                const teamName = teamId ? (teamDatabase.find(t => t.id === teamId)?.name || '') : '';
 
                 placementDiv.innerHTML = `
-                    <button type="button" class="remove-placement-btn absolute -top-2 -right-2 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center font-bold text-xs hover:bg-red-600">&times;</button>
-                    <input type="text" list="competition-list" placeholder="Competition Name*" class="comp-name-input w-full text-sm px-2 py-1 border border-gray-300 rounded-md" value="${compName}" required>
-                    <input type="url" placeholder="Competition Link*" class="comp-link-input w-full text-sm px-2 py-1 border border-gray-300 rounded-md" value="${compLink}" required>
-                    <div class="grid grid-cols-2 gap-2">
-                        <input type="number" placeholder="Rank*" min="1" class="w-full text-sm px-2 py-1 border border-gray-300 rounded-md" value="${placement ? placement.rank : ''}" required>
-                        <input type="number" placeholder="Total*" min="1" class="comp-total-input w-full text-sm px-2 py-1 border border-gray-300 rounded-md" value="${placement ? placement.total : ''}" required>
+                    <button type="button" class="remove-placement-btn absolute -top-2.5 -right-2.5 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center font-bold text-sm hover:bg-red-600 z-10">&times;</button>
+                    <div class="flex justify-between items-center gap-4">
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" class="team-placement-checkbox h-4 w-4 rounded border-gray-400" ${teamId ? 'checked' : ''}>
+                            <label class="text-sm font-medium !mb-0">Team Placement</label>
+                        </div>
+                        <div class="team-selection-container ${teamId ? '' : 'hidden'} flex-grow">
+                            <label class="font-medium text-xs text-gray-600 sr-only">Team Name*</label>
+                            <input type="text" list="team-list-${uniqueId}" placeholder="Select Team" class="team-name-input w-full text-sm p-2 border border-gray-300 rounded-md" value="${teamName}">
+                            <datalist id="team-list-${uniqueId}"></datalist>
+                        </div>
+                    </div>
+                    <div class="placement-fields">
+                        <div>
+                            <label class="font-medium text-xs text-gray-600">Competition*</label>
+                            <input type="text" list="competition-list" placeholder="Competition Name" class="comp-name-input w-full text-sm p-2 border border-gray-300 rounded-md" value="${compName}" required>
+                        </div>
+                        <div>
+                            <label class="font-medium text-xs text-gray-600">Date*</label>
+                            <input type="month" class="comp-date-input w-full text-sm p-2 border border-gray-300 rounded-md" value="${compData.date || ''}" required>
+                        </div>
+                        <div>
+                             <label class="font-medium text-xs text-gray-600">Rank*</label>
+                             <input type="number" placeholder="Rank" min="1" class="comp-rank-input w-full text-sm p-2 border border-gray-300 rounded-md" value="${placement ? placement.rank : ''}" required>
+                        </div>
+                        <div>
+                             <label class="font-medium text-xs text-gray-600">Total Participants*</label>
+                             <input type="number" placeholder="Total" min="1" class="comp-total-input w-full text-sm p-2 border border-gray-300 rounded-md" value="${placement ? placement.total : (compData.total || '')}" required>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <label class="font-medium text-xs text-gray-600">Competition Link*</label>
+                        <input type="url" placeholder="https://codeforces.com/contest/..." class="comp-link-input w-full text-sm p-2 border border-gray-300 rounded-md" value="${compData.link || ''}" required>
                     </div>
                 `;
                 placementsContainer.appendChild(placementDiv);
+
+                // Attach event listeners to the new elements
+                const teamCheckbox = placementDiv.querySelector('.team-placement-checkbox');
+                const compNameInput = placementDiv.querySelector('.comp-name-input');
+                const teamNameInput = placementDiv.querySelector('.team-name-input');
+
+                updateTeamDatalistForEntry(placementDiv);
+
                 placementDiv.querySelector('.remove-placement-btn').addEventListener('click', () => {
-                    showConfirmationModal('Remove Placement?', 'Are you sure you want to remove this placement entry?', () => {
-                        placementDiv.remove();
-                    });
+                    showConfirmationModal('Remove Placement?', 'Are you sure you want to remove this placement entry?', () => placementDiv.remove());
                 });
-
-                const nameInput = placementDiv.querySelector('.comp-name-input');
-                const linkInput = placementDiv.querySelector('.comp-link-input');
-                const totalInput = placementDiv.querySelector('.comp-total-input');
-
-                nameInput.addEventListener('change', () => {
-                    const compName = nameInput.value;
-                    if (competitionDatabase[compName]) {
-                        if(competitionDatabase[compName].total) {
-                            totalInput.value = competitionDatabase[compName].total;
-                            totalInput.readOnly = true;
-                        }
-                        if(competitionDatabase[compName].link) {
-                            linkInput.value = competitionDatabase[compName].link;
-                            linkInput.readOnly = true;
-                        }
-                    } else {
-                        totalInput.readOnly = false;
-                        linkInput.readOnly = false;
+                
+                teamCheckbox.addEventListener('change', (e) => {
+                    placementDiv.querySelector('.team-selection-container').classList.toggle('hidden', !e.target.checked);
+                    if (e.target.checked) {
+                        compNameInput.dispatchEvent(new Event('input')); // Trigger check
                     }
                 });
-                // Trigger change event if there's an initial value
-                if (placement) nameInput.dispatchEvent(new Event('change'));
+
+                compNameInput.addEventListener('input', (e) => {
+                    const currentCompName = e.target.value;
+                    const comp = competitionDatabase[currentCompName];
+                    const compDateInput = placementDiv.querySelector('.comp-date-input');
+                    const compTotalInput = placementDiv.querySelector('.comp-total-input');
+                    const compLinkInput = placementDiv.querySelector('.comp-link-input');
+                    const compRankInput = placementDiv.querySelector('.comp-rank-input');
+
+                    if (comp) {
+                        if (comp.date) compDateInput.value = comp.date;
+                        if (comp.total) compTotalInput.value = comp.total;
+                        if (comp.link) compLinkInput.value = comp.link;
+                    }
+
+                    // Auto-populate from teammate
+                    const isTeamPlacement = teamCheckbox.checked;
+                    const selectedTeamName = teamNameInput.value;
+                    if (!isTeamPlacement || !selectedTeamName || !currentCompName) return;
+
+                    const selectedTeam = teamDatabase.find(t => t.name.toLowerCase() === selectedTeamName.toLowerCase());
+                    if (!selectedTeam) return;
+
+                    for (const memberHandle of selectedTeam.members) {
+                        const member = userDatabase.find(u => u.handle.toLowerCase() === memberHandle.toLowerCase());
+                        if (member) {
+                            const teamPlacement = member.placements.find(p => p.teamId === selectedTeam.id && p.name.toLowerCase() === currentCompName.toLowerCase());
+                            if (teamPlacement) {
+                                compRankInput.value = teamPlacement.rank;
+                                compTotalInput.value = teamPlacement.total;
+                                displayError(`Auto-filled rank for ${currentCompName} from teammate ${member.handle}.`, 'info');
+                                return;
+                            }
+                        }
+                    }
+                });
+                
+                teamNameInput.addEventListener('input', () => {
+                     compNameInput.dispatchEvent(new Event('input')); // Re-trigger check
+                });
+
+                if (placement) compNameInput.dispatchEvent(new Event('input'));
             }
 
             function handleDetailedUserFormSubmit(e) {
@@ -616,34 +859,34 @@
                 let placementError = false;
                 document.querySelectorAll('.placement-entry').forEach(entry => {
                     if (placementError) return;
-                    const nameInput = entry.querySelector('.comp-name-input');
-                    const linkInput = entry.querySelector('.comp-link-input');
-                    const rankInput = entry.querySelector('input[placeholder="Rank*"]');
-                    const totalInput = entry.querySelector('.comp-total-input');
+                    const name = entry.querySelector('.comp-name-input').value.trim();
+                    const date = entry.querySelector('.comp-date-input').value;
+                    const link = entry.querySelector('.comp-link-input').value.trim();
+                    const rankStr = entry.querySelector('.comp-rank-input').value;
+                    const totalStr = entry.querySelector('.comp-total-input').value;
+                    const isTeamPlacement = entry.querySelector('.team-placement-checkbox').checked;
+                    const teamName = entry.querySelector('.team-name-input').value.trim();
+                    const team = isTeamPlacement ? teamDatabase.find(t => t.name.toLowerCase() === teamName.toLowerCase()) : null;
 
-                    const name = nameInput.value.trim();
-                    const link = linkInput.value.trim();
-                    const rankStr = rankInput.value;
-                    const totalStr = totalInput.value;
-
-                    if (!name || !rankStr || !totalStr || !link) {
-                        alert('All placement fields (Name, Link, Rank, Total) are required.');
-                        placementError = true;
-                        return;
+                    if (!name || !rankStr || !totalStr || !date || !link) {
+                        alert('Competition Name, Date, Link, Rank, and Total fields are required for all placements.');
+                        placementError = true; return;
                     }
+                    if(isTeamPlacement && !team) {
+                        alert(`Team "${teamName}" not found. Please create the team first in the Data Editors tab.`);
+                        placementError = true; return;
+                    }
+
                     const rank = parseInt(rankStr, 10);
                     const total = parseInt(totalStr, 10);
-
                     if (rank > total) {
                          alert(`Placement error for "${name}": Rank (${rank}) cannot be greater than Total (${total}).`);
-                         placementError = true;
-                         return;
+                         placementError = true; return;
                     }
 
-                    placements.push({ name, rank, total });
-                    // Add/update competition in the central database
-                    if (!competitionDatabase[name] || !competitionDatabase[name].total || !competitionDatabase[name].link) {
-                        competitionDatabase[name] = { link, total };
+                    placements.push({ name, rank, total, teamId: team ? team.id : null });
+                    if (!competitionDatabase[name] || competitionDatabase[name].total !== total || competitionDatabase[name].date !== date || competitionDatabase[name].link !== link) {
+                        competitionDatabase[name] = { total, date, link };
                     }
                 });
 
@@ -655,35 +898,61 @@
                     universityDatabase.sort();
                 }
 
-                const newUser = {
+                const userToSave = {
                     id: handle.toLowerCase(),
                     handle: handle,
                     fullName: formData.get('fullName').trim(),
                     linkedin: formData.get('linkedin').trim(),
                     university: universityName,
+                    profilePicUrl: formData.get('profilePicUrl').trim(),
                     lunaNovaScore: parseFloat(formData.get('lunaNovaScore')) || 0,
                     lunaHardScore: parseFloat(formData.get('lunaHardScore')) || 0,
                     acmLevel: parseInt(formData.get('acmLevel'), 10),
-                    joinDate: formData.get('joinDate') ? new Date(formData.get('joinDate')) : null,
+                    joinDate: formData.get('joinDate') || null,
+                    isTrusted: detailedUserForm.querySelector('#isTrustedCheckbox').checked,
                     placements: placements,
                     updatedAt: new Date()
                 };
 
-                const existingIndex = userDatabase.findIndex(u => u.id === newUser.id);
-                if (existingIndex > -1) {
-                    userDatabase[existingIndex] = newUser;
-                } else {
-                    userDatabase.push(newUser);
-                }
-                updateAnalysisListFromDatabase(newUser);
+                saveUserAndUpdateTeams(userToSave);
+                updateAnalysisListFromDatabase(userToSave);
                 clearDetailedUserForm();
                 renderAll();
+            }
+
+            function saveUserAndUpdateTeams(userToSave) {
+                const existingIndex = userDatabase.findIndex(u => u.id === userToSave.id);
+                if (existingIndex > -1) {
+                    userDatabase[existingIndex] = userToSave;
+                } else {
+                    userDatabase.push(userToSave);
+                }
+
+                userToSave.placements.filter(p => p.teamId).forEach(teamPlacement => {
+                    const team = teamDatabase.find(t => t.id === teamPlacement.teamId);
+                    if (!team) return;
+
+                    team.members.forEach(memberHandle => {
+                        if (memberHandle.toLowerCase() === userToSave.id) return; 
+
+                        let member = userDatabase.find(u => u.handle.toLowerCase() === memberHandle.toLowerCase());
+                        if (member) {
+                            const hasPlacement = member.placements.some(p => p.name === teamPlacement.name && p.rank === teamPlacement.rank && p.teamId === teamPlacement.teamId);
+                            if (!hasPlacement) {
+                                member.placements.push(teamPlacement);
+                                member.updatedAt = new Date();
+                            }
+                        }
+                    });
+                });
             }
             
             function clearDetailedUserForm() {
                 detailedUserForm.reset();
                 placementsContainer.innerHTML = '';
                 detailedUserForm.querySelector('[name="handle"]').readOnly = false;
+                detailedUserForm.querySelector('#isTrustedCheckbox').checked = true;
+                universityInput.value = "";
             }
 
             function updateAnalysisListFromDatabase(dbUser) {
@@ -693,7 +962,7 @@
                     lunaNovaScore: dbUser.lunaNovaScore,
                     lunaHardScore: dbUser.lunaHardScore,
                     placements: placementPercentages,
-                    isTrusted: true
+                    isTrusted: dbUser.isTrusted
                 };
                 addOrUpdateUserInAnalysisList(analysisUser);
             }
@@ -701,30 +970,51 @@
             function renderAll() {
                 renderUserDatabaseTable();
                 updateAndRenderStatistics();
-                renderCompetitionEditor();
+                renderCurrentEditorView();
+                renderAdvancedStats();
+                updateAllDatalists();
+            }
+            
+            function updateAllDatalists() {
                 updateCompetitionDatalist();
-                renderUniversityEditor();
-                updateUniversityDatalist();
+                document.querySelectorAll('.placement-entry').forEach(updateTeamDatalistForEntry);
+                populateUniversityDatalist();
             }
 
             function renderUserDatabaseTable() {
-                detailedUserTableBody.innerHTML = '';
-                databaseUserCount.textContent = userDatabase.length;
+                const filteredUsers = userDatabase.filter(user => {
+                    return Object.entries(dbFilters).every(([key, value]) => {
+                        const userValue = String(user[key] || '').toLowerCase();
+                        return userValue.includes(value.toLowerCase());
+                    });
+                });
 
-                if (userDatabase.length === 0) {
-                    detailedUserTableBody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-gray-500">No users in the database yet.</td></tr>`;
+                const { key, direction } = dbSortState;
+                filteredUsers.sort((a,b) => {
+                    const valA = a[key];
+                    const valB = b[key];
+                    if (valA < valB) return direction === 'asc' ? -1 : 1;
+                    if (valA > valB) return direction === 'asc' ? 1 : -1;
+                    return 0;
+                });
+
+                detailedUserTableBody.innerHTML = '';
+                databaseUserCount.textContent = filteredUsers.length;
+
+                if (filteredUsers.length === 0) {
+                    detailedUserTableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">No matching users found.</td></tr>`;
                     return;
                 }
 
-                userDatabase.sort((a,b) => b.updatedAt - a.updatedAt);
-
-                userDatabase.forEach(user => {
+                filteredUsers.forEach(user => {
                     const row = document.createElement('tr');
                     row.className = 'border-b hover:bg-gray-50';
                     row.dataset.id = user.id;
-                    const formattedDate = user.updatedAt.toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const formattedDate = new Date(user.updatedAt).toLocaleString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const handleClass = user.isTrusted ? 'font-semibold' : 'font-semibold text-red-600';
                     row.innerHTML = `
-                        <td class="p-2 font-semibold">${user.handle}</td>
+                        <td class="p-2 text-center"><input type="checkbox" class="user-select-checkbox" data-id="${user.id}"></td>
+                        <td class="p-2 ${handleClass}">${user.handle}</td>
                         <td class="p-2">${user.fullName || 'N/A'}</td>
                         <td class="p-2">${user.university || 'N/A'}</td>
                         <td class="p-2 text-xs text-gray-600">${formattedDate}</td>
@@ -736,25 +1026,147 @@
                     `;
                     detailedUserTableBody.appendChild(row);
                 });
+                updateDbSortIndicators();
             }
             
-            function downloadDbReadinessCSV() {
-                if (userDatabase.length === 0) { alert("No users in the database to download."); return; }
-                const csvRows = userDatabase.map(user => {
-                    const placementsStr = user.placements.map(p => `${((p.rank / p.total)*100).toFixed(4)}`).join(';');
-                    return [user.handle, user.lunaNovaScore, user.lunaHardScore, `"${placementsStr}"`].join(',');
-                });
-                const csvString = "handle,luna_nova_score,luna_hard_score,placements\n" + csvRows.join('\n');
-                downloadFile(csvString, `db_readiness_format_${getFormattedDateTimeString()}.csv`, 'text/csv;charset=utf-8;');
+            // --- CSV and Backup/Restore ---
+            function parseCsv(text) {
+                const lines = text.trim().split('\n');
+                const header = lines[0].split(',').map(h => h.trim());
+                const rows = [];
+                for (let i = 1; i < lines.length; i++) {
+                    const values = lines[i].split(',');
+                    const row = {};
+                    for (let j = 0; j < header.length; j++) {
+                        let value = values[j] ? values[j].trim() : '';
+                        if (value.startsWith('"') && value.endsWith('"')) {
+                            value = value.slice(1, -1).replace(/""/g, '"');
+                        }
+                        row[header[j]] = value;
+                    }
+                    rows.push(row);
+                }
+                return rows;
             }
 
+            function handleFileUpload(file, handler) {
+                if (!file) { displayError('Please select a file to upload.'); return; }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try { handler(e.target.result); } catch (error) { displayError(`Error processing file: ${error.message}`); console.error(error); }
+                };
+                reader.readAsText(file);
+            }
+
+            function handleUserUpload(csvText) {
+                const newUsers = parseCsv(csvText);
+                showConfirmationModal('Upload Users?', `This will add ${newUsers.length} users and overwrite any existing users with the same handle. Continue?`, () => {
+                    newUsers.forEach(newUserRow => {
+                        try {
+                            const handle = newUserRow.handle;
+                            if (!handle) return;
+                            const placements = newUserRow.placements_json ? JSON.parse(newUserRow.placements_json) : [];
+                            const user = {
+                                id: handle.toLowerCase(), handle,
+                                fullName: newUserRow.fullName || '',
+                                linkedin: newUserRow.linkedin || '',
+                                university: newUserRow.university || '',
+                                profilePicUrl: newUserRow.profilePicUrl || '',
+                                lunaNovaScore: parseFloat(newUserRow.lunaNovaScore) || 0,
+                                lunaHardScore: parseFloat(newUserRow.lunaHardScore) || 0,
+                                acmLevel: parseInt(newUserRow.acmLevel, 10) || 0,
+                                joinDate: newUserRow.joinDate || null,
+                                isTrusted: newUserRow.isTrusted ? newUserRow.isTrusted.toLowerCase() === 'true' : true,
+                                placements: placements,
+                                updatedAt: new Date()
+                            };
+                            saveUserAndUpdateTeams(user);
+                            updateAnalysisListFromDatabase(user);
+                        } catch (e) {
+                            console.error(`Skipping invalid user row:`, newUserRow, e);
+                        }
+                    });
+                    renderAll();
+                    displayError(`${newUsers.length} users processed.`);
+                });
+            }
+
+            function handleCompetitionUpload(csvText) {
+                const newComps = parseCsv(csvText);
+                let addedCount = 0;
+                newComps.forEach(comp => {
+                    const name = comp['Competition Name'];
+                    if (name) {
+                        competitionDatabase[name] = { 
+                            link: comp['Link'] || '', 
+                            total: parseInt(comp['Total Participants'], 10) || 0,
+                            date: comp['Date (YYYY-MM)'] || null
+                        };
+                        addedCount++;
+                    }
+                });
+                renderAll();
+                displayError(`${addedCount} competitions added or updated.`);
+            }
+
+            function handleUniversityUpload(csvText) {
+                const newUnis = csvText.trim().split('\n').map(line => line.split(',')[0].trim()).filter(Boolean);
+                let addedCount = 0;
+                newUnis.forEach(uni => {
+                    if (!universityDatabase.includes(uni)) {
+                        universityDatabase.push(uni);
+                        addedCount++;
+                    }
+                });
+                universityDatabase.sort();
+                renderAll();
+                displayError(`${addedCount} new universities added.`);
+            }
+
+             function handleTeamUpload(csvText) {
+                const newTeams = parseCsv(csvText);
+                let addedCount = 0;
+                newTeams.forEach(teamRow => {
+                    const name = teamRow['Team Name'];
+                    const university = teamRow['University'];
+                    const members = teamRow['Members'] ? teamRow['Members'].split(';').map(h => h.trim()) : [];
+                    if (name && university) {
+                        const existingTeam = teamDatabase.find(t => t.name.toLowerCase() === name.toLowerCase());
+                        if (existingTeam) {
+                            existingTeam.university = university;
+                            existingTeam.members = members;
+                        } else {
+                            teamDatabase.push({ id: crypto.randomUUID(), name, university, members });
+                        }
+                        addedCount++;
+                    }
+                });
+                renderAll();
+                displayError(`${addedCount} teams added or updated.`);
+            }
+            
+            function downloadUsersCSV(usersToDownload) {
+                if (usersToDownload.length === 0) { alert("No users selected to download."); return; }
+                const headers = ['handle', 'fullName', 'linkedin', 'university', 'profilePicUrl', 'lunaNovaScore', 'lunaHardScore', 'acmLevel', 'joinDate', 'isTrusted', 'placements_json'];
+                const rows = usersToDownload.map(user => {
+                    const placementsStr = `"${JSON.stringify(user.placements).replace(/"/g, '""')}"`;
+                    return [
+                        user.handle, user.fullName, user.linkedin, user.university,
+                        user.profilePicUrl || '', user.lunaNovaScore, user.lunaHardScore, user.acmLevel,
+                        user.joinDate || '', user.isTrusted, placementsStr
+                    ].join(',');
+                });
+                const csvString = [headers.join(','), ...rows].join('\n');
+                downloadFile(csvString, `users_export_${getFormattedDateTimeString()}.csv`, 'text/csv;charset=utf-8;');
+            }
+            
             function downloadDbFullBackup() {
                 if (userDatabase.length === 0 && Object.keys(competitionDatabase).length === 0 && universityDatabase.length === 0) {
-                    alert("No data to back up.");
-                    return;
+                    alert("No data to back up."); return;
                 }
                 const backupData = {
                     users: userDatabase,
+                    teams: teamDatabase,
                     competitions: competitionDatabase,
                     universities: universityDatabase,
                     createdAt: new Date().toISOString()
@@ -763,7 +1175,258 @@
                 downloadFile(jsonString, `electi_backup_${getFormattedDateTimeString()}.json`, 'application/json');
             }
 
-            // --- Competition Editor ---
+            // --- Editor Rendering ---
+            function renderCurrentEditorView() {
+                const activeTab = document.querySelector('.editor-tab-btn.active')?.dataset.editor;
+                if (!activeTab) return;
+                
+                const editorViews = {
+                    competitions: getCompetitionEditorHTML(),
+                    universities: getUniversityEditorHTML(),
+                    teams: getTeamEditorHTML()
+                };
+                editorContainer.innerHTML = editorViews[activeTab];
+                renderEditorTable(activeTab);
+                attachEditorTableEventListeners(activeTab);
+            }
+
+            function getGenericEditorHTML(type, title, tableHeaders) {
+                const typeCaps = capitalize(type);
+                return `
+                    <div id="editorContent${typeCaps}" data-editor-type="${type}">
+                        <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-2xl font-bold">${title}</h2>
+                        </div>
+                        <div id="${type}EditorView">
+                             <div class="flex flex-wrap gap-4 items-center mb-4">
+                                <button id="add${typeCaps}RowBtn" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700 transition text-sm">Add New ${typeCaps.slice(0,-1)}</button>
+                                <div class="flex-grow"></div>
+                                <label for="upload${typeCaps}CsvEditor" class="file-input-label bg-blue-600 hover:bg-blue-700 !text-sm !py-2 !px-4">Upload CSV</label>
+                                <input type="file" id="upload${typeCaps}CsvEditor" accept=".csv">
+                                <button id="download${typeCaps}CsvEditor" class="bg-purple-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-purple-700 transition text-sm">Download CSV</button>
+                            </div>
+                            <div class="overflow-x-auto border rounded-lg">
+                                <table id="${type}EditorTable" class="w-full text-sm text-left text-gray-600 editor-table">
+                                    <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
+                                        <tr>${tableHeaders.map(h => `<th class="p-3">${h}</th>`).join('')}</tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function getCompetitionEditorHTML() {
+                return getGenericEditorHTML('competitions', 'Competition Editor', ['Competition Name', 'Date (YYYY-MM)', 'Total Participants', 'Link', 'Actions']);
+            }
+
+            function getUniversityEditorHTML() {
+                return getGenericEditorHTML('universities', 'University Editor', ['University Name', 'Actions']);
+            }
+
+            function getTeamEditorHTML() {
+                return getGenericEditorHTML('teams', 'Team Editor', ['Team Name', 'University', 'Members (handles, ; separated)', 'Actions']);
+            }
+
+            function renderEditorTable(editorType) {
+                const tableBody = document.querySelector(`#${editorType}EditorTable tbody`);
+                if (!tableBody) return;
+                tableBody.innerHTML = '';
+
+                switch (editorType) {
+                    case 'competitions':
+                        Object.entries(competitionDatabase).sort((a,b) => a[0].localeCompare(b[0])).forEach(([name, data]) => {
+                            const row = tableBody.insertRow();
+                            row.dataset.id = name;
+                            row.innerHTML = `
+                                <td class="p-2" data-key="name">${name}</td>
+                                <td class="p-2" data-key="date">${data.date || ''}</td>
+                                <td class="p-2" data-key="total">${data.total || ''}</td>
+                                <td class="p-2" data-key="link"><a href="${data.link || '#'}" target="_blank" class="text-blue-600 hover:underline">${data.link ? 'Link' : ''}</a></td>
+                                <td class="p-2 whitespace-nowrap"><button class="edit-btn text-blue-600 hover:underline">Edit</button></td>`;
+                        });
+                        break;
+                    case 'universities':
+                        universityDatabase.forEach(name => {
+                            const row = tableBody.insertRow();
+                            row.dataset.id = name;
+                            row.innerHTML = `<td class="p-2" data-key="name">${name}</td>
+                                <td class="p-2 whitespace-nowrap"><button class="edit-btn text-blue-600 hover:underline">Edit</button> <button class="delete-btn text-red-600 hover:underline ml-2">Delete</button></td>`;
+                        });
+                        break;
+                    case 'teams':
+                        teamDatabase.sort((a,b) => a.name.localeCompare(b.name)).forEach(team => {
+                            const row = tableBody.insertRow();
+                            row.dataset.id = team.id;
+                            row.innerHTML = `
+                                <td class="p-2" data-key="name">${team.name}</td>
+                                <td class="p-2" data-key="university">${team.university}</td>
+                                <td class="p-2" data-key="members">${team.members.join('; ')}</td>
+                                <td class="p-2 whitespace-nowrap"><button class="edit-btn text-blue-600 hover:underline">Edit</button> <button class="delete-btn text-red-600 hover:underline ml-2">Delete</button></td>`;
+                        });
+                        break;
+                }
+            }
+            
+            function addEditorTableRow(editorType) {
+                const tableBody = document.querySelector(`#${editorType}EditorTable tbody`);
+                if (!tableBody) return;
+                const row = tableBody.insertRow(0);
+                row.dataset.id = `new_${Date.now()}`;
+                let cells = '';
+                switch (editorType) {
+                    case 'competitions':
+                        cells = `<td><input type="text" data-key="name" placeholder="New Competition"></td>
+                                 <td><input type="month" data-key="date"></td>
+                                 <td><input type="number" data-key="total" placeholder="0"></td>
+                                 <td><input type="url" data-key="link" placeholder="URL"></td>`;
+                        break;
+                    case 'universities':
+                        cells = `<td><input type="text" data-key="name" placeholder="New University"></td>`;
+                        break;
+                    case 'teams':
+                        cells = `<td><input type="text" data-key="name" placeholder="New Team"></td>
+                                 <td><input type="text" list="university-list" data-key="university" placeholder="University"></td>
+                                 <td><textarea data-key="members" placeholder="handle1; handle2"></textarea></td>`;
+                        break;
+                }
+                row.innerHTML = `${cells}<td class="p-2 whitespace-nowrap"><button class="save-btn text-green-600 hover:underline">Save</button> <button class="cancel-btn text-gray-600 hover:underline ml-2">Cancel</button></td>`;
+            }
+
+            function handleEditorTableEvents(e, editorType) {
+                const btn = e.target;
+                const row = btn.closest('tr');
+                if (!row) return;
+                const id = row.dataset.id;
+
+                if (btn.classList.contains('edit-btn')) {
+                    row.querySelectorAll('td[data-key]').forEach(td => {
+                        const key = td.dataset.key;
+                        const value = td.textContent;
+                        if (key === 'members') {
+                            td.innerHTML = `<textarea data-key="members">${value}</textarea>`;
+                        } else if (key === 'university') {
+                            td.innerHTML = `<input type="text" list="university-list" data-key="university" value="${value}">`;
+                        } else if (key === 'date') {
+                             td.innerHTML = `<input type="month" data-key="date" value="${value}">`;
+                        } else if (key === 'link') {
+                             td.innerHTML = `<input type="url" data-key="link" value="${td.querySelector('a')?.href || ''}">`;
+                        } else {
+                            td.innerHTML = `<input type="text" data-key="${key}" value="${value}">`;
+                        }
+                    });
+                    btn.outerHTML = `<button class="save-btn text-green-600 hover:underline">Save</button> <button class="cancel-btn text-gray-600 hover:underline ml-2">Cancel</button>`;
+                } else if (btn.classList.contains('cancel-btn')) {
+                    if (id.startsWith('new_')) {
+                        row.remove();
+                    } else {
+                        renderEditorTable(editorType); // Just re-render to cancel edits
+                    }
+                } else if (btn.classList.contains('delete-btn')) {
+                    showConfirmationModal(`Delete ${editorType.slice(0, -1)}?`, `Are you sure you want to delete this entry? This cannot be undone.`, () => {
+                        switch (editorType) {
+                            case 'universities': universityDatabase = universityDatabase.filter(name => name !== id); break;
+                            case 'teams': teamDatabase = teamDatabase.filter(t => t.id !== id); break;
+                        }
+                        renderAll();
+                    });
+                } else if (btn.classList.contains('save-btn')) {
+                    const data = {};
+                    let newId;
+                    let isValid = true;
+                    row.querySelectorAll('[data-key]').forEach(input => {
+                        const key = input.dataset.key;
+                        const value = input.value.trim();
+                        if (key === 'name' && !value) {
+                            isValid = false;
+                            alert("Name cannot be empty.");
+                        }
+                        if (key === 'name') newId = value;
+                        data[key] = value;
+                    });
+
+                    if (!isValid) return;
+
+                    switch (editorType) {
+                        case 'competitions':
+                            if (id !== newId) delete competitionDatabase[id];
+                            competitionDatabase[newId] = { date: data.date, total: parseInt(data.total, 10) || 0, link: data.link };
+                            break;
+                        case 'universities':
+                            if (id.startsWith('new_')) {
+                                if (!universityDatabase.includes(newId)) universityDatabase.push(newId);
+                            } else {
+                                const index = universityDatabase.indexOf(id);
+                                if (index > -1) universityDatabase[index] = newId;
+                            }
+                            universityDatabase.sort();
+                            break;
+                        case 'teams':
+                            const universityName = data.university;
+                            if (universityName && !universityDatabase.includes(universityName)) {
+                                universityDatabase.push(universityName);
+                                universityDatabase.sort();
+                            }
+                            const teamData = {
+                                id: id.startsWith('new_') ? crypto.randomUUID() : id,
+                                name: data.name,
+                                university: universityName,
+                                members: data.members.split(';').map(h => h.trim()).filter(Boolean)
+                            };
+                            const teamIndex = teamDatabase.findIndex(t => t.id === teamData.id);
+                            if (teamIndex > -1) teamDatabase[teamIndex] = teamData;
+                            else teamDatabase.push(teamData);
+                            break;
+                    }
+                    renderAll();
+                }
+            }
+
+            function downloadEditorCSV(editorType) {
+                let csvContent = "data:text/csv;charset=utf-8,";
+                let rows = [];
+                switch (editorType) {
+                    case 'competitions':
+                        rows.push(['Competition Name', 'Date (YYYY-MM)', 'Total Participants', 'Link']);
+                        Object.entries(competitionDatabase).forEach(([name, data]) => {
+                            rows.push([name, data.date, data.total, data.link]);
+                        });
+                        break;
+                    case 'universities':
+                        rows.push(['University Name']);
+                        universityDatabase.forEach(name => rows.push([name]));
+                        break;
+                    case 'teams':
+                        rows.push(['Team Name', 'University', 'Members']);
+                        teamDatabase.forEach(team => {
+                            rows.push([team.name, team.university, team.members.join(';')]);
+                        });
+                        break;
+                }
+                const csvString = rows.map(e => e.join(",")).join("\n");
+                downloadFile(csvString, `${editorType}_export_${getFormattedDateTimeString()}.csv`, 'text/csv;charset=utf-8;')
+            }
+
+            function attachEditorTableEventListeners(editorType) {
+                const typeCaps = capitalize(editorType);
+                document.getElementById(`add${typeCaps}RowBtn`)?.addEventListener('click', () => addEditorTableRow(editorType));
+                document.querySelector(`#${editorType}EditorTable tbody`)?.addEventListener('click', (e) => handleEditorTableEvents(e, editorType));
+                
+                const uploadInput = document.getElementById(`upload${typeCaps}CsvEditor`);
+                if (uploadInput) {
+                    uploadInput.addEventListener('change', (e) => {
+                        const handlers = { competitions: handleCompetitionUpload, universities: handleUniversityUpload, teams: handleTeamUpload };
+                        handleFileUpload(e.target.files[0], handlers[editorType]); e.target.value = '';
+                    });
+                }
+                document.getElementById(`download${typeCaps}CsvEditor`)?.addEventListener('click', () => downloadEditorCSV(editorType));
+            }
+
+            function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+            // --- Datalist Updaters ---
             function updateCompetitionDatalist() {
                 competitionDataList.innerHTML = '';
                 Object.keys(competitionDatabase).sort().forEach(name => {
@@ -772,183 +1435,338 @@
                     competitionDataList.appendChild(option);
                 });
             }
-
-            function renderCompetitionEditor() {
-                competitionEditorContainer.innerHTML = '';
-                const sortedComps = Object.keys(competitionDatabase).sort();
-                if (sortedComps.length === 0) {
-                    competitionEditorContainer.innerHTML = `<p class="text-center text-gray-500 text-sm py-2">No competitions added yet.</p>`;
-                    return;
-                }
-                sortedComps.forEach(name => {
-                    const comp = competitionDatabase[name];
-                    const div = document.createElement('div');
-                    div.className = 'p-2 border rounded-md space-y-2 text-sm bg-white';
-                    div.innerHTML = `
-                        <input type="text" value="${name}" class="comp-edit-name w-full p-1 border rounded-md font-semibold" placeholder="Competition Name*">
-                        <input type="url" value="${comp.link || ''}" placeholder="Competition Link*" class="comp-edit-link w-full p-1 border rounded-md">
-                        <input type="number" value="${comp.total || ''}" placeholder="Total Participants*" class="comp-edit-total w-full p-1 border rounded-md">
-                        <div class="flex justify-end gap-2">
-                           <button data-original-name="${name}" class="comp-save-btn text-blue-600 hover:text-blue-800 font-semibold">Save</button>
-                           <button data-name="${name}" class="comp-delete-btn text-red-600 hover:text-red-800 font-semibold">Delete</button>
-                        </div>
-                    `;
-                    competitionEditorContainer.appendChild(div);
+            function updateTeamDatalistForEntry(placementEntryDiv) {
+                const datalist = placementEntryDiv.querySelector('datalist[id^="team-list"]');
+                if (!datalist) return;
+                datalist.innerHTML = '';
+                const currentUniversity = universityInput.value;
+                const filteredTeams = currentUniversity ? teamDatabase.filter(t => t.university === currentUniversity) : teamDatabase;
+                filteredTeams.sort((a,b) => a.name.localeCompare(b.name)).forEach(team => {
+                    const option = document.createElement('option');
+                    option.value = team.name;
+                    datalist.appendChild(option);
                 });
             }
+            function populateUniversityDatalist(selectedValue = '') {
+                const allUnis = new Set(universityDatabase);
+                userDatabase.forEach(u => { if(u.university) allUnis.add(u.university) });
+                universityDatabase = Array.from(allUnis).sort();
 
-            function handleCompetitionEditorClick(e) {
-                const target = e.target;
-                if (target.classList.contains('comp-save-btn')) {
-                    const originalName = target.dataset.originalName;
-                    const container = target.closest('div.p-2');
-                    const newName = container.querySelector('.comp-edit-name').value.trim();
-                    const newLink = container.querySelector('.comp-edit-link').value.trim();
-                    const newTotalStr = container.querySelector('.comp-edit-total').value;
-
-                    if (!newName || !newLink || !newTotalStr) { alert("Competition Name, Link, and Total are required."); return; }
-                    const newTotal = parseInt(newTotalStr, 10);
-
-                    // Delete old entry if name changed
-                    if (originalName !== newName && competitionDatabase[originalName]) {
-                        delete competitionDatabase[originalName];
-                        // Also update all users who had the old competition name
-                        userDatabase.forEach(user => {
-                            user.placements.forEach(p => {
-                                if (p.name === originalName) p.name = newName;
-                            });
-                        });
-                    }
-                    
-                    competitionDatabase[newName] = { link: newLink, total: newTotal };
-                    renderAll();
-                } else if (target.classList.contains('comp-delete-btn')) {
-                    const nameToDelete = target.dataset.name;
-                    showConfirmationModal('Delete Competition?', `Are you sure you want to delete "${nameToDelete}"? This will NOT remove placements from users, but will unlink them from this competition definition.`, () => {
-                        delete competitionDatabase[nameToDelete];
-                        renderAll();
-                    });
-                }
-            }
-            
-            function downloadCompetitionsCSV() {
-                if (Object.keys(competitionDatabase).length === 0) {
-                    alert("No competitions to download.");
-                    return;
-                }
-                const headers = ["Competition Name", "Link", "Total Participants"];
-                const rows = Object.entries(competitionDatabase).map(([name, data]) => {
-                    return [`"${name.replace(/"/g, '""')}"`, data.link, data.total].join(',');
-                });
-                const csvString = [headers.join(','), ...rows].join('\n');
-                downloadFile(csvString, `competitions_${getFormattedDateTimeString()}.csv`, 'text/csv;charset=utf-8;');
-            }
-
-            // --- University Editor ---
-            function renderUniversityEditor() {
-                universityEditorContainer.innerHTML = '';
-                if (universityDatabase.length === 0) {
-                    universityEditorContainer.innerHTML = `<p class="text-center text-gray-500 text-sm py-2">No universities added yet.</p>`;
-                    return;
-                }
-                universityDatabase.forEach((uni, index) => {
-                    const div = document.createElement('div');
-                    div.className = 'flex items-center gap-2 p-2 bg-white border rounded-md';
-                    div.innerHTML = `
-                        <input type="text" value="${uni}" data-index="${index}" class="uni-edit-name flex-grow p-1 border-gray-300 rounded-md text-sm">
-                        <button data-index="${index}" class="uni-delete-btn text-red-500 hover:text-red-700 font-bold px-2 text-lg">&times;</button>
-                    `;
-                    universityEditorContainer.appendChild(div);
-                });
-            }
-
-            function handleUniversityEditorChange(e) {
-                const target = e.target;
-                if (target.classList.contains('uni-edit-name')) {
-                    const index = parseInt(target.dataset.index, 10);
-                    const originalName = universityDatabase[index];
-                    const newName = target.value.trim();
-                    if (newName && newName !== originalName) {
-                        // Update university name for all users
-                        userDatabase.forEach(user => {
-                            if (user.university === originalName) {
-                                user.university = newName;
-                            }
-                        });
-                        universityDatabase[index] = newName;
-                        universityDatabase.sort();
-                        renderAll();
-                    } else {
-                        target.value = originalName; // Revert if empty
-                    }
-                } else if (target.classList.contains('uni-delete-btn')) {
-                    const index = parseInt(target.dataset.index, 10);
-                    const nameToDelete = universityDatabase[index];
-                    showConfirmationModal('Delete University?', `Are you sure you want to delete "${nameToDelete}"? This will NOT remove the university from existing users, but will remove it from the list.`, () => {
-                        universityDatabase.splice(index, 1);
-                        renderAll();
-                    });
-                }
-            }
-
-            function updateUniversityDatalist() {
                 universityDataList.innerHTML = '';
                 universityDatabase.forEach(name => {
                     const option = document.createElement('option');
                     option.value = name;
                     universityDataList.appendChild(option);
                 });
+                universityInput.value = selectedValue;
             }
 
             // --- STATISTICS LOGIC ---
             function updateAndRenderStatistics() {
                 const totalUsers = userDatabase.length;
-                statTotalUsers.textContent = totalUsers;
-                statUniqueComps.textContent = Object.keys(competitionDatabase).length;
+                const totalUniversities = universityDatabase.length;
+                const totalTeams = teamDatabase.length;
+                const totalUniqueCompetitions = Object.keys(competitionDatabase).length;
+
+                statsContainer.innerHTML = `
+                    <div class="p-4 bg-blue-50 rounded-lg">
+                        <p class="text-3xl font-bold text-blue-600">${totalUsers}</p>
+                        <p class="text-sm text-gray-600">Total Users</p>
+                    </div>
+                    <div class="p-4 bg-indigo-50 rounded-lg">
+                        <p class="text-3xl font-bold text-indigo-600">${totalUniversities}</p>
+                        <p class="text-sm text-gray-600">Universities</p>
+                    </div>
+                    <div class="p-4 bg-teal-50 rounded-lg">
+                        <p class="text-3xl font-bold text-teal-600">${totalTeams}</p>
+                        <p class="text-sm text-gray-600">Total Teams</p>
+                    </div>
+                    <div class="p-4 bg-green-50 rounded-lg">
+                        <p class="text-3xl font-bold text-green-600">${totalUniqueCompetitions}</p>
+                        <p class="text-sm text-gray-600">Unique Competitions</p>
+                    </div>
+                `;
 
                 if (totalUsers === 0) {
-                    statPassedL1.textContent = '0%';
-                    if(acmLevelChart) acmLevelChart.destroy();
-                    if(competitionPieChart) competitionPieChart.destroy();
-                    document.getElementById('acmLevelChart').parentElement.innerHTML = '<canvas id="acmLevelChart"></canvas>';
-                    document.getElementById('competitionChart').parentElement.innerHTML = '<canvas id="competitionChart"></canvas>';
+                    destroyChart('acmLevelChart');
+                    destroyChart('competitionChart');
                     return;
                 }
-
-                const passedL1Count = userDatabase.filter(u => u.acmLevel >= 1 && u.acmLevel !== 10).length;
-                statPassedL1.textContent = `${((passedL1Count / totalUsers) * 100).toFixed(0)}%`;
-
+                
                 // ACM Level Chart
-                const acmLevels = { '0': 0, '-1': 0, '10': 0, '1': 0, '2': 0 }; // None, Codeability, L0, L1, L2
-                userDatabase.forEach(u => { 
-                    if (acmLevels.hasOwnProperty(u.acmLevel)) {
-                       acmLevels[u.acmLevel]++;
-                    }
-                });
-                const acmData = { 
-                    labels: ['None', 'Codeability', 'Level 0', 'Level 1', 'Level 2'], 
-                    datasets: [{ 
-                        data: [acmLevels['0'], acmLevels['-1'], acmLevels['10'], acmLevels['1'], acmLevels['2']], 
-                        backgroundColor: ['#6b7280', '#a1a1aa', '#10b981', '#f59e0b', '#ef4444'], 
-                    }] 
-                };
-                if (acmLevelChart) acmLevelChart.destroy();
-                acmLevelChart = new Chart(document.getElementById('acmLevelChart').getContext('2d'), { type: 'pie', data: acmData, options: { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: 'ACM Level Breakdown' } } } });
+                const levelMap = { '0': 'None', '-1': 'Codeability', '10': 'Level 0', '1': 'Level 1', '2': 'Level 2'};
+                const acmLevels = { '0': 0, '-1': 0, '10': 0, '1': 0, '2': 0 };
+                userDatabase.forEach(u => { if (acmLevels.hasOwnProperty(u.acmLevel)) acmLevels[u.acmLevel]++; });
+                const acmData = { labels: ['None', 'Codeability', 'Level 0', 'Level 1', 'Level 2'], datasets: [{ data: [acmLevels['0'], acmLevels['-1'], acmLevels['10'], acmLevels['1'], acmLevels['2']], backgroundColor: ['#6b7280', '#a1a1aa', '#10b981', '#f59e0b', '#ef4444'], }] };
+                renderChart('acmLevelChart', 'pie', acmData, { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: 'ACM Level Breakdown' } } });
 
                 // Competition Chart
                 const compCounts = userDatabase.flatMap(u => u.placements.map(p => p.name)).reduce((acc, name) => { acc[name] = (acc[name] || 0) + 1; return acc; }, {});
-                const sortedCompCounts = Object.entries(compCounts).sort(([,a],[,b]) => b-a).slice(0, 10); // Top 10
+                const sortedCompCounts = Object.entries(compCounts).sort(([,a],[,b]) => b-a).slice(0, 10);
                 const compData = { labels: sortedCompCounts.map(([name]) => name), datasets: [{ label: 'Participants', data: sortedCompCounts.map(([,count]) => count), backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#6b7280', '#ec4899', '#6366f1', '#f97316', '#06b6d4'], }] };
-                if (competitionPieChart) competitionPieChart.destroy();
-                competitionPieChart = new Chart(document.getElementById('competitionChart').getContext('2d'), { type: 'doughnut', data: compData, options: { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Top 10 Competitions by Participants' } } } });
+                renderChart('competitionChart', 'doughnut', compData, { responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Top 10 Competitions by Participants' } } });
+            }
+
+            // --- ADVANCED ANALYTICS ---
+            function renderAdvancedStats() {
+                const activeView = document.querySelector('#analyticsSubTabs .active')?.dataset.analyticsView || 'global';
+                
+                const renderFunctions = {
+                    individuals: renderIndividualAnalytics,
+                    teams: renderTeamAnalytics,
+                    universities: renderUniversityAnalytics,
+                    competitions: renderCompetitionAnalytics,
+                    global: renderGlobalAnalytics,
+                };
+
+                if (renderFunctions[activeView]) {
+                    renderFunctions[activeView]();
+                }
+            }
+
+            function renderIndividualAnalytics() {
+                let html = `<div class="text-center p-8 bg-gray-50 rounded-lg">
+                                <h3 class="text-xl font-bold">Individual Analytics</h3>
+                                <p class="text-gray-600 mt-2">This section is under construction. Detailed individual performance tracking and progression charts will be available here.</p>
+                            </div>`;
+                advancedStatsContainer.innerHTML = html;
+            }
+
+            function renderTeamAnalytics() {
+                 let html = `<div class="text-center p-8 bg-gray-50 rounded-lg">
+                                <h3 class="text-xl font-bold">Team Analytics</h3>
+                                <p class="text-gray-600 mt-2">This section is under construction. Team synergy scores, performance breakdowns, and head-to-head comparisons will be available here.</p>
+                            </div>`;
+                advancedStatsContainer.innerHTML = html;
+            }
+
+            function renderUniversityAnalytics() {
+                 let html = `<div class="mb-4">
+                                <label for="universityAnalyticsSelect" class="text-sm font-medium">Select University:</label>
+                                <select id="universityAnalyticsSelect" class="w-full md:w-1/3 p-2 border rounded-md mt-1 bg-white">
+                                    <option value="">-- All Universities --</option>
+                                    ${universityDatabase.map(u => `<option value="${u}">${u}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div id="universityAnalyticsContent"></div>`;
+                advancedStatsContainer.innerHTML = html;
+                const selector = document.getElementById('universityAnalyticsSelect');
+                selector.addEventListener('change', (e) => renderUniversityAnalyticsContent(e.target.value));
+                renderUniversityAnalyticsContent(selector.value);
+            }
+
+            function renderUniversityAnalyticsContent(uniName) {
+                const contentEl = document.getElementById('universityAnalyticsContent');
+                if (!uniName) {
+                    contentEl.innerHTML = `<div class="text-center p-8 bg-gray-50 rounded-lg">
+                        <h3 class="text-xl font-bold">University Leaderboard</h3>
+                        <p class="text-gray-500">Select a university to see a detailed breakdown.</p>
+                    </div>`;
+                    return;
+                }
+
+                const teams = teamDatabase.filter(t => t.university === uniName);
+                const students = userDatabase.filter(u => u.university === uniName);
+                const competitions = new Set(students.flatMap(s => s.placements.map(p => p.name)));
+
+                let html = `<div class="stat-card p-6">
+                                <div class="flex justify-between items-start">
+                                    <h3 class="font-bold text-2xl text-indigo-700 mb-4">${uniName}</h3>
+                                    <button class="details-uni-btn bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 text-sm" data-uni="${uniName}">View Full Breakdown</button>
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                                    <div class="p-4 bg-gray-100 rounded-lg">
+                                        <p class="text-3xl font-bold">${students.length}</p>
+                                        <p class="text-sm text-gray-600">Students</p>
+                                    </div>
+                                    <div class="p-4 bg-gray-100 rounded-lg">
+                                        <p class="text-3xl font-bold">${teams.length}</p>
+                                        <p class="text-sm text-gray-600">Teams</p>
+                                    </div>
+                                    <div class="p-4 bg-gray-100 rounded-lg">
+                                        <p class="text-3xl font-bold">${competitions.size}</p>
+                                        <p class="text-sm text-gray-600">Competitions</p>
+                                    </div>
+                                </div>
+                            </div>`;
+                contentEl.innerHTML = html;
+
+                contentEl.querySelector('.details-uni-btn').addEventListener('click', (e) => {
+                    showUniversityDetailsModal(e.target.dataset.uni);
+                });
+            }
+            
+            function renderCompetitionAnalytics() {
+                let html = `<div class="mb-4">
+                                <label for="competitionAnalyticsSelect" class="text-sm font-medium">Select Competition:</label>
+                                <select id="competitionAnalyticsSelect" class="w-full md:w-1/3 p-2 border rounded-md mt-1 bg-white">
+                                    <option value="">-- Select Competition --</option>
+                                    ${Object.keys(competitionDatabase).sort().map(c => `<option value="${c}">${c}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div id="competitionAnalyticsContent"></div>`;
+                advancedStatsContainer.innerHTML = html;
+                const selector = document.getElementById('competitionAnalyticsSelect');
+                selector.addEventListener('change', (e) => renderCompetitionAnalyticsContent(e.target.value));
+            }
+
+            function renderCompetitionAnalyticsContent(compName) {
+                const contentEl = document.getElementById('competitionAnalyticsContent');
+                if (!compName) {
+                    contentEl.innerHTML = `<div class="text-center p-8 bg-gray-50 rounded-lg"><p class="text-gray-500">Select a competition to view standings.</p></div>`;
+                    return;
+                }
+
+                const allPlacements = userDatabase.flatMap(u => u.placements.filter(p => p.name === compName).map(p => ({...p, handle: u.handle, university: u.university})));
+                const individualPlacements = allPlacements.filter(p => !p.teamId).sort((a,b) => a.rank - b.rank);
+                
+                const teamPlacementsAgg = allPlacements.filter(p => p.teamId).reduce((acc, p) => {
+                    if (!acc[p.teamId]) {
+                        const team = teamDatabase.find(t => t.id === p.teamId);
+                        acc[p.teamId] = {
+                            rank: p.rank,
+                            teamName: team ? team.name : 'Unknown Team',
+                            university: team ? team.university : 'N/A',
+                            members: team ? team.members : []
+                        };
+                    }
+                    return acc;
+                }, {});
+                const teamPlacements = Object.values(teamPlacementsAgg).sort((a,b) => a.rank - b.rank);
+
+                let html = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <div>
+                                    <h3 class="text-xl font-bold mb-3">Team Standings</h3>
+                                    ${renderStandingsTable(teamPlacements, true)}
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold mb-3">Individual Standings</h3>
+                                    ${renderStandingsTable(individualPlacements, false)}
+                                </div>
+                            </div>`;
+                contentEl.innerHTML = html;
+            }
+
+            function renderStandingsTable(placements, isTeam) {
+                if (placements.length === 0) return `<div class="p-4 text-sm bg-gray-50 rounded-md text-center text-gray-500">No ${isTeam ? 'team' : 'individual'} placements recorded.</div>`;
+                
+                let table = `<div class="overflow-x-auto border rounded-lg"><table class="w-full text-sm">
+                                <thead class="bg-gray-100 text-xs uppercase"><tr>
+                                    <th class="p-2 text-left">Rank</th>
+                                    <th class="p-2 text-left">${isTeam ? 'Team' : 'Handle'}</th>
+                                    <th class="p-2 text-left">University</th>
+                                </tr></thead><tbody>`;
+                
+                placements.forEach(p => {
+                    table += `<tr class="border-b hover:bg-gray-50">
+                                <td class="p-2 font-bold">${p.rank}</td>
+                                <td class="p-2 font-semibold">${isTeam ? p.teamName : p.handle}</td>
+                                <td class="p-2">${p.university || 'N/A'}</td>
+                              </tr>`;
+                });
+
+                table += `</tbody></table></div>`;
+                return table;
+            }
+
+            function renderGlobalAnalytics() {
+                // Calculate University Dominance
+                const uniScores = {};
+                universityDatabase.forEach(uni => {
+                    const students = userDatabase.filter(u => u.university === uni);
+                    if (students.length > 0) {
+                        const totalPlacements = students.flatMap(s => s.placements);
+                        if (totalPlacements.length > 0) {
+                            const avgPercentile = totalPlacements.reduce((sum, p) => sum + (p.rank / p.total), 0) / totalPlacements.length;
+                            // Score: more students and better average percentile is better.
+                            uniScores[uni] = {
+                                score: students.length * (1 - avgPercentile),
+                                students: students.length,
+                                avgPercentile: avgPercentile * 100
+                            };
+                        }
+                    }
+                });
+                const topUniversities = Object.entries(uniScores).sort((a, b) => b[1].score - a[1].score).slice(0, 5);
+
+                // Calculate Top Individuals (most top 10% placements)
+                const individualScores = {};
+                userDatabase.forEach(u => {
+                    const topPlacements = u.placements.filter(p => (p.rank / p.total) <= 0.1).length;
+                    if (topPlacements > 0) {
+                        individualScores[u.handle] = topPlacements;
+                    }
+                });
+                const topIndividuals = Object.entries(individualScores).sort((a,b) => b[1] - a[1]).slice(0, 5);
+                
+                // Progression Over Time (User Join Dates)
+                const joinDates = {};
+                userDatabase.filter(u => u.joinDate).forEach(u => {
+                    const month = u.joinDate.slice(0, 7);
+                    joinDates[month] = (joinDates[month] || 0) + 1;
+                });
+                const sortedMonths = Object.keys(joinDates).sort();
+
+                let html = `
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-bold mb-3">Top 5 Universities (by Dominance Index)</h3>
+                            <p class="text-xs text-gray-500 mb-3">Dominance Index = (No. of Students) * (1 - Avg. Placement Percentile)</p>
+                            <div class="space-y-3">
+                                ${topUniversities.length > 0 ? topUniversities.map(([uni, data]) => `
+                                    <div class="p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                                        <div class="font-bold text-indigo-800">${uni}</div>
+                                        <div class="text-sm text-indigo-600">Score: ${data.score.toFixed(2)} (${data.students} students, avg. top ${data.avgPercentile.toFixed(1)}%)</div>
+                                    </div>
+                                `).join('') : '<p class="text-gray-500">Not enough data.</p>'}
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-3">Top 5 Individuals (by Top 10% Placements)</h3>
+                             <div class="space-y-3">
+                                ${topIndividuals.length > 0 ? topIndividuals.map(([handle, count]) => `
+                                    <div class="p-3 bg-green-50 rounded-lg border border-green-200">
+                                        <div class="font-bold text-green-800">${handle}</div>
+                                        <div class="text-sm text-green-600">${count} top 10% placements</div>
+                                    </div>
+                                `).join('') : '<p class="text-gray-500">Not enough data.</p>'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-8">
+                        <h3 class="text-xl font-bold mb-3">User Growth Over Time</h3>
+                        <div class="p-4 bg-white rounded-lg shadow-inner">
+                            <canvas id="userGrowthChart"></canvas>
+                        </div>
+                    </div>
+                `;
+                advancedStatsContainer.innerHTML = html;
+
+                if (sortedMonths.length > 0) {
+                    renderChart('userGrowthChart', 'line', {
+                        labels: sortedMonths,
+                        datasets: [{
+                            label: 'New Users per Month',
+                            data: sortedMonths.map(month => joinDates[month]),
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true,
+                            tension: 0.1
+                        }]
+                    }, {
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                        plugins: { title: { display: false } }
+                    });
+                }
             }
             
             // --- Original functions (fetchStatsForHandle, table updates, etc.) ---
             function calculateAvgDiv2PerformanceScore(div2Submissions, div2ContestCount) { if (!div2Submissions || div2Submissions.length === 0 || div2ContestCount === 0) return 0; const solvedInDiv2 = {}; for (const sub of div2Submissions) { if (sub.verdict === 'OK') { if (!solvedInDiv2[sub.contestId]) solvedInDiv2[sub.contestId] = new Set(); solvedInDiv2[sub.contestId].add(sub.problem.index); } } const problemWeights = { 'A': 1, 'B': 2, 'C': 4, 'D': 8, 'E': 12, 'F': 16 }; let totalPerformanceScore = 0; for (const contestId in solvedInDiv2) { const solvedProblems = Array.from(solvedInDiv2[contestId]); let contestScore = 0; for (const problemIndex of solvedProblems) { const problemChar = problemIndex.charAt(0).toUpperCase(); contestScore += problemWeights[problemChar] || 0; } totalPerformanceScore += contestScore; } return totalPerformanceScore / div2ContestCount; }
             async function fetchStatsForHandle(handle, lunaNovaScore, lunaHardScore, placements, isTrusted) { if (handle == 'MrMoon') throw new Error("MrMoon is off the grid"); const userInfoData = await apiQueue.add(`https://codeforces.com/api/user.info?handles=${handle}`); const userRatingData = await apiQueue.add(`https://codeforces.com/api/user.rating?handle=${handle}`); const userStatusData = await apiQueue.add(`https://codeforces.com/api/user.status?handle=${handle}&from=1&count=5000`); const userInfo = userInfoData.result[0]; const allRatingChanges = userRatingData.result; const allSubmissions = userStatusData.result; const totalContestCount = allRatingChanges.length; const sumRatings = allRatingChanges.reduce((acc, curr) => acc + curr.newRating, 0); const averageContestRating = totalContestCount > 0 ? (sumRatings / totalContestCount) : 0; const maxRating = totalContestCount > 0 ? Math.max(...allRatingChanges.map(c => c.newRating)) : 0; const skippedSubmissionsCount = allSubmissions.filter(s => s.verdict === 'SKIPPED').length; const div2Contests = allRatingChanges.filter(c => c.contestName.includes('Div. 2')); const div2ContestIds = new Set(div2Contests.map(c => c.contestId)); const div2Submissions = allSubmissions.filter(s => div2ContestIds.has(s.contestId)); const div2ContestCount = div2Contests.length; const avgDiv2PerformanceScore = calculateAvgDiv2PerformanceScore(div2Submissions, div2ContestCount); const avgPlacement = placements.length > 0 ? placements.reduce((a, b) => a + b, 0) / placements.length : 0; const { rawActivityScore, inactivityScore, avgGap, stdDevGap } = calculateActivityAndInactivityMetrics(allSubmissions); const stats = { handle, maxRating, averageContestRating, totalContestCount, lunaNovaScore, lunaHardScore, placements, avgPlacement, div2ContestCount, avgDiv2PerformanceScore, skippedSubmissionsCount, rawActivityScore, inactivityScore, avgGap, stdDevGap, isTrusted, scoreFromPlacements: getScoreFromPlacements(placements), scoreFromCombinedLuna: getCombinedLunaScore(lunaNovaScore, lunaHardScore), scoreMaxRating: getScoreFromMaxRating(maxRating), scoreAvgRating: getScoreFromAvgRating(averageContestRating), scoreContestCount: getScoreFromContestCount(totalContestCount), scoreWeightedSolvedProblems: getRecencyWeightedSolvedProblemScore(allSubmissions), scoreFromAvgDiv2Performance: getScoreFromAvgDiv2Performance(avgDiv2PerformanceScore), scoreFromActivity: getScoreFromActivity(rawActivityScore), userInfo, allRatingChanges, allSubmissions }; const readinessProbability = calculateReadinessProbability(stats); return { ...stats, readinessProbability }; }
             function getConfidenceCategory(probability) { if (probability >= 0.85) return 'very-high'; if (probability >= 0.65) return 'high'; if (probability >= 0.40) return 'medium'; return 'low'; }
-            function updateTableView() { let filteredData = cachedUserData.filter(user => { if (user.error) return true; if (activeFilter === 'all') return true; return getConfidenceCategory(user.readinessProbability) === activeFilter; }); const { key, direction } = sortState; const sortedData = [...filteredData].sort((a, b) => { if (a.error) return 1; if (b.error) return -1; const valA = a[key]; const valB = b[key]; if (valA === undefined || valA === null) return 1; if (valB === undefined || valB === null) return -1; return direction === 'asc' ? String(valA).localeCompare(String(valB), undefined, {numeric: true}) : String(valB).localeCompare(String(valA), undefined, {numeric: true}); }); resultsTableBody.innerHTML = ''; sortedData.forEach(userData => { const row = resultsTableBody.insertRow(); row.id = `row-${userData.handle.toLowerCase()}`; updateTableRow(row, userData); }); updateSortIndicators(); }
-            function updateSortIndicators() { resultsTableHeader.querySelectorAll('th').forEach(th => { th.classList.remove('sort-asc', 'sort-desc'); if (th.dataset.sortKey === sortState.key) th.classList.add(`sort-${sortState.direction}`); }); }
+            function updateAnalysisTableView() { let filteredData = cachedUserData.filter(user => { if (user.error) return true; if (activeFilter === 'all') return true; return getConfidenceCategory(user.readinessProbability) === activeFilter; }); const { key, direction } = analysisSortState; const sortedData = [...filteredData].sort((a, b) => { if (a.error) return 1; if (b.error) return -1; const valA = a[key]; const valB = b[key]; if (valA === undefined || valA === null) return 1; if (valB === undefined || valB === null) return -1; return direction === 'asc' ? String(valA).localeCompare(String(valB), undefined, {numeric: true}) : String(valB).localeCompare(String(valA), undefined, {numeric: true}); }); resultsTableBody.innerHTML = ''; sortedData.forEach(userData => { const row = resultsTableBody.insertRow(); row.id = `row-${userData.handle.toLowerCase()}`; updateTableRow(row, userData); }); updateAnalysisSortIndicators(); }
+            function updateAnalysisSortIndicators() { analysisResultsTableHeader.querySelectorAll('th.sortable-header').forEach(th => { th.classList.remove('sort-asc', 'sort-desc'); if (th.dataset.sortKey === analysisSortState.key) th.classList.add(`sort-${analysisSortState.direction}`); th.querySelector('.sort-icon').textContent = analysisSortState.direction === 'asc' ? '▲' : '▼'; }); }
+            function updateDbSortIndicators() { detailedUserTable.querySelectorAll('th.sortable-header').forEach(th => { th.classList.remove('sort-asc', 'sort-desc'); if (th.dataset.sortKey === dbSortState.key) th.classList.add(`sort-${dbSortState.direction}`); th.querySelector('.sort-icon').textContent = dbSortState.direction === 'asc' ? '▲' : '▼'; }); }
             function updateTableRow(row, userData) { if (userData.error) { row.innerHTML = `<td class="px-4 py-3 font-semibold">${userData.handle}</td><td colspan="3" class="px-4 py-3 text-red-600">${userData.error}</td><td class="px-4 py-3 text-center"><button class="retry-btn bg-blue-100 text-blue-700 text-xs font-bold py-1 px-3 rounded-full hover:bg-blue-200" data-handle="${userData.handle}">Retry</button></td>`; return; } const probability = userData.readinessProbability * 100; let probClass = '', confidence = 'Low'; const category = getConfidenceCategory(userData.readinessProbability); if (category === 'very-high') { probClass = 'bg-green-100 text-green-800'; confidence = 'Very High'; } else if (category === 'high') { probClass = 'bg-emerald-100 text-emerald-800'; confidence = 'High'; } else if (category === 'medium') { probClass = 'bg-yellow-100 text-yellow-800'; confidence = 'Medium'; } else { probClass = 'bg-red-100 text-red-800'; } const handleClass = userData.isTrusted ? 'font-semibold' : 'font-semibold text-red-600'; row.innerHTML = `<td class="px-4 py-3 whitespace-nowrap ${handleClass}">${userData.handle}</td><td class="px-4 py-3 whitespace-nowrap font-bold text-center">${userData.scoreFromAvgDiv2Performance.toFixed(2)}</td><td class="px-4 py-3 whitespace-nowrap">Top ${userData.avgPlacement.toFixed(1)}%</td><td class="px-4 py-3 whitespace-nowrap text-center rounded-md ${probClass}"><div class="font-bold text-lg">${probability.toFixed(2)}%</div><div class="text-xs font-semibold">${confidence}</div></td><td class="px-4 py-3 whitespace-nowrap text-center"><button class="details-btn bg-indigo-100 text-indigo-700 text-xs font-bold py-1 px-3 rounded-full hover:bg-indigo-200" data-handle="${userData.handle}">Details</button><button class="remove-result-btn text-red-500 hover:text-red-700 font-bold px-2 ml-2" data-handle="${userData.handle}" title="Remove User">×</button></td>`; }
             function getFormattedDateTimeString() { const now = new Date(); const pad = (num) => num.toString().padStart(2, '0'); return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`; }
             function downloadFile(content, fileName, mimeType) { const blob = new Blob([content], { type: mimeType }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = fileName; document.body.appendChild(link); link.click(); document.body.removeChild(link); }
@@ -975,49 +1793,107 @@
                 downloadFile(filteredHandles.join('\n'), `filtered_handles_${activeFilter}_${getFormattedDateTimeString()}.csv`, 'text/csv;charset=utf-8;');
             }
 
+            function showUniversityDetailsModal(uniName) {
+                const students = userDatabase.filter(u => u.university === uniName).sort((a,b) => a.handle.localeCompare(b.handle));
+                const teams = teamDatabase.filter(t => t.university === uniName).sort((a,b) => a.name.localeCompare(b.name));
+                const competitions = [...new Set(students.flatMap(s => s.placements.map(p => p.name)))].sort();
+
+                let content = `
+                    <h2 class="text-3xl font-bold text-indigo-800 mb-6">${uniName} Breakdown</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <h3 class="text-xl font-semibold mb-3">Students (${students.length})</h3>
+                            <div class="space-y-2 max-h-80 overflow-y-auto pr-2">
+                                ${students.length > 0 ? students.map(s => `<div class="p-2 bg-gray-50 rounded text-sm">${s.handle}</div>`).join('') : '<p class="text-gray-500">No students found.</p>'}
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold mb-3">Teams (${teams.length})</h3>
+                            <div class="space-y-2 max-h-80 overflow-y-auto pr-2">
+                                ${teams.length > 0 ? teams.map(t => `<div class="p-2 bg-gray-50 rounded text-sm">${t.name}</div>`).join('') : '<p class="text-gray-500">No teams found.</p>'}
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-semibold mb-3">Competitions (${competitions.length})</h3>
+                            <div class="space-y-2 max-h-80 overflow-y-auto pr-2">
+                                ${competitions.length > 0 ? competitions.map(c => `<div class="p-2 bg-gray-50 rounded text-sm">${c}</div>`).join('') : '<p class="text-gray-500">No competitions found.</p>'}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                modalContentContainer.innerHTML = content;
+                detailsModal.classList.remove('hidden');
+            }
+
             function showUserDetailsModal(handle) {
                 const apiData = cachedUserData.find(d => d.handle.toLowerCase() === handle.toLowerCase() && !d.error);
                 const dbData = userDatabase.find(d => d.id === handle.toLowerCase());
 
                 if (!apiData && !dbData) { alert('Could not find data for this user.'); return; }
                 
-                let content = `<h2 class="text-3xl font-bold mb-4">${handle}</h2>`;
+                let content = '';
+                const profilePicUrl = dbData?.profilePicUrl || `https://placehold.co/128x128/e0e0e0/333?text=${handle.charAt(0)}`;
+                const trustedBadge = dbData?.isTrusted ? '' : '<span class="ml-2 text-xs font-bold uppercase bg-red-100 text-red-700 px-2 py-1 rounded-full">Untrusted</span>';
 
-                // --- Detailed Info Section ---
+                content += `
+                    <div class="flex flex-col md:flex-row gap-6 items-start">
+                        <img src="${profilePicUrl}" alt="Profile Picture" class="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-md">
+                        <div class="flex-grow">
+                            <h2 class="text-3xl font-bold mb-1 flex items-center">${handle} ${trustedBadge}</h2>
+                            <p class="text-lg text-gray-600">${dbData?.fullName || ''}</p>
+                        </div>
+                    </div>
+                    <hr class="my-6">
+                `;
+
                 if (dbData) {
                     const levelMap = { '0': 'None', '-1': 'Codeability', '10': 'Level 0', '1': 'Level 1', '2': 'Level 2'};
                     content += `
-                    <div class="mb-6 p-4 bg-gray-50 rounded-lg grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div><strong class="block text-gray-500">Full Name</strong> <span class="text-lg">${dbData.fullName || 'N/A'}</span></div>
+                    <div class="mb-6 p-4 bg-gray-50 rounded-lg grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                         <div><strong class="block text-gray-500">University</strong> <span class="text-lg">${dbData.university || 'N/A'}</span></div>
                         <div><strong class="block text-gray-500">ACM Level</strong> <span class="text-lg">${levelMap[dbData.acmLevel] || 'N/A'}</span></div>
                         <div><strong class="block text-gray-500">LinkedIn</strong> ${dbData.linkedin ? `<a href="${dbData.linkedin}" target="_blank" class="text-blue-600 hover:underline text-lg">Profile</a>` : '<span class="text-lg">N/A</span>'}</div>
                     </div>`;
                 }
 
-                // --- Placements Table ---
-                if (dbData && dbData.placements.length > 0) {
-                    content += `<h3 class="text-xl font-semibold mb-2">Placements</h3>
+                const userTeams = teamDatabase.filter(t => t.members.map(m => m.toLowerCase()).includes(dbData.handle.toLowerCase()));
+                if (userTeams.length > 0) {
+                    content += `<h3 class="text-xl font-semibold mb-2">Team Placements</h3><div class="space-y-4 mb-6">`;
+                    userTeams.forEach(team => {
+                        const teamPlacements = dbData.placements.filter(p => p.teamId === team.id);
+                        if (teamPlacements.length === 0) return;
+                        content += `<div class="p-3 border rounded-lg bg-gray-50">
+                            <h4 class="font-bold text-md text-teal-800">${team.name}</h4>
+                            <p class="text-xs text-gray-500 mb-2">With: ${team.members.filter(m => m.toLowerCase() !== dbData.handle.toLowerCase()).map(m => `<button class="text-teal-600 hover:underline modal-teammate-btn" data-handle="${m}">${m}</button>`).join(', ')}</p>
+                            <ul class="text-sm space-y-1 list-disc list-inside">
+                            ${teamPlacements.map(p => `<li>${p.name}: <strong>Rank ${p.rank}/${p.total}</strong></li>`).join('')}
+                            </ul>
+                        </div>`;
+                    });
+                    content += `</div>`;
+                }
+
+                const soloPlacements = dbData.placements.filter(p => !p.teamId);
+                if (soloPlacements.length > 0) {
+                    content += `<h3 class="text-xl font-semibold mb-2">Solo Placements</h3>
                                 <div class="overflow-x-auto mb-6 max-h-48 border rounded-lg">
                                 <table class="w-full text-sm text-left">
                                     <thead class="bg-gray-100 text-xs uppercase sticky top-0"><tr>
-                                        <th class="p-2">Competition</th><th class="p-2">Rank</th><th class="p-2">Total</th><th class="p-2">Placement</th><th class="p-2">Link</th>
+                                        <th class="p-2">Competition</th><th class="p-2">Rank</th><th class="p-2">Total</th><th class="p-2">Placement</th>
                                     </tr></thead><tbody>`;
-                    dbData.placements.forEach(p => {
+                    soloPlacements.forEach(p => {
                         const placementPercent = ((p.rank / p.total) * 100).toFixed(2);
-                        const compLink = competitionDatabase[p.name]?.link;
                         content += `<tr class="border-b">
                                         <td class="p-2 font-medium">${p.name}</td>
                                         <td class="p-2">${p.rank}</td>
                                         <td class="p-2">${p.total}</td>
                                         <td class="p-2 font-bold">Top ${placementPercent}%</td>
-                                        <td class="p-2">${compLink ? `<a href="${compLink}" target="_blank" class="text-blue-600 hover:underline">View</a>` : 'N/A'}</td>
                                     </tr>`;
                     });
                     content += `</tbody></table></div>`;
                 }
 
-                // --- CF Analysis Section ---
                 if (apiData) {
                     content += `<h3 class="text-xl font-semibold mb-4">Codeforces Analysis</h3>
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1032,33 +1908,22 @@
                 modalContentContainer.innerHTML = content;
                 detailsModal.classList.remove('hidden');
 
-                // Render charts if data is available
-                if (apiData) {
-                    renderModalCharts(apiData);
-                }
+                if (apiData) renderModalCharts(apiData);
             }
 
             function renderModalCharts(userData) {
-                if (ratingChart) ratingChart.destroy();
-                if (problemChart) problemChart.destroy();
+                destroyChart('modalRatingChart');
+                destroyChart('modalProblemChart');
+                
                 const ratingCtx = document.getElementById('modalRatingChart')?.getContext('2d');
                 const problemCtx = document.getElementById('modalProblemChart')?.getContext('2d');
                 const heatmapContainer = document.getElementById('modalHeatmapContainer');
 
                 if(ratingCtx) {
-                    ratingChart = new Chart(ratingCtx, {
-                        type: 'line',
-                        data: {
-                            labels: userData.allRatingChanges.map(c => new Date(c.ratingUpdateTimeSeconds * 1000).toLocaleDateString()),
-                            datasets: [{
-                                label: 'Rating',
-                                data: userData.allRatingChanges.map(c => c.newRating),
-                                borderColor: 'rgb(75, 192, 192)',
-                                tension: 0.1
-                            }]
-                        },
-                        options: { plugins: { title: { display: true, text: 'Rating History' } } }
-                    });
+                    renderChart('modalRatingChart', 'line', {
+                        labels: userData.allRatingChanges.map(c => new Date(c.ratingUpdateTimeSeconds * 1000).toLocaleDateString()),
+                        datasets: [{ label: 'Rating', data: userData.allRatingChanges.map(c => c.newRating), borderColor: 'rgb(75, 192, 192)', tension: 0.1 }]
+                    }, { plugins: { title: { display: true, text: 'Rating History' } } });
                 }
 
                 if(problemCtx) {
@@ -1069,18 +1934,10 @@
                         }
                     });
                     const ratings = Object.keys(solvedProblems).sort((a,b) => a-b);
-                    problemChart = new Chart(problemCtx, {
-                        type: 'bar',
-                        data: {
-                            labels: ratings,
-                            datasets: [{
-                                label: 'Solved Problems',
-                                data: ratings.map(r => solvedProblems[r]),
-                                backgroundColor: 'rgba(153, 102, 255, 0.6)'
-                            }]
-                        },
-                        options: { plugins: { title: { display: true, text: 'Solved Problems by Rating' } } }
-                    });
+                    renderChart('modalProblemChart', 'bar', {
+                        labels: ratings,
+                        datasets: [{ label: 'Solved Problems', data: ratings.map(r => solvedProblems[r]), backgroundColor: 'rgba(153, 102, 255, 0.6)' }]
+                    }, { plugins: { title: { display: true, text: 'Solved Problems by Rating' } } });
                 }
                 
                 if(heatmapContainer) {
@@ -1115,47 +1972,93 @@
                 }
             }
 
-            function hideModal() { detailsModal.classList.add('hidden'); if (ratingChart) ratingChart.destroy(); if (problemChart) problemChart.destroy(); }
-            function displayError(message) { errorMessageDiv.textContent = message; errorMessageDiv.classList.remove('hidden'); setTimeout(() => hideError(), 5000); }
+            function hideModal() { detailsModal.classList.add('hidden'); destroyChart('modalRatingChart'); destroyChart('modalProblemChart'); }
+            function displayError(message, type = 'error') { 
+                errorMessageDiv.textContent = message; 
+                errorMessageDiv.classList.remove('hidden', 'bg-red-100', 'border-red-400', 'text-red-700', 'bg-blue-100', 'border-blue-400', 'text-blue-700');
+                if (type === 'info') {
+                    errorMessageDiv.classList.add('bg-blue-100', 'border-blue-400', 'text-blue-700');
+                } else {
+                    errorMessageDiv.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+                }
+                setTimeout(() => hideError(), 5000); 
+            }
             function hideError() { errorMessageDiv.classList.add('hidden'); }
             function showLoading() { loadingIndicator.classList.remove('hidden'); document.querySelectorAll('button, input, select').forEach(el => el.disabled = true); }
             function hideLoading() { loadingIndicator.classList.add('hidden'); document.querySelectorAll('button, input, select').forEach(el => el.disabled = false); downloadAnalysisBtn.disabled = cachedUserData.filter(d => !d.error).length === 0; }
 
             // --- EVENT LISTENERS ---
-            tabBtnAnalysis.addEventListener('click', () => { tabBtnAnalysis.classList.add('active'); tabBtnDatabase.classList.remove('active'); tabContentAnalysis.classList.remove('hidden'); tabContentDatabase.classList.add('hidden'); });
-            tabBtnDatabase.addEventListener('click', () => { tabBtnDatabase.classList.add('active'); tabBtnAnalysis.classList.remove('active'); tabContentDatabase.classList.remove('hidden'); tabContentAnalysis.classList.add('hidden'); });
+            Object.values(tabButtons).forEach(button => {
+                button.addEventListener('click', () => {
+                    Object.values(tabButtons).forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    Object.values(tabContents).forEach(content => content.classList.add('hidden'));
+                    tabContents[button.id.replace('tabBtn', '').toLowerCase()].classList.remove('hidden');
+                    if (button.id === 'tabBtnAnalyticsDashboard') {
+                        renderAdvancedStats();
+                    }
+                });
+            });
+
+            analyticsSubTabs.addEventListener('click', (e) => {
+                if (e.target.matches('.sub-tab-btn')) {
+                    analyticsSubTabs.querySelectorAll('.sub-tab-btn').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+                    renderAdvancedStats();
+                }
+            });
+
+            editorTabButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    editorTabButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    renderCurrentEditorView();
+                });
+            });
+
             addManualUserBtn.addEventListener('click', addManualUserToList);
-            loadJsonBtn.addEventListener('click', loadJsonFile);
             clearListBtn.addEventListener('click', clearUserList);
             processAllBtn.addEventListener('click', processAllUsers);
             downloadAnalysisResultsCsvBtn.addEventListener('click', downloadAnalysisResults);
             downloadFilteredHandlesCsvBtn.addEventListener('click', downloadFilteredHandles);
-            downloadDbReadinessCsvBtn.addEventListener('click', downloadDbReadinessCSV);
+            downloadAllUsersCsvBtn.addEventListener('click', () => downloadUsersCSV(userDatabase));
+            downloadSelectedUsersCsvBtn.addEventListener('click', () => {
+                const selectedIds = Array.from(document.querySelectorAll('.user-select-checkbox:checked')).map(cb => cb.dataset.id);
+                const selectedUsers = userDatabase.filter(user => selectedIds.includes(user.id));
+                downloadUsersCSV(selectedUsers);
+            });
             downloadDbFullBackupBtn.addEventListener('click', downloadDbFullBackup);
-            downloadCompetitionsBtn.addEventListener('click', downloadCompetitionsCSV);
-            readinessFilter.addEventListener('change', (e) => { activeFilter = e.target.value; updateTableView(); });
+            downloadDbFullBackupBtn_dummy.addEventListener('click', downloadDbFullBackup);
+            readinessFilter.addEventListener('change', (e) => { activeFilter = e.target.value; updateAnalysisTableView(); });
             [handleInput, lunaNovaScoreInput, lunaHardScoreInput, placementsInput].forEach(input => { input.addEventListener('keypress', (e) => { if(e.key === 'Enter') addManualUserToList() }); });
             userList.addEventListener('click', (e) => { if (e.target.classList.contains('remove-list-btn')) { const indexToRemove = parseInt(e.target.dataset.index, 10); const handle = usersToAnalyze[indexToRemove].handle; showConfirmationModal('Remove User?', `Are you sure you want to remove ${handle} from the list?`, () => { usersToAnalyze.splice(indexToRemove, 1); updateUserListDisplay(); }); } else if (e.target.classList.contains('user-trust-checkbox')) { const indexToUpdate = parseInt(e.target.dataset.index, 10); usersToAnalyze[indexToUpdate].isTrusted = e.target.checked; updateUserListDisplay(); } });
             detailedUserForm.addEventListener('submit', handleDetailedUserFormSubmit);
-            clearFormBtn.addEventListener('click', () => {
-                showConfirmationModal('Clear Form?', 'Are you sure you want to clear all fields in the user form?', clearDetailedUserForm);
+            universityInput.addEventListener('input', () => {
+                 document.querySelectorAll('.placement-entry').forEach(updateTeamDatalistForEntry);
             });
+            clearFormBtn.addEventListener('click', () => { showConfirmationModal('Clear Form?', 'Are you sure you want to clear all fields in the user form?', clearDetailedUserForm); });
             addPlacementBtn.addEventListener('click', () => addPlacementInput());
-            addCompetitionBtn.addEventListener('click', () => {
-                competitionDatabase['New Competition'] = { link: '', total: 0 };
-                renderCompetitionEditor();
+            
+            detailedUserTable.querySelector('thead').addEventListener('click', e => {
+                const header = e.target.closest('th.sortable-header');
+                if (!header) return;
+                const key = header.dataset.sortKey;
+                let direction = 'desc';
+                if (dbSortState.key === key) {
+                    direction = dbSortState.direction === 'desc' ? 'asc' : 'desc';
+                }
+                dbSortState = { key, direction };
+                renderUserDatabaseTable();
             });
-            competitionEditorContainer.addEventListener('click', handleCompetitionEditorClick);
-            addUniversityBtn.addEventListener('click', () => {
-                const newUni = "New University";
-                if (!universityDatabase.includes(newUni)) {
-                    universityDatabase.push(newUni);
-                    universityDatabase.sort();
-                    renderUniversityEditor();
+            detailedUserTable.querySelector('thead').addEventListener('keyup', e => {
+                if(e.target.matches('input[data-filter-key]')) {
+                    dbFilters[e.target.dataset.filterKey] = e.target.value;
+                    renderUserDatabaseTable();
                 }
             });
-            universityEditorContainer.addEventListener('input', handleUniversityEditorChange);
-            universityEditorContainer.addEventListener('click', handleUniversityEditorChange);
+            document.getElementById('selectAllUsersCheckbox').addEventListener('change', e => {
+                document.querySelectorAll('#detailedUserTableBody .user-select-checkbox').forEach(cb => cb.checked = e.target.checked);
+            });
             detailedUserTableBody.addEventListener('click', e => {
                 const target = e.target; const row = target.closest('tr'); if (!row) return; const userId = row.dataset.id; const user = userDatabase.find(u => u.id === userId); if (!user) return;
                 if (target.classList.contains('delete-db-user-btn')) {
@@ -1163,7 +2066,7 @@
                         userDatabase = userDatabase.filter(u => u.id !== userId);
                         usersToAnalyze = usersToAnalyze.filter(u => u.handle.toLowerCase() !== userId);
                         cachedUserData = cachedUserData.filter(u => u.handle.toLowerCase() !== userId);
-                        renderAll(); updateUserListDisplay(); updateTableView();
+                        renderAll(); updateUserListDisplay(); updateAnalysisTableView();
                     });
                 } else if (target.classList.contains('edit-db-user-btn')) {
                     clearDetailedUserForm();
@@ -1171,47 +2074,81 @@
                     detailedUserForm.querySelector('[name="handle"]').readOnly = true;
                     detailedUserForm.querySelector('[name="fullName"]').value = user.fullName;
                     detailedUserForm.querySelector('[name="linkedin"]').value = user.linkedin;
-                    detailedUserForm.querySelector('[name="university"]').value = user.university;
+                    populateUniversityDatalist(user.university);
+                    detailedUserForm.querySelector('[name="profilePicUrl"]').value = user.profilePicUrl || '';
                     detailedUserForm.querySelector('[name="lunaNovaScore"]').value = user.lunaNovaScore;
                     detailedUserForm.querySelector('[name="lunaHardScore"]').value = user.lunaHardScore;
                     detailedUserForm.querySelector('[name="acmLevel"]').value = user.acmLevel;
                     detailedUserForm.querySelector('[name="joinDate"]').value = formatDateForInput(user.joinDate);
+                    detailedUserForm.querySelector('#isTrustedCheckbox').checked = user.isTrusted !== false; // Default to true if undefined
                     placementsContainer.innerHTML = '';
                     user.placements.forEach(p => addPlacementInput(p));
-                    detailedUserForm.scrollIntoView({ behavior: 'smooth' });
+                    detailedUserForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } else if (target.classList.contains('details-db-user-btn')) {
                     showUserDetailsModal(user.handle);
                 }
             });
             closeModalBtn.addEventListener('click', hideModal);
-            detailsModal.addEventListener('click', (e) => { if (e.target === detailsModal) hideModal(); });
+            detailsModal.addEventListener('click', (e) => { 
+                if (e.target === detailsModal) hideModal(); 
+                if (e.target.classList.contains('modal-teammate-btn')) {
+                    const handle = e.target.dataset.handle;
+                    hideModal();
+                    // Timeout to allow current modal to close before opening new one
+                    setTimeout(() => showUserDetailsModal(handle), 350);
+                }
+            });
             confirmCancelBtn.addEventListener('click', hideConfirmationModal);
             confirmOkBtn.addEventListener('click', () => { if (confirmCallback) confirmCallback(); hideConfirmationModal(); });
             resultsTableBody.addEventListener('click', async (e) => { const button = e.target.closest('button'); if (!button) return; const handle = button.dataset.handle; if (button.classList.contains('details-btn')) { showUserDetailsModal(handle); } else if (button.classList.contains('retry-btn')) { const user = usersToAnalyze.find(u => u.handle.toLowerCase() === handle.toLowerCase()); if (user && button.closest('tr')) await processSingleUser(user, button.closest('tr')); } else if (button.classList.contains('remove-result-btn')) { showConfirmationModal('Remove User?', `Remove ${handle} from the results and the analysis list?`, () => { const handleLower = handle.toLowerCase(); button.closest('tr').remove(); cachedUserData = cachedUserData.filter(u => u.handle.toLowerCase() !== handleLower); usersToAnalyze = usersToAnalyze.filter(u => u.handle.toLowerCase() !== handleLower); updateUserListDisplay(); downloadAnalysisBtn.disabled = cachedUserData.filter(d => !d.error).length === 0; }); } });
-            resultsTableHeader.addEventListener('click', (e) => { const header = e.target.closest('th.sortable-header'); if (!header) return; const key = header.dataset.sortKey; let direction = 'desc'; if (sortState.key === key) direction = sortState.direction === 'desc' ? 'asc' : 'desc'; sortState = { key, direction }; updateTableView(); });
+            analysisResultsTableHeader.addEventListener('click', (e) => { const header = e.target.closest('th.sortable-header'); if (!header) return; const key = header.dataset.sortKey; let direction = 'desc'; if (analysisSortState.key === key) direction = analysisSortState.direction === 'desc' ? 'asc' : 'desc'; analysisSortState = { key, direction }; updateAnalysisTableView(); });
+            jsonFileInput.addEventListener('change', (e) => { loadJsonFile(e.target.files[0]); e.target.value = ''; });
+            uploadUsersCsvInput.addEventListener('change', (e) => { handleFileUpload(e.target.files[0], handleUserUpload); e.target.value = ''; });
+            uploadCompetitionsCsvInput.addEventListener('change', (e) => { handleFileUpload(e.target.files[0], handleCompetitionUpload); e.target.value = ''; });
+            uploadUniversitiesCsvInput.addEventListener('change', (e) => { handleFileUpload(e.target.files[0], handleUniversityUpload); e.target.value = ''; });
+            profilePicFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => { profilePicUrlInput.value = event.target.result; };
+                    reader.readAsDataURL(file);
+                } else {
+                    profilePicUrlInput.value = '';
+                }
+            });
 
             // --- LOCAL STORAGE PERSISTENCE ---
             function saveDataToLocalStorage() {
-                const dataToSave = {
-                    users: userDatabase,
-                    competitions: competitionDatabase,
-                    universities: universityDatabase
-                };
-                localStorage.setItem('electiToolDataV2', JSON.stringify(dataToSave));
+                try {
+                    const dataToSave = {
+                        users: userDatabase,
+                        teams: teamDatabase,
+                        competitions: competitionDatabase,
+                        universities: universityDatabase
+                    };
+                    localStorage.setItem('electiToolDataV18', JSON.stringify(dataToSave));
+                } catch (e) {
+                    console.error("Could not save to localStorage. Data might be too large.", e);
+                }
             }
 
             function loadDataFromLocalStorage() {
-                const savedData = localStorage.getItem('electiToolDataV2');
+                const savedData = localStorage.getItem('electiToolDataV18');
                 if (savedData) {
-                    const data = JSON.parse(savedData);
-                    userDatabase = data.users.map(u => ({...u, updatedAt: new Date(u.updatedAt), joinDate: u.joinDate ? new Date(u.joinDate) : null })) || [];
-                    competitionDatabase = data.competitions || {};
-                    universityDatabase = data.universities || [];
-                    // Sync analysis list
-                    usersToAnalyze = userDatabase.map(dbUser => {
-                        const placementPercentages = dbUser.placements.map(p => (p.rank / p.total) * 100);
-                        return { handle: dbUser.handle, lunaNovaScore: dbUser.lunaNovaScore, lunaHardScore: dbUser.lunaHardScore, placements: placementPercentages, isTrusted: true };
-                    });
+                    try {
+                        const data = JSON.parse(savedData);
+                        userDatabase = data.users.map(u => ({...u, isTrusted: u.isTrusted !== false, updatedAt: new Date(u.updatedAt) })) || [];
+                        teamDatabase = data.teams || [];
+                        competitionDatabase = data.competitions || {};
+                        universityDatabase = data.universities || [];
+                        usersToAnalyze = userDatabase.map(dbUser => {
+                            const placementPercentages = dbUser.placements.map(p => (p.rank / p.total) * 100);
+                            return { handle: dbUser.handle, lunaNovaScore: dbUser.lunaNovaScore, lunaHardScore: dbUser.lunaHardScore, placements: placementPercentages, isTrusted: dbUser.isTrusted };
+                        });
+                    } catch (e) {
+                        console.error("Error parsing data from localStorage", e);
+                        userDatabase = []; teamDatabase = []; competitionDatabase = {}; universityDatabase = [];
+                    }
                 }
             }
 
@@ -1221,7 +2158,7 @@
             // Initial setup
             loadDataFromLocalStorage();
             updateUserListDisplay();
-            updateSortIndicators();
+            updateAnalysisSortIndicators();
             renderAll();
         });
     </script>
