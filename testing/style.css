@@ -1,0 +1,50 @@
+body {
+	font-family: 'Inter', sans-serif;
+}
+.spinner {
+	border-top-color: #3498db;
+	animation: spin 1s linear infinite;
+}
+@keyframes spin {
+	to { transform: rotate(360deg); }
+}
+.modal-overlay {
+	transition: opacity 0.3s ease;
+}
+.modal-content {
+	transition: transform 0.3s ease;
+}
+.sortable-header {
+	cursor: pointer;
+	position: relative;
+	user-select: none;
+}
+.sortable-header .sort-icon {
+	position: absolute;
+	right: 10px;
+	top: 50%;
+	transform: translateY(-50%);
+	opacity: 0.3;
+}
+.sortable-header.sort-asc .sort-icon, .sortable-header.sort-desc .sort-icon {
+	opacity: 1;
+}
+.tab-btn.active {
+	border-color: #3b82f6;
+	color: #3b82f6;
+	background-color: #eff6ff;
+}
+.editor-tab-btn.active {
+	background-color: #3b82f6;
+	color: white;
+}
+.stat-card {
+	background-color: white;
+	border-radius: 0.5rem;
+	padding: 1.5rem;
+	box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+}
+.dropdown {
+	position: relative;
+	display: inline-block;
+}

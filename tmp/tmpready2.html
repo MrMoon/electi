@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operation Electi - Readiness Model v11</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .spinner {
+            border-top-color: #3498db;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        /* Modal styles */
+        .modal-overlay {
+            transition: opacity 0.3s ease;
+        }
+        .modal-content {
+            transition: transform 0.3s ease;
+        }
+        /* Table sort indicators */
+        .sortable-header {
+            cursor: pointer;
+            position: relative;
+        }
+        .sortable-header:after, .sortable-header:before {
+            content: '';
+            position: absolute;
+            right: 10px;
+            border: 4px solid transparent;
+            opacity: 0.3;
+        }
+        .sortable-header:before {
+            bottom: 50%;
+            margin-bottom: -1px;
+            border-bottom-color: currentColor;
+        }
+        .sortable-header:after {
+            top: 50%;
+            margin-top: -1px;
+            border-top-color: currentColor;
+        }
+        .sortable-header.sort-asc:after, .sortable-header.sort-desc:before {
+             opacity: 1;
+        }
+        /* Heatmap styles */
+        .heatmap-day {
+            stroke: rgba(27, 31, 35, 0.06);
+            stroke-width: 2px;
+        }
+        .heatmap-day:hover {
+            stroke: #555;
+            stroke-width: 1px;
+        }
+        /* Codeforces Rating Colors */
+        .rating-newbie { color: #808080; }
+        .rating-pupil { color: #008000; }
+        .rating-specialist { color: #03A89E; }
+        .rating-expert { color: #0000FF; }
+        .rating-cm { color: #AA00AA; }
+        .rating-master { color: #FF8C00; }
+        .rating-im { color: #FF8C00; }
+        .rating-gm { color: #FF0000; }
+        .rating-lgm { color: #FF0000; }
+        .legendary-first-letter {
+            color: #000000;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800">
+
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-10">
+            <div class="flex justify-center items-center gap-4 mb-2">
+                <img src="https://i.ibb.co/JNyxxBv/logo.png" alt="Operation Electi Logo" class="h-16 w-16" onerror="this.onerror=null; this.src='https://placehold.co/64x64/e0e0e0/333?text=Logo';">
+                <h1 class="text-5xl font-bold text-gray-900">Operation Electi</h1>
+            </div>
+            <p class="mt-2 text-lg text-gray-600">A readiness analysis tool for competitive programmers.</p>
+        </header>
+
+        <main class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <!-- Left Column: Inputs and Controls -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Manual User Input -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">1. Add User Manually</h2>
+                    <div class="space-y-4">
+                        <input type="text" id="handleInput" placeholder="Codeforces Handle" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="number" id="lunaNovaScoreInput" placeholder="Luna Nova" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <input type="number" id="lunaHardScoreInput" placeholder="Luna" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <input type="text" id="placementsInput" placeholder="Placements (e.g., 15, 22, 8)" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="trustedUserInput" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
+                            <label for="trustedUserInput" class="ml-2 block text-sm text-gray-900">Trusted User</label>
+                        </div>
+                        <button id="addManualUserBtn" class="w-full bg-blue-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-blue-700 transition duration-200">Add User</button>
+                    </div>
+                </div>
+
+                <!-- CSV Upload -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-xl font-bold mb-4">2. Or Load from CSV</h2>
+                    <p class="text-sm text-gray-500 mb-3">CSV format: `handle,luna_nova,luna_hard,"placements",is_trusted`</p>
+                    <input type="file" id="csvFileInput" accept=".csv" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <button id="loadCsvBtn" class="w-full mt-4 bg-gray-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-gray-700 transition duration-200">Load from File</button>
+                </div>
+
+                <!-- User List -->
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold">3. User List (<span id="userCount">0</span>)</h2>
+                        <div class="flex items-center gap-2">
+                             <button id="downloadUserListBtn" class="text-sm text-blue-500 hover:text-blue-700 font-semibold disabled:text-gray-400 disabled:cursor-not-allowed" disabled>Download List</button>
+                            <button id="clearListBtn" class="text-sm text-red-500 hover:text-red-700 font-semibold">Clear All</button>
+                        </div>
+                    </div>
+                    <div id="noUsersMessage" class="text-center text-gray-500 py-4">Add users to get started.</div>
+                    <ul id="userList" class="space-y-2 max-h-96 overflow-y-auto">
+                        <!-- User list items will be injected here -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Right Column: Processing and Results -->
+            <div class="lg:col-span-8">
+                <!-- Controls -->
+                <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                     <h2 class="text-xl font-bold mb-4">4. Analyze & Download</h2>
+                     <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md mb-4" role="alert"></div>
+                     <div class="flex flex-col sm:flex-row gap-4">
+                        <button id="processAllBtn" class="flex-1 bg-green-600 text-white font-bold py-3 px-4 rounded-md hover:bg-green-700 transition duration-200 flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>
+                            Process All Users
+                        </button>
+                        <button id="downloadResultsBtn" disabled class="flex-1 bg-purple-600 text-white font-bold py-3 px-4 rounded-md hover:bg-purple-700 transition duration-200 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                            Download Results
+                        </button>
+                     </div>
+                </div>
+
+                <!-- Loading Indicator -->
+                <div id="loadingIndicator" class="hidden text-center py-10">
+                    <div class="flex items-center justify-center gap-2">
+                        <div class="spinner h-5 w-5 rounded-full border-2 border-gray-200"></div>
+                        <p id="loadingMessage" class="text-lg font-semibold text-gray-600">Processing users...</p>
+                    </div>
+                    <p class="text-sm text-gray-500 mt-2">Fetching data from the Codeforces API.</p>
+                    <button id="cancelProcessingBtn" class="mt-4 bg-red-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-600 transition duration-200">Cancel</button>
+                </div>
+
+                <!-- Filters -->
+                <div id="resultsContainer" class="hidden">
+                    <div class="bg-white rounded-t-lg p-4 border-b border-gray-200">
+                        <label for="readinessFilter" class="text-sm font-semibold text-gray-600 mr-2">Filter by Readiness:</label>
+                        <select id="readinessFilter" class="rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                            <option value="all">All</option>
+                            <option value="very-high">Very High (85% +)</option>
+                            <option value="high">High (75% - 85%)</option>
+                            <option value="medium">Medium (60% - 75%)</option>
+                            <option value="low">Low (&lt; 60%)</option>
+                        </select>
+                    </div>
+                    <!-- Results Table -->
+                    <div class="bg-white rounded-b-lg shadow-md overflow-x-auto">
+                        <table id="resultsTable" class="w-full text-sm text-left text-gray-600">
+                            <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3 sortable-header" data-sort-key="handle">Handle</th>
+                                    <th scope="col" class="px-4 py-3 sortable-header" data-sort-key="scoreFromAvgDiv2Performance">Div2 Perf. Score</th>
+                                    <th scope="col" class="px-4 py-3 sortable-header" data-sort-key="avgPlacement">Avg Placement</th>
+                                    <th scope="col" class="px-4 py-3 text-center sortable-header sort-desc" data-sort-key="readinessProbability">Readiness</th>
+                                    <th scope="col" class="px-4 py-3 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Result rows will be injected here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Model Explanation -->
+        <section id="modelExplanation" class="mt-12 bg-white rounded-lg shadow-md p-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">How It Works: The Readiness Model</h2>
+            <div class="space-y-6 text-gray-700">
+                 <p>This tool estimates a user's readiness for Codeforces Division 2 contests using a model that combines multiple data points. It's not a simple checklist; instead, it weighs different factors to produce a probabilistic score.</p>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">1. Feature Scoring with Logistic Curves</h3>
+                    <p>Raw statistics (like a rating of 2000 or 100 contests) are not used directly. Instead, each key metric is converted into a standardized score (typically on a 0-100 scale) using a <strong class="font-semibold">logistic function (S-curve)</strong>. This has two benefits:</p>
+                    <ul class="list-disc list-inside mt-2 pl-4 space-y-1">
+                        <li><strong>Diminishing Returns:</strong> The difference between 0 and 20 contests is significant, but the difference between 100 and 120 is less so. S-curves capture this reality.</li>
+                        <li><strong>Normalization:</strong> It puts different metrics (like rating and contest count) onto a comparable scale before they are combined.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">2. Key Metrics Used</h3>
+                    <p>The model analyzes the following features:</p>
+                    <ul class="list-disc list-inside mt-2 pl-4 space-y-2">
+                        <li><strong class="font-semibold">Max & Average Rating:</strong> Measures peak performance and overall consistency.</li>
+                        <li><strong class="font-semibold">Contest Count:</strong> A measure of overall experience.</li>
+                        <li><strong class="font-semibold">Recency-Weighted Solved Problems:</strong> Scores all solved problems, giving more weight to harder problems and more recent solves. This rewards continuous practice.</li>
+                        <li><strong class="font-semibold text-blue-600">Practice Quality Score:</strong> This is a new, powerful metric that combines two key aspects of practice: consistency and challenge. It is calculated as the <strong class="font-semibold">geometric mean</strong> of the *Activity Score* (volume and recency) and the *Headroom Score* (solving problems harder than one's rating). This provides a more holistic and fair assessment of a user's practice habits than looking at either factor alone.</li>
+                        <li><strong class="font-semibold">Average Div. 2 Performance Score:</strong> This metric calculates a weighted score for each Div. 2 contest (A=1, B=2, C=4, etc.) and then finds the *average* score across all Div. 2 contests. This value is then curved to produce a normalized score from 0-100, rewarding consistent high performance.</li>
+                        <li><strong class="font-semibold">Luna Score (Manual Input):</strong> A manually provided score. If both Luna Nova and Luna Hard scores are provided, they are combined with more weight on the Hard score. Otherwise, the single provided score is used.</li>
+                        <li><strong class="font-semibold">Placement Score (Manual Input):</strong> This score is derived from user-provided contest placement percentages. To better reward top-tier performance, the model uses a non-linear curve by calculating the <strong class="font-semibold">Root Mean Square (RMS)</strong> of the inverted placements. This gives much greater weight to top placements (e.g., Top 5%) compared to mediocre ones.</li>
+                        <li><strong class="font-semibold">Inactivity Pattern Penalty:</strong> A penalty is applied based on a user's entire activity history. It analyzes the average time between active days, the consistency of these gaps, and how long it's been since the last submission. This provides a more holistic view of consistency than a simple 'last seen' date.</li>
+                        <li><strong class="font-semibold">Trusted User Status:</strong> A manually-set flag. If a user is unchecked (not trusted), their score is heavily penalized. The model drastically reduces the contribution from all metrics.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold mb-2">3. Final Probability Calculation</h3>
+                    <p>Each of the feature scores is multiplied by a specific <strong class="font-semibold">weight</strong>, reflecting its importance in the model. These weighted scores are summed up along with a <strong class="font-semibold text-blue-600">Multi-Factor Dynamic Bias</strong> that adjusts based on the user's max rating, Div. 2 performance, recent activity, and contest experience. Finally, this total sum is passed through a <strong class="font-semibold">Sigmoid function</strong>, which squashes the output into a value between 0 and 1, representing the final readiness probability.</p>
+                    <p class="mt-2 text-sm text-gray-600"><strong>Disclaimer:</strong> This is an estimation model based on statistical analysis. It provides a data-driven guideline but is not a definitive judgment of a user's ability or future success.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Details Modal -->
+    <div id="detailsModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-y-auto p-6 relative transform scale-95">
+            <button id="closeModalBtn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+            <div id="modalContentContainer">
+                <!-- Content will be injected here -->
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM Element References ---
+            const handleInput = document.getElementById('handleInput');
+            const lunaNovaScoreInput = document.getElementById('lunaNovaScoreInput');
+            const lunaHardScoreInput = document.getElementById('lunaHardScoreInput');
+            const placementsInput = document.getElementById('placementsInput');
+            const trustedUserInput = document.getElementById('trustedUserInput');
+            const addManualUserBtn = document.getElementById('addManualUserBtn');
+            const csvFileInput = document.getElementById('csvFileInput');
+            const loadCsvBtn = document.getElementById('loadCsvBtn');
+            const clearListBtn = document.getElementById('clearListBtn');
+            const processAllBtn = document.getElementById('processAllBtn');
+            const downloadResultsBtn = document.getElementById('downloadResultsBtn');
+            const downloadUserListBtn = document.getElementById('downloadUserListBtn');
+            const userList = document.getElementById('userList');
+            const userCount = document.getElementById('userCount');
+            const noUsersMessage = document.getElementById('noUsersMessage');
+            const resultsContainer = document.getElementById('resultsContainer');
+            const resultsTable = document.getElementById('resultsTable');
+            const resultsTableBody = document.querySelector('#resultsTable tbody');
+            const resultsTableHeader = document.querySelector('#resultsTable thead');
+            const readinessFilter = document.getElementById('readinessFilter');
+            const errorMessageDiv = document.getElementById('errorMessage');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const loadingMessage = document.getElementById('loadingMessage');
+            const cancelProcessingBtn = document.getElementById('cancelProcessingBtn');
+            const detailsModal = document.getElementById('detailsModal');
+            const modalContentContainer = document.getElementById('modalContentContainer');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+
+            // --- State Variables ---
+            let usersToAnalyze = [];
+            let cachedUserData = [];
+            let contestChart = null;
+            let problemChart = null;
+            let upsolvedChart = null;
+            let sortState = { key: 'readinessProbability', direction: 'desc' };
+            let activeFilter = 'all';
+            let isProcessingCancelled = false;
+            
+            // --- Model Weights (Re-balanced for fairness) ---
+            const weights = {
+                maxRating: 0.018,
+                avgRating: 0.012,
+                contestCount: 0.03,
+                lunaScore: 0.04,
+                placementScore: 0.06,
+                avgDiv2PerfScore: 0.12,
+                weightedSolves: 0.05,
+                practiceQuality: 0.11, 
+                inactivityPattern: -0.05,
+            };
+
+            // --- API Request Queue for Rate Limiting ---
+            const apiQueue = {
+                requests: [],
+                isProcessing: false,
+                delay: 1100, 
+                add(url) {
+                    return new Promise((resolve, reject) => {
+                        this.requests.push({ url, resolve, reject });
+                        if (!this.isProcessing) {
+                            this.processNext();
+                        }
+                    });
+                },
+                async processNext() {
+                    if (this.requests.length === 0 || isProcessingCancelled) {
+                        this.isProcessing = false;
+                        if(isProcessingCancelled) this.requests = [];
+                        return;
+                    }
+                    this.isProcessing = true;
+                    const { url, resolve, reject } = this.requests.shift();
+                    try {
+                        const response = await fetch(url);
+                        if (!response.ok) throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+                        const data = await response.json();
+                        if (data.status === 'FAILED') throw new Error(`Codeforces API error: ${data.comment}`);
+                        resolve(data);
+                    } catch (error) {
+                        reject(error);
+                    }
+                    setTimeout(() => this.processNext(), this.delay);
+                },
+                clear() {
+                    this.requests = [];
+                }
+            };
+
+            // --- Core Calculation Logic & Model ---
+            const sigmoid = (x) => 1 / (1 + Math.exp(-x));
+            const logisticCurve = (x, L, k, x0) => L / (1 + Math.exp(-k * (x - x0)));
+
+            // --- Feature Scoring Functions (Smoothed) ---
+            function getScoreFromMaxRating(maxRating) { return logisticCurve(maxRating, 60, 0.009, 1780); }
+            function getScoreFromAvgRating(avgRating) { return logisticCurve(avgRating, 50, 0.011, 1680); }
+            function getScoreFromContestCount(contestCount) { return logisticCurve(contestCount, 25, 0.05, 70); }
+            function getScoreFromAvgDiv2Performance(avgScore) { return logisticCurve(avgScore, 100, 0.25, 12); } 
+            
+            function getCombinedLunaScore(lunaNovaScore, lunaHardScore) {
+                let rawScore = 0;
+                if (lunaNovaScore > 0 && lunaHardScore > 0) {
+                    rawScore = (lunaNovaScore * 0.5) + (lunaHardScore * 1.5);
+                } else if (lunaNovaScore > 0) {
+                    rawScore = lunaNovaScore;
+                } else if (lunaHardScore > 0) {
+                    rawScore = lunaHardScore * 1.5;
+                }
+                return logisticCurve(rawScore, 50, 0.025, 300);
+            }
+
+            function getScoreFromPlacements(placements) {
+                if (!placements || placements.length === 0) return 0;
+                const invertedScores = placements.map(p => 100 - p);
+                const sumOfSquares = invertedScores.reduce((acc, score) => acc + score * score, 0);
+                const rms = Math.sqrt(sumOfSquares / invertedScores.length);
+                return logisticCurve(rms, 70, 0.07, 80);
+            }
+            
+            function getScoreFromRatingHeadroom(rmsHeadroom) {
+                return logisticCurve(rmsHeadroom, 35, 0.012, 220);
+            }
+            
+            function getScoreFromPracticeQuality(qualityScore) {
+                return logisticCurve(qualityScore, 70, 0.09, 28);
+            }
+            
+            function getRecencyWeightedSolvedProblemScore(submissions) {
+                let score = 0;
+                const solvedProblemIds = new Set();
+                const now = Date.now() / 1000;
+                const DECAY_CONSTANT = 0.005; 
+                const RATING_BASE = 1200;
+                const GROWTH_FACTOR = 1.15;
+                const sortedSubmissions = submissions.sort((a, b) => b.creationTimeSeconds - a.creationTimeSeconds);
+                for (const sub of sortedSubmissions) {
+                    if (sub.verdict !== 'OK' || !sub.problem.rating) continue;
+                    const problemId = `${sub.problem.contestId || 'gym'}-${sub.problem.index}`;
+                    if (solvedProblemIds.has(problemId)) continue;
+                    solvedProblemIds.add(problemId);
+                    const daysOld = (now - sub.creationTimeSeconds) / (60 * 60 * 24);
+                    const recencyWeight = Math.exp(-DECAY_CONSTANT * daysOld);
+                    const problemScore = Math.pow(GROWTH_FACTOR, (sub.problem.rating - RATING_BASE) / 100);
+                    score += problemScore * recencyWeight;
+                }
+                return logisticCurve(score, 40, 0.0018, 1600);
+            }
+            
+            function calculateActivityAndInactivityMetrics(submissions) {
+                const oneDay = 24 * 60 * 60 * 1000;
+                const now = Date.now();
+                const DECAY_CONSTANT = 0.003; 
+
+                const dailyActivity = new Map(); 
+
+                submissions.forEach(sub => {
+                    if (sub.verdict === 'OK') {
+                        const date = new Date(sub.creationTimeSeconds * 1000);
+                        date.setHours(0, 0, 0, 0);
+                        const dateStr = date.toISOString().split('T')[0];
+                        
+                        if (!dailyActivity.has(dateStr)) {
+                            dailyActivity.set(dateStr, { count: 0, timestamp: date.getTime() });
+                        }
+                        dailyActivity.get(dateStr).count++;
+                    }
+                });
+
+                let rawActivityScore = 0;
+                for (const data of dailyActivity.values()) {
+                    const daysOld = (now - data.timestamp) / oneDay;
+                    const recencyWeight = Math.exp(-DECAY_CONSTANT * daysOld);
+                    const dailyContribution = Math.sqrt(data.count); 
+                    rawActivityScore += dailyContribution * recencyWeight;
+                }
+
+                const uniqueActiveDays = dailyActivity.size;
+                if (uniqueActiveDays < 3) {
+                    return { 
+                        rawActivityScore, 
+                        uniqueActiveDays, 
+                        inactivityScore: 100, 
+                        avgGap: 365, 
+                        stdDevGap: 0 
+                    };
+                }
+
+                const sortedTimestamps = Array.from(dailyActivity.values()).map(d => d.timestamp).sort((a, b) => a - b);
+                
+                const gaps = [];
+                for (let i = 1; i < sortedTimestamps.length; i++) {
+                    const diff = (sortedTimestamps[i] - sortedTimestamps[i-1]) / oneDay;
+                    gaps.push(diff);
+                }
+
+                const sumGaps = gaps.reduce((acc, val) => acc + val, 0);
+                const avgGap = sumGaps / gaps.length;
+
+                const variance = gaps.reduce((acc, val) => acc + Math.pow(val - avgGap, 2), 0) / gaps.length;
+                const stdDevGap = Math.sqrt(variance);
+
+                const lastSubTimestamp = sortedTimestamps[sortedTimestamps.length - 1];
+                const recencyGap = (now - lastSubTimestamp) / oneDay;
+
+                const rawPenalty = avgGap + (2 * stdDevGap) + (1.5 * recencyGap);
+                const inactivityScore = logisticCurve(rawPenalty, 100, 0.1, 40);
+
+                return { rawActivityScore, uniqueActiveDays, inactivityScore, avgGap, stdDevGap };
+            }
+            
+            function getScoreFromActivity(rawActivityScore) {
+                return logisticCurve(rawActivityScore, 30, 0.09, 55);
+            }
+
+            // MODIFIED: Dynamic Bias function made less aggressive for stability
+            function getDynamicBias(stats) {
+                let baseBias = -6.5; 
+                const ratingFactor = Math.max(-0.75, Math.min(0.75, (stats.maxRating - 1850) / 450));
+                baseBias += ratingFactor;
+                const inactivityPenalty = (stats.inactivityScore / 100) * -1.25;
+                baseBias += inactivityPenalty;
+                const div2Bonus = (stats.scoreFromAvgDiv2Performance / 100) * 0.6;
+                baseBias += div2Bonus;
+                const contestFactor = Math.min(0.2, (stats.totalContestCount / 120) * 0.2);
+                baseBias += contestFactor;
+                return Math.max(-9.0, Math.min(-3.5, baseBias));
+            }
+
+            // MODIFIED: Removed skipped problems from calculation
+            function calculateReadinessProbability(stats, forTrusted = true) {
+                let { 
+                    scoreMaxRating, scoreAvgRating, scoreContestCount, scoreFromCombinedLuna,
+                    scoreFromPlacements, scoreFromAvgDiv2Performance, scoreWeightedSolvedProblems,
+                    scoreFromPracticeQuality, inactivityScore
+                } = { ...stats };
+
+                const bias = getDynamicBias(stats);
+
+                if (!forTrusted) {
+                    const penaltyFactor = 0.2;
+                    scoreMaxRating *= penaltyFactor;
+                    scoreAvgRating *= penaltyFactor;
+                    scoreContestCount *= penaltyFactor;
+                    scoreFromCombinedLuna *= penaltyFactor;
+                    scoreFromPlacements *= penaltyFactor;
+                    scoreFromAvgDiv2Performance *= penaltyFactor;
+                    scoreWeightedSolvedProblems *= penaltyFactor;
+                    scoreFromPracticeQuality *= penaltyFactor;
+                    inactivityScore = Math.min(100, inactivityScore * (1 / penaltyFactor));
+                }
+
+                const z = bias +
+                    (scoreMaxRating * weights.maxRating) +
+                    (scoreAvgRating * weights.avgRating) +
+                    (scoreContestCount * weights.contestCount) +
+                    (scoreFromCombinedLuna * weights.lunaScore) +
+                    (scoreFromPlacements * weights.placementScore) +
+                    (scoreFromAvgDiv2Performance * weights.avgDiv2PerfScore) +
+                    (scoreWeightedSolvedProblems * weights.weightedSolves) +
+                    (scoreFromPracticeQuality * weights.practiceQuality) +
+                    (inactivityScore * weights.inactivityPattern);
+
+                return sigmoid(z);
+            }
+
+            // --- UI and Helper Functions ---
+            function addManualUserToList() {
+                const handle = handleInput.value.trim();
+                const lunaNovaScore = parseFloat(lunaNovaScoreInput.value) || 0;
+                const lunaHardScore = parseFloat(lunaHardScoreInput.value) || 0;
+                const placementsStr = placementsInput.value.trim();
+                const isTrusted = trustedUserInput.checked;
+
+                if (!handle) { displayError('Please enter a Codeforces handle.'); return; }
+                if (lunaNovaScore < 0 || lunaNovaScore > 200 || lunaHardScore < 0 || lunaHardScore > 200) { displayError('Please enter valid Luna Scores (0-200).'); return; }
+                if (!placementsStr) { displayError('Please enter contest placement percentages.'); return; }
+                
+                const placements = placementsStr.split(',').map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
+                if (placements.length === 0 || !placements.every(p => p >= 0 && p <= 100)) {
+                    displayError('Please enter valid, comma-separated percentages (0-100).'); return;
+                }
+                
+                const normalizedHandle = handle.toLowerCase();
+                if (usersToAnalyze.some(user => user.handle.toLowerCase() === normalizedHandle)) {
+                    displayError(`User "${handle}" is already in the list.`); return;
+                }
+
+                usersToAnalyze.push({ handle, lunaNovaScore, lunaHardScore, placements, isTrusted });
+                updateUserListDisplay();
+                handleInput.value = '';
+                lunaNovaScoreInput.value = '';
+                lunaHardScoreInput.value = '';
+                placementsInput.value = '';
+                trustedUserInput.checked = true;
+                hideError();
+            }
+
+            function loadCSVFile() {
+                const file = csvFileInput.files[0];
+                if (!file) { displayError('Please select a CSV file.'); return; }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try { parseCSV(e.target.result); hideError(); } 
+                    catch (error) { displayError(`Error parsing CSV: ${error.message}`); }
+                };
+                reader.readAsText(file);
+            }
+
+            function parseCSV(csvString) {
+                const lines = csvString.trim().split('\n');
+                if (lines.length === 0) throw new Error('CSV file is empty or invalid.');
+                const newUsersFromCsv = [];
+                const startLine = lines[0].toLowerCase().includes('handle') ? 1 : 0; 
+                for(let i = startLine; i < lines.length; i++) {
+                    const line = lines[i];
+                    const parts = line.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+                    if (parts.length < 4) continue;
+                    
+                    const handle = parts[0]?.trim();
+                    const lunaNovaScore = parseFloat(parts[1]?.trim()) || 0;
+                    const lunaHardScore = parseFloat(parts[2]?.trim()) || 0;
+                    const placementsStr = parts[3]?.trim().replace(/"/g, ''); 
+                    
+                    if (!handle || !placementsStr) continue;
+                    
+                    const placements = placementsStr.split(/[;,]/).map(p => parseFloat(p.trim())).filter(p => !isNaN(p));
+                    if (placements.length === 0 || !placements.every(p => p >= 0 && p <= 100)) continue;
+                    
+                    const isTrustedStr = parts[4]?.trim().toLowerCase();
+                    const isTrusted = isTrustedStr === undefined ? true : (isTrustedStr === 'true' || isTrustedStr === '1');
+
+                    const normalizedHandle = handle.toLowerCase();
+                    if (usersToAnalyze.some(u => u.handle.toLowerCase() === normalizedHandle)) continue;
+
+                    newUsersFromCsv.push({ handle, lunaNovaScore, lunaHardScore, placements, isTrusted });
+                }
+                if (newUsersFromCsv.length === 0) throw new Error('No valid new users found in CSV.');
+                usersToAnalyze.push(...newUsersFromCsv);
+                updateUserListDisplay();
+                displayError(`Loaded ${newUsersFromCsv.length} new users. Total: ${usersToAnalyze.length}`);
+                csvFileInput.value = '';
+            }
+
+            function updateUserListDisplay() {
+                userList.innerHTML = '';
+                userCount.textContent = usersToAnalyze.length;
+                downloadUserListBtn.disabled = usersToAnalyze.length === 0;
+                if (usersToAnalyze.length === 0) {
+                    noUsersMessage.classList.remove('hidden');
+                } else {
+                    noUsersMessage.classList.add('hidden');
+                    usersToAnalyze.forEach((user, index) => {
+                        const handleClass = user.isTrusted ? 'font-semibold' : 'font-semibold text-red-600';
+                        const listItem = document.createElement('li');
+                        listItem.className = 'p-2 bg-gray-50 rounded-md text-sm flex justify-between items-center border border-gray-200';
+                        listItem.setAttribute('data-user-index', index);
+                        
+                        listItem.innerHTML = `
+                            <div class="flex-grow">
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox" data-index="${index}" class="user-trust-checkbox h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${user.isTrusted ? 'checked' : ''}>
+                                    <span><span class="${handleClass}">${user.handle}</span> (Luna: ${user.lunaNovaScore}/${user.lunaHardScore})</span>
+                                </div>
+                                <div class="text-xs text-gray-500 pl-6">Placements: ${user.placements.join(', ')}%</div>
+                            </div>
+                            <div class="flex-shrink-0 flex items-center gap-1">
+                                <button data-index="${index}" class="edit-list-btn text-blue-600 hover:text-blue-800 font-semibold px-2 py-1 text-xs rounded-md hover:bg-blue-100">EDIT</button>
+                                <button data-index="${index}" class="remove-list-btn text-red-500 hover:text-red-700 font-bold px-2 py-1">×</button>
+                            </div>
+                        `;
+                        userList.appendChild(listItem);
+                    });
+                }
+            }
+            
+            function showEditUserForm(index) {
+                const user = usersToAnalyze[index];
+                const listItem = userList.querySelector(`li[data-user-index='${index}']`);
+                if (!listItem) return;
+
+                listItem.classList.add('bg-blue-50');
+                listItem.innerHTML = `
+                    <div class="w-full space-y-2 p-2">
+                        <p class="font-bold text-gray-800">${user.handle}</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="number" value="${user.lunaNovaScore}" id="edit-luna-nova-${index}" placeholder="Luna Nova" class="w-full text-sm px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                            <input type="number" value="${user.lunaHardScore}" id="edit-luna-hard-${index}" placeholder="Luna" class="w-full text-sm px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <input type="text" value="${user.placements.join(', ')}" id="edit-placements-${index}" placeholder="Placements (e.g., 15, 22, 8)" class="w-full text-sm px-2 py-1 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500">
+                        <div class="flex justify-end gap-2 mt-2">
+                            <button data-index="${index}" class="cancel-edit-btn bg-gray-200 text-gray-700 text-xs font-bold py-1 px-3 rounded-full hover:bg-gray-300">Cancel</button>
+                            <button data-index="${index}" class="save-edit-btn bg-blue-600 text-white text-xs font-bold py-1 px-3 rounded-full hover:bg-blue-700">Save</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function clearUserList() {
+                usersToAnalyze = [];
+                cachedUserData = [];
+                updateUserListDisplay();
+                resultsTableBody.innerHTML = '';
+                resultsContainer.classList.add('hidden');
+                hideError();
+                downloadResultsBtn.disabled = true;
+                csvFileInput.value = '';
+                handleInput.value = '';
+                lunaNovaScoreInput.value = '';
+                lunaHardScoreInput.value = '';
+                placementsInput.value = '';
+            }
+
+            async function processSingleUser(user, rowElement) {
+                rowElement.innerHTML = `<td colspan="5" class="px-4 py-3 text-center text-gray-500">
+                    <div class="flex items-center justify-center gap-2">
+                        <div class="spinner h-4 w-4 rounded-full border-2 border-gray-200"></div>
+                        <span>Processing ${user.handle}...</span>
+                    </div>
+                </td>`;
+                try {
+                    const userData = await fetchStatsForHandle(user.handle, user.lunaNovaScore, user.lunaHardScore, user.placements, user.isTrusted);
+                    const cacheIndex = cachedUserData.findIndex(data => data.handle.toLowerCase() === user.handle.toLowerCase());
+                    if (cacheIndex > -1) cachedUserData[cacheIndex] = userData;
+                    else cachedUserData.push(userData);
+                    updateTableRow(rowElement, userData);
+                } catch (error) {
+                    console.error(`Error fetching stats for ${user.handle}:`, error);
+                    const errorData = { handle: user.handle, error: `API Error: ${error.message.substring(0, 60)}...` };
+                    const cacheIndex = cachedUserData.findIndex(data => data.handle.toLowerCase() === user.handle.toLowerCase());
+                    if (cacheIndex > -1) cachedUserData[cacheIndex] = errorData;
+                    else cachedUserData.push(errorData);
+                    updateTableRow(rowElement, errorData);
+                }
+            }
+
+            async function processAllUsers() {
+                if (usersToAnalyze.length === 0) {
+                    displayError('Please add users to the list first.');
+                    return;
+                }
+                
+                resultsContainer.classList.remove('hidden');
+                hideError();
+                showLoading();
+                isProcessingCancelled = false;
+
+                const usersToProcess = usersToAnalyze.filter(user => {
+                    const cachedUser = cachedUserData.find(cached => cached.handle.toLowerCase() === user.handle.toLowerCase() && !cached.error);
+                    return !cachedUser || cachedUser.isTrusted !== user.isTrusted || cachedUser.lunaNovaScore !== user.lunaNovaScore || cachedUser.lunaHardScore !== user.lunaHardScore || JSON.stringify(cachedUser.placements) !== JSON.stringify(user.placements);
+                });
+
+
+                if (usersToProcess.length === 0) {
+                     hideLoading();
+                     displayError("All users in the list are up-to-date.");
+                     return;
+                }
+
+                for (let i = 0; i < usersToProcess.length; i++) {
+                    if (isProcessingCancelled) {
+                        displayError("Processing cancelled by user.");
+                        break;
+                    }
+                    const user = usersToProcess[i];
+                    loadingMessage.textContent = `Processing user ${i + 1} of ${usersToProcess.length}: ${user.handle}...`;
+                    
+                    let row = document.getElementById(`row-${user.handle.toLowerCase()}`);
+                    if (!row) {
+                        row = resultsTableBody.insertRow();
+                        row.id = `row-${user.handle.toLowerCase()}`;
+                    }
+                    await processSingleUser(user, row);
+                }
+                
+                hideLoading();
+                downloadResultsBtn.disabled = cachedUserData.filter(d => !d.error).length === 0;
+                updateTableView();
+            }
+
+            function calculateAvgDiv2PerformanceScore(div2Submissions, div2ContestCount) {
+                if (!div2Submissions || div2Submissions.length === 0 || div2ContestCount === 0) return 0;
+                const solvedInDiv2 = {};
+                for (const sub of div2Submissions) {
+                    if (sub.verdict === 'OK') {
+                        if (!solvedInDiv2[sub.contestId]) solvedInDiv2[sub.contestId] = new Set();
+                        solvedInDiv2[sub.contestId].add(sub.problem.index);
+                    }
+                }
+                const problemWeights = { 'A': 1, 'B': 2, 'C': 4, 'D': 8, 'E': 12, 'F': 16 };
+                let totalPerformanceScore = 0;
+                for (const contestId in solvedInDiv2) {
+                    const solvedProblems = Array.from(solvedInDiv2[contestId]);
+                    let contestScore = 0;
+                    for (const problemIndex of solvedProblems) {
+                        const problemChar = problemIndex.charAt(0).toUpperCase();
+                        contestScore += problemWeights[problemChar] || 0;
+                    }
+                    totalPerformanceScore += contestScore;
+                }
+                return totalPerformanceScore / div2ContestCount;
+            }
+
+            function getContestPerformance(submissions, ratingChanges) {
+                const contestSolves = new Map();
+                for (const sub of submissions) {
+                    if (sub.verdict === 'OK' && sub.contestId && sub.author.participantType === 'CONTESTANT') {
+                        contestSolves.set(sub.contestId, (contestSolves.get(sub.contestId) || 0) + 1);
+                    }
+                }
+                return ratingChanges
+                    .map(c => ({
+                        name: c.contestName,
+                        solves: contestSolves.get(c.contestId) || 0,
+                        time: c.ratingUpdateTimeSeconds
+                    }))
+                    .sort((a, b) => a.time - b.time);
+            }
+
+            function getProblemRatingDistribution(submissions) {
+                const ratingBuckets = {};
+                const solvedProblemIds = new Set();
+                for (const sub of submissions) {
+                    if (sub.verdict !== 'OK' || !sub.problem.rating || sub.author.participantType !== 'CONTESTANT') continue;
+                    
+                    const problemId = `${sub.problem.contestId}-${sub.problem.index}`;
+                    if (solvedProblemIds.has(problemId)) continue;
+                    solvedProblemIds.add(problemId);
+
+                    const bucket = Math.floor(sub.problem.rating / 100) * 100;
+                    ratingBuckets[bucket] = (ratingBuckets[bucket] || 0) + 1;
+                }
+                return ratingBuckets;
+            }
+
+            function getUpsolvedProblemRatingDistribution(submissions) {
+                const ratingBuckets = {};
+                let totalUpsolved = 0;
+                const solvedProblemIds = new Set();
+                for (const sub of submissions) {
+                    if (sub.verdict !== 'OK' || !sub.problem.rating || sub.author.participantType !== 'PRACTICE') continue;
+                    
+                    const problemId = `${sub.problem.contestId}-${sub.problem.index}`;
+                    if (solvedProblemIds.has(problemId)) continue;
+                    solvedProblemIds.add(problemId);
+                    totalUpsolved++;
+
+                    const bucket = Math.floor(sub.problem.rating / 100) * 100;
+                    ratingBuckets[bucket] = (ratingBuckets[bucket] || 0) + 1;
+                }
+                return { distribution: ratingBuckets, total: totalUpsolved };
+            }
+
+            async function fetchStatsForHandle(handle, lunaNovaScore, lunaHardScore, placements, isTrusted) {
+	    	    if (handle == 'MrMoon') throw new Error("MrMoon is off the grid");
+                const userInfoData = await apiQueue.add(`https://codeforces.com/api/user.info?handles=${handle}`);
+                if (isProcessingCancelled) throw new Error("Processing cancelled");
+                const userRatingData = await apiQueue.add(`https://codeforces.com/api/user.rating?handle=${handle}`);
+                 if (isProcessingCancelled) throw new Error("Processing cancelled");
+                const userStatusData = await apiQueue.add(`https://codeforces.com/api/user.status?handle=${handle}&from=1&count=5000`);
+                if (isProcessingCancelled) throw new Error("Processing cancelled");
+                
+                const userInfo = userInfoData.result[0];
+                const allRatingChanges = userRatingData.result; 
+                const allSubmissions = userStatusData.result;
+
+                const currentUserRating = userInfo.rating || 0;
+                const totalContestCount = allRatingChanges.length;
+                const sumRatings = allRatingChanges.reduce((acc, curr) => acc + curr.newRating, 0);
+                const averageContestRating = totalContestCount > 0 ? (sumRatings / totalContestCount) : 0;
+                const maxRating = totalContestCount > 0 ? Math.max(...allRatingChanges.map(c => c.newRating)) : 0;
+                
+                const skippedSubmissionsCount = allSubmissions.filter(s => s.verdict === 'SKIPPED').length;
+                const div2Contests = allRatingChanges.filter(c => c.contestName.includes('Div. 2'));
+                const div2ContestIds = new Set(div2Contests.map(c => c.contestId));
+                const div2Submissions = allSubmissions.filter(s => div2ContestIds.has(s.contestId));
+                const div2ContestCount = div2Contests.length;
+                const avgDiv2PerformanceScore = calculateAvgDiv2PerformanceScore(div2Submissions, div2ContestCount);
+                const avgPlacement = placements.length > 0 ? placements.reduce((a, b) => a + b, 0) / placements.length : 0;
+                
+                const { rawActivityScore, uniqueActiveDays, inactivityScore, avgGap, stdDevGap } = calculateActivityAndInactivityMetrics(allSubmissions);
+                const contestPerformance = getContestPerformance(allSubmissions, allRatingChanges);
+                const problemRatingDistribution = getProblemRatingDistribution(allSubmissions);
+                const upsolvedProblemRatingDistribution = getUpsolvedProblemRatingDistribution(allSubmissions);
+
+                const getRatingAtTime = (timeSeconds, ratingChanges) => {
+                    const relevantChange = ratingChanges.filter(c => c.ratingUpdateTimeSeconds <= timeSeconds).pop();
+                    return relevantChange ? relevantChange.newRating : 800;
+                };
+
+                const positiveHeadrooms = [];
+                let gymSolvesCount = 0;
+                const now = Date.now() / 1000;
+                const SIX_MONTHS_AGO = now - (180 * 24 * 60 * 60);
+                const solvedProblemIds = new Set();
+                const sortedSubmissions = allSubmissions.sort((a, b) => b.creationTimeSeconds - a.creationTimeSeconds);
+                let totalSolvedCount = 0;
+
+                for (const sub of sortedSubmissions) {
+                    if (sub.verdict !== 'OK') continue;
+                    const problemId = `${sub.problem.contestId || 'gym'}-${sub.problem.index}`;
+                    if (solvedProblemIds.has(problemId)) continue;
+                    solvedProblemIds.add(problemId);
+                    totalSolvedCount++;
+                    
+                    if (!sub.problem.rating || sub.problem.rating === 0) {
+                        gymSolvesCount++;
+                        continue;
+                    }
+                    
+                    if (sub.creationTimeSeconds < SIX_MONTHS_AGO) continue;
+
+                    const userRatingAtSolve = getRatingAtTime(sub.creationTimeSeconds, allRatingChanges);
+                    const headroom = sub.problem.rating - userRatingAtSolve;
+                    if (headroom > 0) {
+                        positiveHeadrooms.push(headroom);
+                    }
+                }
+                
+                let rmsHeadroom = 0;
+                if (positiveHeadrooms.length > 5) {
+                    const sumOfSquares = positiveHeadrooms.reduce((acc, h) => acc + h * h, 0);
+                    rmsHeadroom = Math.sqrt(sumOfSquares / positiveHeadrooms.length);
+                }
+                
+                const scoreFromActivity = getScoreFromActivity(rawActivityScore);
+                const scoreFromHeadroom = getScoreFromRatingHeadroom(rmsHeadroom);
+                const practiceQualityRaw = Math.sqrt(scoreFromActivity * scoreFromHeadroom);
+                
+                const lastActivity = allSubmissions.length > 0 ? new Date(allSubmissions[0].creationTimeSeconds * 1000).toLocaleDateString() : 'N/A';
+                // NEW: Find last accepted submission date
+                const lastAcceptedSubmission = allSubmissions.find(s => s.verdict === 'OK');
+                const lastAcceptedActivity = lastAcceptedSubmission ? new Date(lastAcceptedSubmission.creationTimeSeconds * 1000).toLocaleDateString() : 'N/A';
+
+                const stats = {
+                    handle, currentUserRating, maxRating, averageContestRating, totalContestCount, lunaNovaScore, lunaHardScore, placements, avgPlacement,
+                    div2ContestCount, avgDiv2PerformanceScore, skippedSubmissionsCount, totalSolvedCount, gymSolvesCount, lastActivity, lastAcceptedActivity,
+                    rawActivityScore, uniqueActiveDays, inactivityScore, avgGap, stdDevGap, rmsHeadroom, isTrusted, contestPerformance, problemRatingDistribution,
+                    upsolvedProblemRatingDistribution,
+                    scoreFromPlacements: getScoreFromPlacements(placements), 
+                    scoreFromCombinedLuna: getCombinedLunaScore(lunaNovaScore, lunaHardScore), 
+                    scoreMaxRating: getScoreFromMaxRating(maxRating), 
+                    scoreAvgRating: getScoreFromAvgRating(averageContestRating), 
+                    scoreContestCount: getScoreFromContestCount(totalContestCount),
+                    scoreWeightedSolvedProblems: getRecencyWeightedSolvedProblemScore(allSubmissions), 
+                    scoreFromAvgDiv2Performance: getScoreFromAvgDiv2Performance(avgDiv2PerformanceScore),
+                    scoreFromPracticeQuality: getScoreFromPracticeQuality(practiceQualityRaw),
+                    scoreFromActivity, 
+                    scoreFromHeadroom,
+                    userInfo, allRatingChanges, allSubmissions
+                };
+                
+                const readinessProbability = calculateReadinessProbability(stats, stats.isTrusted);
+                return { ...stats, readinessProbability };
+            }
+
+            function getConfidenceCategory(probability) {
+                if (probability >= 0.85) return 'very-high';
+                if (probability >= 0.75) return 'high';
+                if (probability >= 0.60) return 'medium';
+                return 'low';
+            }
+
+            function updateTableView() {
+                let filteredData = cachedUserData.filter(user => {
+                    if (user.error) return true;
+                    if (activeFilter === 'all') return true;
+                    const category = getConfidenceCategory(user.readinessProbability);
+                    return category === activeFilter;
+                });
+                const { key, direction } = sortState;
+                const sortedData = [...filteredData].sort((a, b) => {
+                    if (a.error) return 1;
+                    if (b.error) return -1;
+                    const valA = a[key];
+                    const valB = b[key];
+                    if (typeof valA === 'string') {
+                        return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                    }
+                    return direction === 'asc' ? valA - valB : valB - valA;
+                });
+                resultsTableBody.innerHTML = '';
+                sortedData.forEach(userData => {
+                    const row = resultsTableBody.insertRow();
+                    row.id = `row-${userData.handle.toLowerCase()}`;
+                    updateTableRow(row, userData);
+                });
+                updateSortIndicators();
+            }
+
+            function updateSortIndicators() {
+                resultsTableHeader.querySelectorAll('th').forEach(th => {
+                    th.classList.remove('sort-asc', 'sort-desc');
+                    if (th.dataset.sortKey === sortState.key) {
+                        th.classList.add(`sort-${sortState.direction}`);
+                    }
+                });
+            }
+
+            function updateTableRow(row, userData) {
+                if (userData.error) {
+                    row.innerHTML = `
+                        <td class="px-4 py-3 font-semibold">${userData.handle}</td>
+                        <td colspan="3" class="px-4 py-3 text-red-600">${userData.error}</td>
+                        <td class="px-4 py-3 text-center">
+                            <button class="retry-btn bg-blue-100 text-blue-700 text-xs font-bold py-1 px-3 rounded-full hover:bg-blue-200" data-handle="${userData.handle}">
+                                Retry
+                            </button>
+                            <button class="delete-failed-btn bg-red-100 text-red-700 text-xs font-bold py-1 px-3 rounded-full hover:bg-red-200 ml-2" data-handle="${userData.handle}">
+                                Delete
+                            </button>
+                        </td>`;
+                    return;
+                }
+
+                const probability = userData.readinessProbability * 100;
+                let probClass = '', confidence = 'Low';
+                const category = getConfidenceCategory(userData.readinessProbability);
+                if (category === 'very-high') { probClass = 'bg-green-100 text-green-800'; confidence = 'Very High'; }
+                else if (category === 'high') { probClass = 'bg-emerald-100 text-emerald-800'; confidence = 'High'; }
+                else if (category === 'medium') { probClass = 'bg-yellow-100 text-yellow-800'; confidence = 'Medium'; }
+                else { probClass = 'bg-red-100 text-red-800'; }
+                
+                const handleClass = userData.isTrusted ? 'font-semibold' : 'font-semibold text-red-600';
+
+                row.innerHTML = `
+                    <td class="px-4 py-3 whitespace-nowrap ${handleClass}">${userData.handle}</td>
+                    <td class="px-4 py-3 whitespace-nowrap font-bold text-center">${userData.scoreFromAvgDiv2Performance.toFixed(2)}</td>
+                    <td class="px-4 py-3 whitespace-nowrap">Top ${userData.avgPlacement.toFixed(1)}%</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-center rounded-md ${probClass}">
+                        <div class="font-bold text-lg">${probability.toFixed(2)}%</div>
+                        <div class="text-xs font-semibold">${confidence}</div>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap text-center">
+                        <button class="details-btn bg-indigo-100 text-indigo-700 text-xs font-bold py-1 px-3 rounded-full hover:bg-indigo-200" data-handle="${userData.handle}">
+                            Details
+                        </button>
+                         <button class="remove-result-btn text-red-500 hover:text-red-700 font-bold px-2 ml-2" data-handle="${userData.handle}" title="Remove User">×</button>
+                    </td>
+                `;
+            }
+
+            function getFormattedDateTimeString() {
+                const now = new Date();
+                const pad = (num) => num.toString().padStart(2, '0');
+                const year = now.getFullYear();
+                const month = pad(now.getMonth() + 1);
+                const day = pad(now.getDate());
+                const hours = pad(now.getHours());
+                const minutes = pad(now.getMinutes());
+                return `${year}${month}${day}_${hours}${minutes}`;
+            }
+
+            function downloadFile(content, fileName, mimeType) {
+                const blob = new Blob([content], { type: mimeType });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = fileName;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            function downloadUserList() {
+                if (usersToAnalyze.length === 0) { displayError('User list is empty.'); return; }
+                const userRows = usersToAnalyze.map(user => {
+                    const placementsStr = `"${user.placements.join(';')}"`;
+                    return [user.handle, user.lunaNovaScore, user.lunaHardScore, placementsStr, user.isTrusted].join(',');
+                });
+                const userCsvString = "handle,luna_nova_score,luna_hard_score,placements,is_trusted\n" + userRows.join('\n');
+                const fileName = `user_list_${getFormattedDateTimeString()}.csv`;
+                downloadFile(userCsvString, fileName, 'text/csv;charset=utf-8;');
+            }
+            
+            function downloadResults() {
+                if (cachedUserData.filter(d => !d.error).length === 0) {
+                    displayError('No processed results to download.');
+                    return;
+                }
+                
+                const tableRows = resultsTableBody.querySelectorAll('tr');
+                let resultCsvString;
+                let fileName;
+
+                if (activeFilter !== 'all') {
+                    const headers = ["Handle"];
+                    const resultRows = [headers.join(',')];
+                    tableRows.forEach(row => {
+                        const handle = row.querySelector('td:first-child')?.textContent.split(' ')[0];
+                        if (handle) {
+                            const data = cachedUserData.find(d => d.handle === handle && !d.error);
+                            if (data) resultRows.push(handle);
+                        }
+                    });
+                    resultCsvString = resultRows.join('\n');
+                    fileName = `filtered_handles_${activeFilter}_${getFormattedDateTimeString()}.csv`;
+                } else {
+                    const headers = ["Handle", "Is Trusted", "Readiness Probability (%)", "Confidence", "Norm. Div. 2 Perf Score", "Headroom (RMS)", "Total Solved", "Luna Nova Score", "Luna Hard Score", "Avg Placement (%)", "Total Contests", "Current Rating", "Max Rating", "Avg Rating", "Unique Active Days", "Avg Gap (Days)", "Gap Std Dev"];
+                    const resultRows = [headers.join(',')];
+                    tableRows.forEach(row => {
+                        const handle = row.querySelector('td:first-child')?.textContent.split(' ')[0];
+                        if (!handle) return;
+                        const data = cachedUserData.find(d => d.handle === handle && !d.error);
+                        if (!data) return;
+                        const probability = data.readinessProbability * 100;
+                        const confidence = getConfidenceCategory(data.readinessProbability).replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+                        const rowData = [
+                            data.handle, 
+                            data.isTrusted,
+                            probability.toFixed(2),
+                            confidence,
+                            data.scoreFromAvgDiv2Performance.toFixed(2),
+                            data.rmsHeadroom.toFixed(0),
+                            data.totalSolvedCount,
+                            data.lunaNovaScore,
+                            data.lunaHardScore,
+                            data.avgPlacement.toFixed(1),
+                            data.totalContestCount,
+                            data.currentUserRating,
+                            data.maxRating, 
+                            data.averageContestRating.toFixed(0),
+                            data.uniqueActiveDays,
+                            data.avgGap.toFixed(1),
+                            data.stdDevGap.toFixed(1)
+                        ];
+                        resultRows.push(rowData.join(','));
+                    });
+                     resultCsvString = resultRows.join('\n');
+                     fileName = `readiness_results_${getFormattedDateTimeString()}.csv`;
+                }
+                
+                downloadFile(resultCsvString, fileName, 'text/csv;charset=utf-8;');
+            }
+
+            // --- Modal Functions ---
+            function getRatingColor(rating) {
+                if (rating >= 3000) return 'rating-lgm';
+                if (rating >= 2600) return 'rating-gm';
+                if (rating >= 2400) return 'rating-im';
+                if (rating >= 2200) return 'rating-master';
+                if (rating >= 1900) return 'rating-cm';
+                if (rating >= 1600) return 'rating-expert';
+                if (rating >= 1400) return 'rating-specialist';
+                if (rating >= 1200) return 'rating-pupil';
+                return 'rating-newbie';
+            }
+            
+            function formatHandle(handle, rating) {
+                if (rating >= 3000) {
+                    return `<span class="legendary-first-letter">${handle.charAt(0)}</span>${handle.slice(1)}`;
+                }
+                return handle;
+            }
+
+            function formatAccountAge(registrationTimeSeconds) {
+                const registrationDate = new Date(registrationTimeSeconds * 1000);
+                const now = new Date();
+                const diffMillis = now.getTime() - registrationDate.getTime();
+                const diffDays = diffMillis / (1000 * 3600 * 24);
+                if (diffDays < 1) return `Less than a day`;
+                if (diffDays < 30.44) return `${Math.floor(diffDays)} day(s)`;
+                if (diffDays < 365.25) return `${Math.floor(diffDays / 30.44)} month(s)`;
+                return `${(diffDays / 365.25).toFixed(1)} year(s)`;
+            }
+
+            function createActivityHeatmap(submissions) {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const oneYearAgo = new Date(today);
+                oneYearAgo.setFullYear(today.getFullYear() - 1);
+
+                const activity = new Map();
+                submissions.forEach(sub => {
+                    if (sub.verdict === 'OK') {
+                        const date = new Date(sub.creationTimeSeconds * 1000);
+                        date.setHours(0, 0, 0, 0);
+                        const dateStr = date.toISOString().split('T')[0];
+                        activity.set(dateStr, (activity.get(dateStr) || 0) + 1);
+                    }
+                });
+
+                const daySize = 12;
+                const weekWidth = daySize + 2;
+                const monthLabelHeight = 20;
+                const svgWidth = weekWidth * 53;
+                const svgHeight = (daySize + 2) * 7 + monthLabelHeight;
+                
+                let svg = `<svg width="100%" viewBox="0 0 ${svgWidth} ${svgHeight}" class="mx-auto">`;
+                svg += `<g transform="translate(0, ${monthLabelHeight})">`;
+
+                const colors = ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'];
+                let maxActivity = 0;
+                activity.forEach(count => { maxActivity = Math.max(maxActivity, count) });
+
+                const monthLabels = [];
+
+                for (let i = 0; i < 365; i++) {
+                    const date = new Date(oneYearAgo);
+                    date.setDate(oneYearAgo.getDate() + i);
+                    if (date > today) continue;
+
+                    const dayOfWeek = date.getDay();
+                    const weekOfYear = Math.floor((date - oneYearAgo) / (1000 * 60 * 60 * 24 * 7));
+                    
+                    const x = weekOfYear * weekWidth;
+                    const y = dayOfWeek * (daySize + 2);
+
+                    const dateStr = date.toISOString().split('T')[0];
+                    const count = activity.get(dateStr) || 0;
+                    
+                    let colorIndex = 0;
+                    if (count > 0) {
+                        colorIndex = Math.min(colors.length - 1, Math.ceil(count / maxActivity * (colors.length - 1)));
+                    }
+
+                    svg += `<rect class="heatmap-day" width="${daySize}" height="${daySize}" x="${x}" y="${y}" fill="${colors[colorIndex]}" rx="2" ry="2" data-date="${dateStr}" data-count="${count}">
+                                <title>${count} submissions on ${date.toDateString()}</title>
+                            </rect>`;
+                    
+                    if (date.getDate() === 1) {
+                        monthLabels.push({ x, month: date.toLocaleString('default', { month: 'short' }) });
+                    }
+                }
+                svg += `</g>`;
+                
+                svg += `<g class="text-xs text-gray-500">`;
+                monthLabels.forEach(label => {
+                     svg += `<text x="${label.x}" y="${monthLabelHeight - 5}">${label.month}</text>`;
+                });
+                svg += `</g>`;
+
+                svg += `</svg>`;
+                return svg;
+            }
+
+            // MODIFIED: Updated stats card layout and content
+            function showUserDetailsModal(handle) {
+                const userData = cachedUserData.find(d => d.handle.toLowerCase() === handle.toLowerCase() && !d.error);
+                if (!userData) return;
+                const { userInfo } = userData;
+                
+                const handleHTML = formatHandle(userInfo.handle, userInfo.rating);
+                const currentRatingColor = getRatingColor(userData.currentUserRating);
+                const maxRatingColor = getRatingColor(userData.maxRating);
+                
+                modalContentContainer.innerHTML = `
+                    <div class="mb-6">
+                        <h2 class="text-3xl font-bold ${getRatingColor(userInfo.rating)}">${handleHTML}</h2>
+                        <a href="https://codeforces.com/profile/${userInfo.handle}" target="_blank" class="text-sm text-blue-500 hover:underline">
+                            View on Codeforces →
+                        </a>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                         <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-bold text-gray-800 mb-2">Manual Inputs</h4>
+                            <p><strong>Luna (N/H):</strong> <span class="font-mono">${userData.lunaNovaScore} / ${userData.lunaHardScore}</span></p>
+                            <p><strong>Placements:</strong> <span class="font-mono">${userData.placements.join(', ')}%</span></p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-bold text-gray-800 mb-2">Contest Stats</h4>
+                            <p><strong>Current Rating:</strong> <span class="font-mono font-bold ${currentRatingColor}">${userData.currentUserRating}</span></p>
+                            <p><strong>Max Rating:</strong> <span class="font-mono font-bold ${maxRatingColor}">${userData.maxRating}</span></p>
+                            <p><strong>Total Contests:</strong> <span class="font-mono">${userData.totalContestCount}</span></p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg space-y-1 text-sm">
+                            <h4 class="font-bold text-gray-800 mb-2">Codeforces Stats</h4>
+                            <p><strong>Total Solved:</strong> <span class="font-mono float-right">${userData.totalSolvedCount}</span></p>
+                            <p><strong>Gym / Other:</strong> <span class="font-mono float-right">${userData.gymSolvesCount}</span></p>
+                            <p><strong>Skipped:</strong> <span class="font-mono float-right">${userData.skippedSubmissionsCount}</span></p>
+                            <p><strong>Last Activity:</strong> <span class="font-mono float-right">${userData.lastActivity}</span></p>
+                            <p><strong>Last Accepted:</strong> <span class="font-mono float-right">${userData.lastAcceptedActivity}</span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-8">
+                        <h3 class="text-xl font-bold mb-2">Submission Activity (Last Year)</h3>
+                        <div id="activityHeatmapContainer" class="p-2 bg-white border border-gray-200 rounded-lg overflow-x-auto"></div>
+                    </div>
+
+                    <div class="mb-8">
+                        <h3 class="text-xl font-bold mb-2">Contest Performance</h3>
+                        <div class="relative h-64 md:h-80">
+                           <canvas id="contestChartCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div>
+                            <h3 class="text-xl font-bold mb-2">Contest Solved Distribution</h3>
+                            <div class="relative h-64">
+                                <canvas id="problemChartCanvas"></canvas>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 id="upsolvedChartTitle" class="text-xl font-bold mb-2">Upsolved Distribution (Total: 0)</h3>
+                             <div class="relative h-64">
+                                <canvas id="upsolvedChartCanvas"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-xl font-bold mb-4">Calculation Breakdown</h3>
+                            <div id="calculationDetails" class="space-y-3 text-sm bg-gray-50 p-4 rounded-lg"></div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-4">Practice & Inactivity Factors</h3>
+                            <div id="penaltiesDetails" class="space-y-3 text-sm bg-gray-50 p-4 rounded-lg"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-8">
+                        <h3 class="text-xl font-bold mb-4">Alternative Probability Models</h3>
+                        <div id="alternativesContainer" class="overflow-x-auto"></div>
+                    </div>
+                `;
+
+                document.getElementById('activityHeatmapContainer').innerHTML = createActivityHeatmap(userData.allSubmissions);
+                createContestPerformanceChart(userData.contestPerformance);
+                createProblemRatingDistributionChart(userData.problemRatingDistribution);
+                createUpsolvedProblemRatingDistributionChart(userData.upsolvedProblemRatingDistribution);
+                const z = populateCalculationDetails(userData);
+                populatePenaltiesDetails(userData);
+                populateAlternativesTable('alternativesContainer', z);
+
+                detailsModal.classList.remove('hidden');
+                setTimeout(() => {
+                    detailsModal.querySelector('.modal-overlay')?.classList.remove('opacity-0');
+                    detailsModal.querySelector('.modal-content')?.classList.remove('scale-95');
+                }, 10);
+            }
+
+            function hideModal() {
+                detailsModal.querySelector('.modal-overlay')?.classList.add('opacity-0');
+                detailsModal.querySelector('.modal-content')?.classList.add('scale-95');
+                setTimeout(() => {
+                    detailsModal.classList.add('hidden');
+                    modalContentContainer.innerHTML = ''; 
+                    if (contestChart) contestChart.destroy();
+                    if (problemChart) problemChart.destroy();
+                    if (upsolvedChart) upsolvedChart.destroy();
+                }, 300);
+            }
+
+            function createContestPerformanceChart(contestData) {
+                const ctx = document.getElementById('contestChartCanvas').getContext('2d');
+                const labels = contestData.map((d, i) => `Contest ${i + 1}`);
+                const data = contestData.map(d => d.solves);
+                if (contestChart) contestChart.destroy();
+                contestChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '# Solved In Contest',
+                            data: data,
+                            borderColor: 'rgb(54, 162, 235)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                            tension: 0.1,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                        plugins: { tooltip: {
+                            callbacks: {
+                                title: (tooltipItems) => contestData[tooltipItems[0].dataIndex].name.substring(0, 40) + '...'
+                            }
+                        }}
+                    }
+                });
+            }
+
+            function createProblemRatingDistributionChart(ratingData) {
+                const ctx = document.getElementById('problemChartCanvas').getContext('2d');
+                const sortedRatings = Object.keys(ratingData).sort((a, b) => a - b);
+                const labels = sortedRatings.map(r => `${r}-${parseInt(r)+99}`);
+                const data = sortedRatings.map(r => ratingData[r]);
+                
+                if (problemChart) problemChart.destroy();
+                problemChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '# of Problems Solved In Contest',
+                            data: data,
+                            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: { y: { beginAtZero: true } },
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+
+            function createUpsolvedProblemRatingDistributionChart(upsolvedData) {
+                const { distribution, total } = upsolvedData;
+                document.getElementById('upsolvedChartTitle').textContent = `Upsolved Distribution (Total: ${total})`;
+                
+                const ctx = document.getElementById('upsolvedChartCanvas').getContext('2d');
+                const sortedRatings = Object.keys(distribution).sort((a, b) => a - b);
+                const labels = sortedRatings.map(r => `${r}-${parseInt(r)+99}`);
+                const data = sortedRatings.map(r => distribution[r]);
+                
+                if (upsolvedChart) upsolvedChart.destroy();
+                upsolvedChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '# of Problems Upsolved',
+                            data: data,
+                            backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                            borderColor: 'rgba(153, 102, 255, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: { y: { beginAtZero: true } },
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+            }
+
+            function populateCalculationDetails(data) {
+                const container = document.getElementById('calculationDetails');
+                const p = (num) => num.toFixed(2);
+                const p3 = (num) => num.toFixed(3);
+
+                const getContributions = (stats, isTrustedOverride) => {
+                    const localStats = { ...stats, isTrusted: isTrustedOverride };
+                    const bias = getDynamicBias(localStats);
+                    const penaltyFactor = isTrustedOverride ? 1.0 : 0.2;
+
+                    const penalizedInactivity = isTrustedOverride ? localStats.inactivityScore : Math.min(100, localStats.inactivityScore * (1 / penaltyFactor));
+
+                    const contributions = {
+                        maxRating: (localStats.scoreMaxRating * penaltyFactor) * weights.maxRating,
+                        avgRating: (localStats.scoreAvgRating * penaltyFactor) * weights.avgRating,
+                        contestCount: (localStats.scoreContestCount * penaltyFactor) * weights.contestCount,
+                        div2Perf: (localStats.scoreFromAvgDiv2Performance * penaltyFactor) * weights.avgDiv2PerfScore,
+                        practiceQuality: (localStats.scoreFromPracticeQuality * penaltyFactor) * weights.practiceQuality,
+                        solvedProblems: (localStats.scoreWeightedSolvedProblems * penaltyFactor) * weights.weightedSolves,
+                        placements: (localStats.scoreFromPlacements * penaltyFactor) * weights.placementScore,
+                        luna: (localStats.scoreFromCombinedLuna * penaltyFactor) * weights.lunaScore,
+                        inactivity: penalizedInactivity * weights.inactivityPattern,
+                        bias: bias
+                    };
+                    
+                    const totalZ = Object.values(contributions).reduce((sum, val) => sum + val, 0);
+                    return { contributions, totalZ, finalProb: sigmoid(totalZ) };
+                };
+
+                let breakdownHtml = '';
+                const finalCalcs = getContributions(data, data.isTrusted);
+                
+                if (!data.isTrusted) {
+                    const trustedCalcs = getContributions(data, true);
+                    breakdownHtml += `
+                        <div class="grid grid-cols-3 gap-x-2 text-xs font-mono mb-2 text-gray-500 border-b border-gray-200 pb-1">
+                            <span class="font-semibold">Factor</span>
+                            <span class="font-semibold text-right">Trusted</span>
+                            <span class="font-semibold text-right text-red-500">Penalized</span>
+                        </div>
+                        <div class="space-y-1">
+                    `;
+                    const createPenaltyRow = (label, trustedVal, penalizedVal) => {
+                        const tClass = trustedVal >= 0 ? 'text-green-600' : 'text-red-600';
+                        const pClass = penalizedVal >= 0 ? 'text-green-700' : 'text-red-700';
+                        return `<div class="grid grid-cols-3 gap-x-2 items-center">
+                                <strong class="text-sm font-normal">${label}</strong>
+                                <span class="font-mono text-sm text-right ${tClass}">${trustedVal > 0 ? '+' : ''}${p3(trustedVal)}</span>
+                                <span class="font-mono text-sm font-bold text-right ${pClass}">${penalizedVal > 0 ? '+' : ''}${p3(penalizedVal)}</span>
+                            </div>`;
+                    };
+                    Object.keys(trustedCalcs.contributions).forEach(key => {
+                        const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                        breakdownHtml += createPenaltyRow(label, trustedCalcs.contributions[key], finalCalcs.contributions[key]);
+                    });
+                    breakdownHtml += `</div><hr class="my-2"/>`;
+                    
+                    const reduction = (trustedCalcs.finalProb - finalCalcs.finalProb) * 100;
+                    breakdownHtml += `<div class="text-center mt-2 p-2 bg-red-100 rounded-md">
+                            <p class="font-bold text-red-700">Score Reduction: -${reduction.toFixed(2)}%</p>
+                            <p class="text-xs text-red-600">(${p(trustedCalcs.finalProb*100)}% vs ${p(finalCalcs.finalProb*100)}%)</p>
+                        </div>`;
+
+                } else {
+                     breakdownHtml += `
+                        <div class="grid grid-cols-3 gap-x-4 text-xs font-mono mb-2 text-gray-500 border-b border-gray-200 pb-1">
+                            <span class="font-semibold">Factor</span>
+                            <span class="font-semibold text-right">Norm. Score</span>
+                            <span class="font-semibold text-right">Contribution</span>
+                        </div>
+                        <div class="space-y-1">
+                    `;
+                    const createRow = (label, score, contribution, isNew = false) => {
+                        const contributionClass = contribution >= 0 ? 'text-green-600' : 'text-red-600';
+                        const labelClass = isNew ? 'text-blue-600' : '';
+                        return `<div class="grid grid-cols-3 gap-x-4 items-center">
+                                <strong class="text-sm font-normal ${labelClass}">${label}</strong>
+                                <span class="font-mono text-sm text-right">${p(score)}</span>
+                                <span class="font-mono text-sm font-bold text-right ${contributionClass}">${contribution > 0 ? '+' : ''}${p3(contribution)}</span>
+                            </div>`;
+                    };
+                    breakdownHtml += createRow('Max Rating', data.scoreMaxRating, finalCalcs.contributions.maxRating);
+                    breakdownHtml += createRow('Avg Rating', data.scoreAvgRating, finalCalcs.contributions.avgRating);
+                    breakdownHtml += createRow('Contest Count', data.scoreContestCount, finalCalcs.contributions.contestCount);
+                    breakdownHtml += createRow('Div. 2 Perf.', data.scoreFromAvgDiv2Performance, finalCalcs.contributions.div2Perf);
+                    breakdownHtml += createRow('Practice Quality', data.scoreFromPracticeQuality, finalCalcs.contributions.practiceQuality, true);
+                    breakdownHtml += createRow('Solved Problems', data.scoreWeightedSolvedProblems, finalCalcs.contributions.solvedProblems);
+                    breakdownHtml += createRow('Placements (RMS)', data.scoreFromPlacements, finalCalcs.contributions.placements);
+                    breakdownHtml += createRow('Luna (Combined)', data.scoreFromCombinedLuna, finalCalcs.contributions.luna);
+                    breakdownHtml += `</div><hr class="my-2 border-dashed"/>`;
+                    breakdownHtml += `<div class="space-y-1">`;
+                    breakdownHtml += createRow('Inactivity Penalty', data.inactivityScore, finalCalcs.contributions.inactivity);
+                    breakdownHtml += createRow('Dynamic Bias', 1, finalCalcs.contributions.bias, true);
+                    breakdownHtml += `</div><hr class="my-2"/>`;
+                    breakdownHtml += `<div class="grid grid-cols-3 gap-x-4 items-center mt-2">
+                                <strong class="text-sm col-span-2">Pre-Function Sum (z)</strong>
+                                <span class="font-mono font-bold text-right col-span-1 text-base">${p3(finalCalcs.totalZ)}</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-x-4 items-center mt-2 bg-gray-100 p-2 rounded-md">
+                                <strong class="text-base col-span-2">Final Probability (Sigmoid)</strong>
+                                <span class="font-mono font-bold text-right col-span-1 text-xl">${p(finalCalcs.finalProb * 100)}%</span>
+                        </div>`;
+                }
+                
+                container.innerHTML = breakdownHtml;
+                return finalCalcs.totalZ;
+            }
+            
+            function populatePenaltiesDetails(data) {
+                const container = document.getElementById('penaltiesDetails');
+                
+                let penaltyHtml = `
+                    <p><strong>Headroom Score (RMS):</strong> <span class="font-mono font-bold float-right text-blue-600">+${data.rmsHeadroom.toFixed(0)}</span></p>
+                    <p class="text-sm text-gray-500 mt-1">Component of Practice Quality. Fair score for solving hard problems.</p>
+                    <hr class="my-2 border-gray-200"/>
+                    <p><strong>Raw Activity Score:</strong> <span class="font-mono font-bold float-right">${data.rawActivityScore.toFixed(2)}</span></p>
+                    <p class="text-sm text-gray-500 mt-1">Component of Practice Quality. Reflects recency-weighted daily submission volume.</p>
+                    <hr class="my-2 border-gray-200"/>
+                    <p><strong>Avg. Gap Between Active Days:</strong> <span class="font-mono font-bold float-right">${data.avgGap.toFixed(1)} days</span></p>
+                    <p><strong>Consistency (Gap Std. Dev):</strong> <span class="font-mono font-bold float-right">${data.stdDevGap.toFixed(1)} days</span></p>
+                    <p class="text-sm text-gray-500 mt-1">Lower values indicate better consistency.</p>
+                    <hr class="my-2 border-gray-200"/>
+                    <p><strong>Trusted User Status:</strong> <span class="font-mono font-bold float-right ${data.isTrusted ? 'text-green-600' : 'text-red-600'}">${data.isTrusted ? 'Trusted' : 'Not Trusted'}</span></p>
+                    <p class="text-sm text-gray-500 mt-1">A significant penalty is applied if a user is not marked as trusted.</p>
+                `;
+                 container.innerHTML = penaltyHtml;
+            }
+
+            function populateAlternativesTable(containerId, z) {
+                const container = document.getElementById(containerId);
+                const p = (num) => (num * 100).toFixed(2) + '%';
+                
+                const alternatives = [
+                    {
+                        name: 'Sigmoid (Current)',
+                        value: sigmoid(z),
+                        description: 'Standard S-curve. Good for probability, but can be sensitive to outliers, causing large swings.'
+                    },
+                    {
+                        name: 'Scaled Tanh',
+                        value: (Math.tanh(z / 2) + 1) / 2,
+                        description: 'Similar to Sigmoid but maps to [-1, 1] (rescaled here to [0, 1]). Steeper curve, meaning it reaches min/max values faster.'
+                    },
+                    {
+                        name: 'Scaled Linear',
+                        value: Math.max(0, Math.min(1, (z + 6) / 12)),
+                        description: 'A simple, interpretable linear mapping. Not an S-curve, so changes are constant. Less sensitive to extreme values but less nuanced.'
+                    },
+                    {
+                        name: 'ReLU / Leaky ReLU',
+                        value: null,
+                        description: 'Not suitable for probability as their output is unbounded (can go > 1). Primarily used in hidden layers of neural networks, not for final output.'
+                    }
+                ];
+
+                let tableHtml = `
+                    <table class="w-full text-sm text-left text-gray-600">
+                        <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
+                            <tr>
+                                <th class="px-4 py-3">Model</th>
+                                <th class="px-4 py-3 text-center">Result</th>
+                                <th class="px-4 py-3">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                alternatives.forEach(alt => {
+                    tableHtml += `
+                        <tr class="bg-white border-b">
+                            <td class="px-4 py-3 font-semibold">${alt.name}</td>
+                            <td class="px-4 py-3 text-center font-bold">${alt.value !== null ? p(alt.value) : 'N/A'}</td>
+                            <td class="px-4 py-3">${alt.description}</td>
+                        </tr>
+                    `;
+                });
+
+                tableHtml += '</tbody></table>';
+                container.innerHTML = tableHtml;
+            }
+
+
+            function displayError(message) { errorMessageDiv.textContent = message; errorMessageDiv.classList.remove('hidden'); }
+            function hideError() { errorMessageDiv.classList.add('hidden'); }
+            function showLoading() { loadingIndicator.classList.remove('hidden'); document.querySelectorAll('button, input, select').forEach(el => { if(el.id !== 'cancelProcessingBtn') el.disabled = true; }); }
+            function hideLoading() { 
+                loadingIndicator.classList.add('hidden'); 
+                document.querySelectorAll('button, input, select').forEach(el => el.disabled = false); 
+                if (cachedUserData.filter(d => !d.error).length === 0) { downloadResultsBtn.disabled = true; } else { downloadResultsBtn.disabled = false; } 
+            }
+
+            // --- Event Listeners ---
+            addManualUserBtn.addEventListener('click', addManualUserToList);
+            loadCsvBtn.addEventListener('click', loadCSVFile);
+            clearListBtn.addEventListener('click', clearUserList);
+            processAllBtn.addEventListener('click', processAllUsers);
+            cancelProcessingBtn.addEventListener('click', () => {
+                isProcessingCancelled = true;
+                apiQueue.clear();
+            });
+            downloadResultsBtn.addEventListener('click', downloadResults);
+            downloadUserListBtn.addEventListener('click', downloadUserList);
+            readinessFilter.addEventListener('change', (e) => {
+                activeFilter = e.target.value;
+                updateTableView();
+            });
+            handleInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') addManualUserToList() });
+            lunaNovaScoreInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') addManualUserToList() });
+            lunaHardScoreInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') addManualUserToList() });
+            placementsInput.addEventListener('keypress', (e) => { if(e.key === 'Enter') addManualUserToList() });
+            closeModalBtn.addEventListener('click', hideModal);
+            detailsModal.addEventListener('click', (e) => { if (e.target === detailsModal) hideModal(); });
+            
+            userList.addEventListener('click', (e) => {
+                const target = e.target.closest('button');
+                if (!target || !target.dataset.index) return;
+
+                const index = parseInt(target.dataset.index, 10);
+
+                if (target.classList.contains('remove-list-btn')) {
+                    usersToAnalyze.splice(index, 1);
+                    updateUserListDisplay();
+                } else if (target.classList.contains('edit-list-btn')) {
+                    showEditUserForm(index);
+                } else if (target.classList.contains('save-edit-btn')) {
+                    const lunaNovaScore = parseFloat(document.getElementById(`edit-luna-nova-${index}`).value) || 0;
+                    const lunaHardScore = parseFloat(document.getElementById(`edit-luna-hard-${index}`).value) || 0;
+                    const placementsStr = document.getElementById(`edit-placements-${index}`).value.trim();
+                    const placements = placementsStr.split(',').map(p => parseFloat(p.trim())).filter(p => !isNaN(p) && p >= 0 && p <= 100);
+
+                    if (placements.length === 0) {
+                        alert('Invalid placements. Please enter comma-separated numbers between 0 and 100.');
+                        return;
+                    }
+                    
+                    usersToAnalyze[index].lunaNovaScore = lunaNovaScore;
+                    usersToAnalyze[index].lunaHardScore = lunaHardScore;
+                    usersToAnalyze[index].placements = placements;
+
+                    const handleLower = usersToAnalyze[index].handle.toLowerCase();
+                    cachedUserData = cachedUserData.filter(u => u.handle.toLowerCase() !== handleLower);
+
+                    updateUserListDisplay();
+                } else if (target.classList.contains('cancel-edit-btn')) {
+                    updateUserListDisplay();
+                }
+            });
+            
+            userList.addEventListener('change', (e) => {
+                const target = e.target;
+                if (target.classList.contains('user-trust-checkbox') && target.dataset.index) {
+                    const index = parseInt(target.dataset.index, 10);
+                    usersToAnalyze[index].isTrusted = target.checked;
+                    updateUserListDisplay();
+                }
+            });
+
+
+            resultsTableBody.addEventListener('click', async (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+
+                const handle = button.dataset.handle;
+                const handleLower = handle.toLowerCase();
+
+                if (button.classList.contains('details-btn')) {
+                    showUserDetailsModal(handle);
+                } else if (button.classList.contains('retry-btn')) {
+                    const user = usersToAnalyze.find(u => u.handle.toLowerCase() === handleLower);
+                    const row = button.closest('tr');
+                    if (user && row) {
+                        await processSingleUser(user, row);
+                        updateTableView();
+                        downloadResultsBtn.disabled = cachedUserData.filter(d => !d.error).length === 0;
+                    }
+                } else if (button.classList.contains('remove-result-btn') || button.classList.contains('delete-failed-btn')) {
+                    button.closest('tr').remove();
+                    cachedUserData = cachedUserData.filter(u => u.handle.toLowerCase() !== handleLower);
+                    usersToAnalyze = usersToAnalyze.filter(u => u.handle.toLowerCase() !== handleLower);
+                    updateUserListDisplay();
+                    downloadResultsBtn.disabled = cachedUserData.filter(d => !d.error).length === 0;
+                }
+            });
+
+            resultsTableHeader.addEventListener('click', (e) => {
+                const header = e.target.closest('th.sortable-header');
+                if (!header) return;
+                const key = header.dataset.sortKey;
+                let direction = 'desc';
+                if (sortState.key === key) {
+                    direction = sortState.direction === 'desc' ? 'asc' : 'desc';
+                }
+                sortState = { key, direction };
+                updateTableView();
+            });
+
+            updateUserListDisplay();
+            updateSortIndicators();
+        });
+    </script>
+</body>
+</html>
+
