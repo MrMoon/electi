@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Operation Electi - Readiness Model v14</title>
+    <title>Operation Electi - Readiness Model</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -172,6 +172,32 @@
                     <button id="cancelProcessingBtn" class="mt-4 bg-red-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-600 transition duration-200">Cancel</button>
                 </div>
 
+                <!-- Returning Users Table -->
+                <div id="returningUsersContainer" class="hidden mb-6">
+                    <div class="bg-white rounded-lg shadow-md">
+                        <div class="p-4 border-b border-gray-200">
+                            <h3 class="text-lg font-bold text-orange-600">🚀 Recently Returned Users</h3>
+                            <p class="text-sm text-gray-500">Users who returned to training after a 14+ day break.</p>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table id="returningUsersTable" class="w-full text-sm text-left text-gray-600">
+                                <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
+                                    <tr>
+                                        <th scope="col" class="px-4 py-3">Handle</th>
+                                        <th scope="col" class="px-4 py-3 text-center">Break Duration</th>
+                                        <th scope="col" class="px-4 py-3">Last Active</th>
+                                        <th scope="col" class="px-4 py-3 text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Returning user rows will be injected here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+
                 <!-- Filters -->
                 <div id="resultsContainer" class="hidden">
                     <div class="bg-white rounded-t-lg p-4 border-b border-gray-200">
@@ -290,6 +316,10 @@
             const closeModalBtn = document.getElementById('closeModalBtn');
             const computeTeamBtn = document.getElementById('computeTeamBtn');
             const teamResultContainer = document.getElementById('teamResultContainer');
+            // References for the returning users table
+            const returningUsersContainer = document.getElementById('returningUsersContainer');
+            const returningUsersTableBody = document.querySelector('#returningUsersTable tbody');
+
 
             // --- State Variables ---
             let usersToAnalyze = [];
@@ -675,6 +705,7 @@
                 updateUserListDisplay();
                 resultsTableBody.innerHTML = '';
                 resultsContainer.classList.add('hidden');
+                updateReturningUsersView();
                 teamResultContainer.classList.add('hidden');
                 hideError();
                 downloadResultsBtn.disabled = true;
@@ -728,6 +759,8 @@
                 if (usersToProcess.length === 0) {
                      hideLoading();
                      displayError("All users in the list are up-to-date.");
+                     updateReturningUsersView();
+                     updateTableView();
                      return;
                 }
 
@@ -749,6 +782,7 @@
                 
                 hideLoading();
                 downloadResultsBtn.disabled = cachedUserData.filter(d => !d.error).length === 0;
+                updateReturningUsersView();
                 updateTableView();
             }
 
@@ -844,7 +878,7 @@
                 });
             }
 
-            // NEW: Centralized stat processing function for both individuals and teams
+            // Centralized stat processing function for both individuals and teams
             function processCombinedStats(data) {
                 const { handle, lunaNovaScore, lunaHardScore, placements, isTrusted, userInfo, allRatingChanges, allSubmissions } = data;
 
@@ -922,11 +956,41 @@
                 const lastAcceptedSubmission = allSubmissions.find(s => s.verdict === 'OK');
                 const lastAcceptedActivity = lastAcceptedSubmission ? new Date(lastAcceptedSubmission.creationTimeSeconds * 1000).toLocaleDateString() : 'N/A';
 
+                // --- FIXED: Logic to detect returning users ---
+                const okSubmissions = allSubmissions.filter(s => s.verdict === 'OK').sort((a, b) => b.creationTimeSeconds - a.creationTimeSeconds);
+                let isReturning = false;
+                let returnGapDays = 0;
+                let daysSinceLastAc = 999;
+
+                if (okSubmissions.length > 0) {
+                    const lastAcTime = okSubmissions[0].creationTimeSeconds;
+                    daysSinceLastAc = (now - lastAcTime) / (60 * 60 * 24);
+
+                    // Iterate through recent submissions to find the first one that breaks a long gap
+                    for (let i = 0; i < okSubmissions.length - 1; i++) {
+                        const currentSubTime = okSubmissions[i].creationTimeSeconds;
+                        const previousSubTime = okSubmissions[i+1].creationTimeSeconds;
+                        const gapInDays = (currentSubTime - previousSubTime) / (60 * 60 * 24);
+
+                        // How long ago was this "return" submission?
+                        const daysSinceThisReturn = (now - currentSubTime) / (60 * 60 * 24);
+
+                        // We found a submission that happened after a 14+ day break.
+                        // And this return happened within the last 30 days.
+                        if (gapInDays >= 14 && daysSinceThisReturn <= 30) {
+                            isReturning = true;
+                            returnGapDays = gapInDays;
+                            // We only care about the most recent return, so we can break.
+                            break; 
+                        }
+                    }
+                }
+
                 const stats = {
                     handle, currentUserRating, maxRating, averageContestRating, totalContestCount, lunaNovaScore, lunaHardScore, placements, avgPlacement,
                     div2ContestCount, avgDiv2PerformanceScore, totalSolvedCount, gymSolvesCount, skippedSubmissionsCount, lastActivity, lastAcceptedActivity, accuracy,
                     rawActivityScore, uniqueActiveDays, inactivityScore, avgGap, stdDevGap, rmsHeadroom, isTrusted, contestPerformance, problemRatingDistribution,
-                    upsolvedProblemRatingDistribution,
+                    upsolvedProblemRatingDistribution, isReturning, returnGapDays, daysSinceLastAc,
                     scoreFromPlacements: getScoreFromPlacements(placements), 
                     scoreFromCombinedLuna: getCombinedLunaScore(lunaNovaScore, lunaHardScore), 
                     scoreMaxRating: getScoreFromMaxRating(maxRating), 
@@ -951,6 +1015,38 @@
                 if (probability >= 0.75) return 'high';
                 if (probability >= 0.60) return 'medium';
                 return 'low';
+            }
+
+            // Function to render the returning users table
+            function updateReturningUsersView() {
+                if (!returningUsersContainer || !returningUsersTableBody) return;
+                returningUsersTableBody.innerHTML = '';
+
+                const returningUsers = cachedUserData
+                    .filter(u => u && !u.error && u.isReturning)
+                    .sort((a, b) => a.daysSinceLastAc - b.daysSinceLastAc); // Show most recent returnees first
+
+                if (returningUsers.length === 0) {
+                    returningUsersContainer.classList.add('hidden');
+                    return;
+                }
+
+                returningUsersContainer.classList.remove('hidden');
+
+                returningUsers.forEach(user => {
+                    const row = returningUsersTableBody.insertRow();
+                    const handleClass = user.isTrusted ? 'font-semibold' : 'font-semibold text-red-600';
+                    row.innerHTML = `
+                        <td class="px-4 py-3 whitespace-nowrap ${handleClass}">${user.handle}</td>
+                        <td class="px-4 py-3 whitespace-nowrap font-bold text-center">${user.returnGapDays.toFixed(0)} days</td>
+                        <td class="px-4 py-3 whitespace-nowrap">${user.lastAcceptedActivity} (${user.daysSinceLastAc.toFixed(0)} days ago)</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-center">
+                            <button class="details-btn bg-indigo-100 text-indigo-700 text-xs font-bold py-1 px-3 rounded-full hover:bg-indigo-200" data-handle="${user.handle}">
+                                Details
+                            </button>
+                        </td>
+                    `;
+                });
             }
 
             function updateTableView() {
@@ -1647,6 +1743,7 @@
                     if (user && row) {
                         await processSingleUser(user, row);
                         updateTableView();
+                        updateReturningUsersView();
                         downloadResultsBtn.disabled = cachedUserData.filter(d => !d.error).length === 0;
                     }
                 } else if (button.classList.contains('remove-result-btn') || button.classList.contains('delete-failed-btn')) {
@@ -1654,7 +1751,19 @@
                     cachedUserData = cachedUserData.filter(u => u.handle.toLowerCase() !== handleLower);
                     usersToAnalyze = usersToAnalyze.filter(u => u.handle.toLowerCase() !== handleLower);
                     updateUserListDisplay();
+                    updateReturningUsersView();
                     downloadResultsBtn.disabled = cachedUserData.filter(d => !d.error).length === 0;
+                }
+            });
+
+            // Event listener for the returning users table
+            returningUsersTableBody.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+
+                const handle = button.dataset.handle;
+                if (button.classList.contains('details-btn')) {
+                    showUserDetailsModal(handle);
                 }
             });
 
