@@ -144,6 +144,21 @@
             color: #4338ca;
             font-weight: 600;
         }
+        .analytics-toggle-btn {
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 1px solid #d1d5db;
+            background-color: white;
+            color: #4b5563;
+            cursor: pointer;
+        }
+        .analytics-toggle-btn.active {
+            background-color: #4338ca;
+            color: white;
+            border-color: #4338ca;
+        }
         .placement-entry {
             display: grid;
             grid-template-columns: 1fr;
@@ -260,6 +275,10 @@
                     <label for="jsonFileInput" class="file-input-label bg-red-600 hover:bg-red-700 text-sm mt-1">Restore</label>
                     <input type="file" id="jsonFileInput" accept=".json">
                 </div>
+                 <div class="text-center">
+                    <p class="font-medium text-gray-700 text-sm">AI Insights</p>
+                    <button id="aiInsightBtn" class="file-input-label bg-fuchsia-600 hover:bg-fuchsia-700 text-sm mt-1 w-full text-center">Generate</button>
+                </div>
             </div>
         </div>
 
@@ -357,7 +376,7 @@
                     <hr class="!my-6"/>
                     <!-- Action Buttons -->
                     <div class="flex gap-4">
-                        <button type="submit" class="w-full bg-green-600 text-white font-bold py-2.5 px-4 rounded-md hover:bg-green-700 transition duration-200">Save User</button>
+                        <button type="submit" id="saveUserBtn" class="w-full bg-green-600 text-white font-bold py-2.5 px-4 rounded-md hover:bg-green-700 transition duration-200">Save User</button>
                         <button type="button" id="clearFormBtn" class="w-full bg-gray-500 text-white font-bold py-2.5 px-4 rounded-md hover:bg-gray-600 transition duration-200">Clear Form</button>
                     </div>
                 </form>
@@ -475,6 +494,19 @@
             <div id="modalContentContainer"></div>
         </div>
     </div>
+    
+    <!-- AI Modal -->
+    <div id="aiModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 relative transform scale-95">
+            <h3 class="text-2xl font-bold mb-4 text-fuchsia-800">AI-Powered Insights</h3>
+            <div id="aiInsightContent" class="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
+                <p class="text-gray-600">Generating insights... Please wait.</p>
+            </div>
+            <div class="flex justify-end gap-4 mt-6">
+                <button id="closeAiModalBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Close</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Toast Notification -->
     <div id="toast-container"></div>
@@ -515,7 +547,6 @@
                 editors: document.getElementById('tabContentEditors'),
                 analyticsdashboard: document.getElementById('tabContentAnalyticsDashboard'),
             };
-            const editorTabButtons = document.querySelectorAll('.editor-tab-btn');
             const editorContainer = document.getElementById('editorContainer');
             const analyticsSubTabs = document.getElementById('analyticsSubTabs');
             
@@ -552,6 +583,10 @@
             const profilePicFileInput = document.getElementById('profilePicFile');
             const profilePicFileLabel = document.getElementById('profilePicFileLabel');
             const profilePicUrlHiddenInput = document.getElementById('profilePicUrlHidden');
+            const aiInsightBtn = document.getElementById('aiInsightBtn');
+            const aiModal = document.getElementById('aiModal');
+            const aiInsightContent = document.getElementById('aiInsightContent');
+            const closeAiModalBtn = document.getElementById('closeAiModalBtn');
 
             // --- CHART HELPERS ---
             function destroyChart(chartId) {
@@ -579,6 +614,20 @@
                 if (!dateString) return 'N/A';
                 const date = new Date(dateString);
                 return date.toLocaleString('default', { month: 'short', year: 'numeric' });
+            }
+            
+            function formatMMYYYY(dateString) {
+                if (!dateString) return 'N/A';
+                try {
+                    const date = new Date(dateString);
+                    // Add a day to the date to handle timezone issues where it might be the last day of the previous month in UTC
+                    date.setDate(date.getDate() + 1);
+                    const year = date.getUTCFullYear();
+                    const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+                    return `${month}-${year}`;
+                } catch (e) {
+                    return 'Invalid Date';
+                }
             }
 
             // --- NOTIFICATION / MODAL ---
@@ -616,6 +665,21 @@
                     confirmationModal.classList.add('hidden'); 
                     confirmCallback = null; 
                 }, 300); 
+            }
+             function showAiModal() {
+                aiModal.classList.remove('hidden');
+                setTimeout(() => {
+                    aiModal.querySelector('.modal-overlay')?.classList.remove('opacity-0');
+                    aiModal.querySelector('.modal-content')?.classList.remove('scale-95');
+                }, 10);
+            }
+
+            function hideAiModal() {
+                aiModal.querySelector('.modal-overlay')?.classList.add('opacity-0');
+                aiModal.querySelector('.modal-content')?.classList.add('scale-95');
+                setTimeout(() => {
+                    aiModal.classList.add('hidden');
+                }, 300);
             }
 
             // --- UI and Helper Functions ---
@@ -760,11 +824,17 @@
 
             function handleDetailedUserFormSubmit(e) {
                 e.preventDefault();
+                const saveButton = document.getElementById('saveUserBtn');
+
+                // --- Start of Async Change ---
                 const formData = new FormData(detailedUserForm);
                 const handle = formData.get('handle').trim();
-                if (!handle) { alert("Handle is required."); return; }
+                if (!handle) { 
+                    showToast("Handle is required.", 'error'); 
+                    return; 
+                }
 
-                const placements = [];
+                const placementsData = [];
                 let placementError = false;
                 document.querySelectorAll('.placement-entry').forEach(entry => {
                     if (placementError) return;
@@ -777,56 +847,72 @@
                     const teamId = entry.querySelector('.team-name-select').value;
 
                     if (!name || !rankStr || !totalStr || !date || !link) {
-                        alert('Competition Name, Date, Link, Rank, and Total fields are required for all placements.');
+                        showToast('Competition Name, Date, Link, Rank, and Total fields are required for all placements.', 'error');
                         placementError = true; return;
                     }
                     if(isTeamPlacement && !teamId) {
-                        alert(`A team must be selected for a team placement.`);
+                        showToast(`A team must be selected for a team placement in "${name}".`, 'error');
                         placementError = true; return;
                     }
 
                     const rank = parseInt(rankStr, 10);
                     const total = parseInt(totalStr, 10);
                     if (rank > total) {
-                         alert(`Placement error for "${name}": Rank (${rank}) cannot be greater than Total (${total}).`);
+                         showToast(`Placement error for "${name}": Rank (${rank}) cannot be greater than Total (${total}).`, 'error');
                          placementError = true; return;
                     }
 
-                    placements.push({ name, rank, total, teamId: isTeamPlacement ? teamId : null });
-                    if (!competitionDatabase[name] || competitionDatabase[name].total !== total || competitionDatabase[name].date !== date || competitionDatabase[name].link !== link) {
-                        competitionDatabase[name] = { total, date, link };
-                    }
+                    placementsData.push({ name, rank, total, teamId: isTeamPlacement ? teamId : null, date, link });
                 });
 
                 if (placementError) return;
                 
-                const universityName = formData.get('university').trim();
-                if (universityName && !universityDatabase.includes(universityName)) {
-                    universityDatabase.push(universityName);
-                    universityDatabase.sort();
-                }
+                saveButton.disabled = true;
+                saveButton.innerHTML = `<div class="flex justify-center items-center gap-2"><div class="spinner w-4 h-4 border-2 rounded-full"></div>Saving...</div>`;
+                
+                setTimeout(() => {
+                    const universityName = formData.get('university').trim();
+                    if (universityName && !universityDatabase.includes(universityName)) {
+                        universityDatabase.push(universityName);
+                        universityDatabase.sort();
+                    }
 
-                const userToSave = {
-                    id: handle.toLowerCase(),
-                    handle: handle,
-                    fullName: formData.get('fullName').trim(),
-                    linkedin: formData.get('linkedin').trim(),
-                    university: universityName,
-                    profilePicUrl: formData.get('profilePicUrl').trim(),
-                    lunaNovaScore: parseFloat(formData.get('lunaNovaScore')) || 0,
-                    lunaHardScore: parseFloat(formData.get('lunaHardScore')) || 0,
-                    acmLevel: parseInt(formData.get('acmLevel'), 10),
-                    joinDate: formData.get('joinDate') || null,
-                    isTrusted: detailedUserForm.querySelector('#isTrustedCheckbox').checked,
-                    placements: placements,
-                    updatedAt: new Date()
-                };
+                    // Process competitions from placements
+                    placementsData.forEach(p => {
+                        if (!competitionDatabase[p.name] || competitionDatabase[p.name].total !== p.total || competitionDatabase[p.name].date !== p.date || competitionDatabase[p.name].link !== p.link) {
+                           competitionDatabase[p.name] = { total: parseInt(p.total, 10), date: p.date, link: p.link };
+                        }
+                    });
 
-                saveUserAndUpdateTeams(userToSave);
-                clearDetailedUserForm();
-                renderAll();
-                showToast(`User ${userToSave.handle} saved successfully.`, 'info');
+                    const userToSave = {
+                        id: handle.toLowerCase(),
+                        handle: handle,
+                        fullName: formData.get('fullName').trim(),
+                        linkedin: formData.get('linkedin').trim(),
+                        university: universityName,
+                        profilePicUrl: formData.get('profilePicUrl').trim(),
+                        lunaNovaScore: parseFloat(formData.get('lunaNovaScore')) || 0,
+                        lunaHardScore: parseFloat(formData.get('lunaHardScore')) || 0,
+                        acmLevel: parseInt(formData.get('acmLevel'), 10),
+                        joinDate: formData.get('joinDate') || null,
+                        isTrusted: detailedUserForm.querySelector('#isTrustedCheckbox').checked,
+                        placements: placementsData.map(({name, rank, total, teamId}) => ({name, rank, total, teamId})), // Save only necessary fields
+                        updatedAt: new Date()
+                    };
+
+                    saveUserAndUpdateTeams(userToSave);
+                    
+                    // Restore button and give feedback
+                    saveButton.disabled = false;
+                    saveButton.innerHTML = 'Save User';
+                    clearDetailedUserForm();
+                    renderAll();
+                    showToast(`User ${userToSave.handle} saved successfully.`, 'info');
+
+                }, 50); // Small delay to allow UI to update
+                // --- End of Async Change ---
             }
+
 
             function saveUserAndUpdateTeams(userToSave) {
                 const existingIndex = userDatabase.findIndex(u => u.id === userToSave.id);
@@ -906,6 +992,7 @@
 
                 if (filteredUsers.length === 0) {
                     detailedUserTableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">No matching users found.</td></tr>`;
+                    updateSelectAllState(detailedUserTable);
                     return;
                 }
 
@@ -930,6 +1017,7 @@
                     detailedUserTableBody.appendChild(row);
                 });
                 updateDbSortIndicators();
+                updateSelectAllState(detailedUserTable);
             }
             
             // --- CSV and Backup/Restore ---
@@ -1162,13 +1250,15 @@
                     { label: 'University', key: 'university', filterable: true },
                     { label: 'Members', key: 'members', filterable: false },
                     { label: 'Active', key: 'isActive', filterable: false },
-                    { label: 'Created At', key: 'createdAt', filterable: true },
+                    { label: 'Created At (MM-YYYY)', key: 'createdAt', filterable: true },
                     { label: 'Actions', key: 'actions', filterable: false }
                 ]);
             }
 
             function renderEditorTable(editorType) {
-                const tableBody = document.querySelector(`#${editorType}EditorTable tbody`);
+                const table = document.querySelector(`#${editorType}EditorTable`);
+                if (!table) return;
+                const tableBody = table.querySelector('tbody');
                 if (!tableBody) return;
                 tableBody.innerHTML = '';
                 
@@ -1189,8 +1279,12 @@
                 const filters = editorFilters[editorType];
                 const filteredData = data.filter(item => {
                     return Object.entries(filters).every(([key, value]) => {
-                        const itemValue = String(item[key] || '').toLowerCase();
-                        return itemValue.includes(value.toLowerCase());
+                        let itemValue = item[key];
+                        // Special handling for date filtering
+                        if (key === 'createdAt' && editorType === 'teams') {
+                            itemValue = formatMMYYYY(itemValue);
+                        }
+                        return String(itemValue || '').toLowerCase().includes(value.toLowerCase());
                     });
                 });
 
@@ -1235,12 +1329,13 @@
                                     <div class="space-y-1">${item.members.map(m => `<div>${createUserLink(m)}</div>`).join('')}</div>
                                 </td>
                                 <td class="p-2" data-key="isActive"><input type="checkbox" ${item.isActive ? 'checked' : ''} disabled></td>
-                                <td class="p-2" data-key="createdAt">${formatMonthYear(item.createdAt)}</td>
+                                <td class="p-2" data-key="createdAt">${formatMMYYYY(item.createdAt)}</td>
                                 <td class="p-2 whitespace-nowrap"><button class="edit-btn text-blue-600 hover:underline">Edit</button> <button class="delete-btn text-red-600 hover:underline ml-2">Delete</button></td>`;
                             break;
                     }
                 });
                 updateEditorSortIndicators(editorType);
+                updateSelectAllState(table);
             }
             
             function addEditorTableRow(editorType) {
@@ -1262,12 +1357,16 @@
                                  <td><input type="text" data-key="name" placeholder="New University"></td>`;
                         break;
                     case 'teams':
+                        const today = new Date();
+                        const year = today.getFullYear();
+                        const month = (today.getMonth() + 1).toString().padStart(2, '0');
+
                         cells = `<td></td>
                                  <td><input type="text" data-key="name" placeholder="New Team"></td>
                                  <td><input type="text" list="university-list" data-key="university" placeholder="University"></td>
-                                 <td><select class="team-members-select" multiple="multiple" style="width: 100%;"></select></td>
-                                 <td><input type="checkbox" class="is-active-checkbox" checked></td>
-                                 <td><input type="date" data-key="createdAt" value="${new Date().toISOString().split('T')[0]}"></td>
+                                 <td><select data-key="members" class="team-members-select" multiple="multiple" style="width: 100%;"></select></td>
+                                 <td><input type="checkbox" data-key="isActive" class="is-active-checkbox" checked></td>
+                                 <td><input type="month" data-key="createdAt" value="${year}-${month}"></td>
                                  `;
                         break;
                 }
@@ -1294,7 +1393,7 @@
                         let value = td.textContent.trim();
                          if (key === 'members') {
                             const members = Array.from(td.querySelectorAll('.user-link')).map(link => link.dataset.handle);
-                            td.innerHTML = `<select class="team-members-select" multiple="multiple" style="width: 100%;"></select>`;
+                            td.innerHTML = `<select data-key="members" class="team-members-select" multiple="multiple" style="width: 100%;"></select>`;
                             const select = td.querySelector('.team-members-select');
                             userDatabase.forEach(user => {
                                 const isSelected = members.includes(user.handle);
@@ -1309,11 +1408,15 @@
                              td.innerHTML = `<input type="url" data-key="link" value="${td.querySelector('a')?.href || ''}">`;
                         } else if (key === 'isActive') {
                             const isChecked = td.querySelector('input').checked;
-                            td.innerHTML = `<input type="checkbox" class="is-active-checkbox" ${isChecked ? 'checked' : ''}>`;
+                            td.innerHTML = `<input type="checkbox" data-key="isActive" class="is-active-checkbox" ${isChecked ? 'checked' : ''}>`;
                         } else if (key === 'createdAt') {
-                            const dateValue = teamDatabase.find(t => t.id === id)?.createdAt;
-                            const formattedDate = dateValue ? new Date(dateValue).toISOString().split('T')[0] : '';
-                            td.innerHTML = `<input type="date" data-key="createdAt" value="${formattedDate}">`;
+                            const team = teamDatabase.find(t => t.id === id);
+                            const dateValue = team ? new Date(team.createdAt) : new Date();
+                             // Add a day to handle timezone issues
+                            dateValue.setDate(dateValue.getDate() + 1);
+                            const year = dateValue.getUTCFullYear();
+                            const month = (dateValue.getUTCMonth() + 1).toString().padStart(2, '0');
+                            td.innerHTML = `<input type="month" data-key="createdAt" value="${year}-${month}">`;
                         } else {
                             td.innerHTML = `<input type="text" data-key="${key}" value="${value}">`;
                         }
@@ -1339,26 +1442,21 @@
                     let newId;
                     let isValid = true;
                     
-                    if (editorType === 'teams') {
-                        data.name = row.querySelector('input[data-key="name"]').value.trim();
-                        data.university = row.querySelector('input[data-key="university"]').value.trim();
-                        data.members = $(row.querySelector('.team-members-select')).val();
-                        data.isActive = row.querySelector('.is-active-checkbox').checked;
-                        data.createdAt = new Date(row.querySelector('input[data-key="createdAt"]').value).toISOString();
-                        if (!data.name) { isValid = false; alert("Team Name cannot be empty."); }
-                        newId = data.name;
-                    } else {
-                         row.querySelectorAll('input[data-key]').forEach(input => {
-                            const key = input.dataset.key;
-                            const value = input.value.trim();
-                            if (key === 'name' && !value) {
-                                isValid = false;
-                                alert("Name cannot be empty.");
-                            }
-                            if (key === 'name') newId = value;
+                    row.querySelectorAll('input[data-key], select[data-key]').forEach(input => {
+                        const key = input.dataset.key;
+                        const value = input.type === 'checkbox' ? input.checked : (input.value || '').trim();
+                         if (key === 'name' && !value) {
+                            isValid = false;
+                            alert("Name cannot be empty.");
+                        }
+                        if (key === 'name') newId = value;
+
+                        if (key === 'members') {
+                            data[key] = $(input).val();
+                        } else {
                             data[key] = value;
-                        });
-                    }
+                        }
+                    });
 
                     if (!isValid) return;
 
@@ -1383,14 +1481,20 @@
                                 universityDatabase.sort();
                             }
                             const teamIndex = teamDatabase.findIndex(t => t.id === id);
+                            const createdAtDate = data.createdAt ? new Date(data.createdAt).toISOString() : new Date().toISOString();
+                            
+                            const teamData = {
+                                name: data.name,
+                                university: data.university,
+                                members: data.members || [],
+                                isActive: data.isActive,
+                                createdAt: createdAtDate
+                            };
+
                             if (teamIndex > -1) {
-                                teamDatabase[teamIndex] = { ...teamDatabase[teamIndex], ...data };
+                                teamDatabase[teamIndex] = { ...teamDatabase[teamIndex], ...teamData };
                             } else {
-                                const teamData = {
-                                    id: crypto.randomUUID(),
-                                    createdAt: data.createdAt || new Date().toISOString(),
-                                    ...data
-                                };
+                                teamData.id = crypto.randomUUID();
                                 teamDatabase.push(teamData);
                             }
                             break;
@@ -1416,11 +1520,11 @@
                     case 'teams':
                         rows.push(['Team Name', 'University', 'Members', 'Is Active', 'Created At']);
                         teamDatabase.forEach(team => {
-                            rows.push([team.name, team.university, team.members.join(','), team.isActive, team.createdAt]);
+                            rows.push([`"${team.name}"`, `"${team.university}"`, `"${team.members.join(',')}"`, team.isActive, new Date(team.createdAt).toISOString()]);
                         });
                         break;
                 }
-                const csvString = rows.map(e => e.join(",")).join("\n");
+                const csvString = rows.map(e => e.map(cell => typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell).join(",")).join("\n");
                 downloadFile(csvString, `${editorType}_export_${getFormattedDateTimeString()}.csv`, 'text/csv;charset=utf-8;')
             }
 
@@ -1457,49 +1561,55 @@
             }
 
             function attachEditorTableEventListeners(editorType) {
-                const typeCaps = capitalize(editorType);
-                const table = document.getElementById(`${editorType}EditorTable`);
-                if(!table) return;
+                const editorContentDiv = document.querySelector(`[data-editor-type="${editorType}"]`);
+                if(!editorContentDiv) return;
 
-                document.getElementById(`add${typeCaps}RowBtn`)?.addEventListener('click', () => addEditorTableRow(editorType));
-                document.getElementById(`deleteSelected${typeCaps}Btn`)?.addEventListener('click', () => handleDeleteSelected(editorType));
-                table.querySelector('tbody')?.addEventListener('click', (e) => handleEditorTableEvents(e, editorType));
+                editorContentDiv.addEventListener('click', e => {
+                    const targetId = e.target.id;
+                    const editorTable = editorContentDiv.querySelector('.editor-table');
+
+                    if (targetId === `add${capitalize(editorType)}RowBtn`) {
+                        addEditorTableRow(editorType);
+                    } else if (targetId === `deleteSelected${capitalize(editorType)}Btn`) {
+                        handleDeleteSelected(editorType);
+                    } else if (targetId === `download${capitalize(editorType)}CsvEditor`) {
+                        downloadEditorCSV(editorType);
+                    } else if (e.target.closest('.sortable-header')) {
+                        const header = e.target.closest('.sortable-header');
+                        const key = header.dataset.sortKey;
+                        let direction = 'desc';
+                        if (editorSortStates[editorType].key === key) {
+                            direction = editorSortStates[editorType].direction === 'desc' ? 'asc' : 'desc';
+                        }
+                        editorSortStates[editorType] = { key, direction };
+                        renderEditorTable(editorType);
+                    } else if (e.target.matches('.save-btn, .cancel-btn, .edit-btn, .delete-btn')) {
+                        handleEditorTableEvents(e, editorType);
+                    }
+                });
                 
-                table.querySelector('thead').addEventListener('click', e => {
-                    const header = e.target.closest('th.sortable-header');
-                    if (!header) return;
-                    const key = header.dataset.sortKey;
-                    let direction = 'desc';
-                    if (editorSortStates[editorType].key === key) {
-                        direction = editorSortStates[editorType].direction === 'desc' ? 'asc' : 'desc';
-                    }
-                    editorSortStates[editorType] = { key, direction };
-                    renderEditorTable(editorType);
-                });
-
-                table.querySelector('thead').addEventListener('change', e => {
-                    if (e.target.matches('.select-all-editor-checkbox')) {
-                        table.querySelectorAll('tbody .editor-select-checkbox').forEach(cb => {
-                            cb.checked = e.target.checked;
+                editorContentDiv.addEventListener('change', e => {
+                    const target = e.target;
+                    const editorTable = editorContentDiv.querySelector('.editor-table');
+                    if (target.matches('.select-all-editor-checkbox')) {
+                        editorTable.querySelectorAll('tbody .editor-select-checkbox').forEach(cb => {
+                            cb.checked = target.checked;
                         });
+                    } else if(target.matches('.editor-select-checkbox')) {
+                        updateSelectAllState(editorTable);
+                    } else if (target.id === `upload${capitalize(editorType)}CsvEditor`) {
+                         const handlers = { competitions: handleCompetitionUpload, universities: handleUniversityUpload, teams: handleTeamUpload };
+                         handleFileUpload(target.files[0], handlers[editorType]); 
+                         target.value = ''; // Reset file input
                     }
                 });
 
-                table.querySelector('thead').addEventListener('keyup', e => {
+                editorContentDiv.addEventListener('keyup', e => {
                     if (e.target.matches('input[data-filter-key]')) {
                         editorFilters[editorType][e.target.dataset.filterKey] = e.target.value;
                         renderEditorTable(editorType);
                     }
                 });
-
-                const uploadInput = document.getElementById(`upload${typeCaps}CsvEditor`);
-                if (uploadInput) {
-                    uploadInput.addEventListener('change', (e) => {
-                        const handlers = { competitions: handleCompetitionUpload, universities: handleUniversityUpload, teams: handleTeamUpload };
-                        handleFileUpload(e.target.files[0], handlers[editorType]); e.target.value = '';
-                    });
-                }
-                document.getElementById(`download${typeCaps}CsvEditor`)?.addEventListener('click', () => downloadEditorCSV(editorType));
             }
 
             function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
@@ -1852,7 +1962,9 @@
                             <div id="universityAnalyticsContent"></div>`;
                 advancedStatsContainer.innerHTML = html;
                 const selector = document.getElementById('universityAnalyticsSelect');
-                selector.addEventListener('change', (e) => renderUniversityAnalyticsContent(e.target.value));
+                selector.addEventListener('change', (e) => {
+                    renderUniversityAnalyticsContent(e.target.value);
+                });
                 renderUniversityAnalyticsContent(selector.value);
             }
 
@@ -1869,59 +1981,161 @@
                 const students = userDatabase.filter(u => u.university === uniName);
                 const allTeams = teamDatabase.filter(t => t.university === uniName);
                 const activeTeams = allTeams.filter(t => t.isActive);
+                const competitions = new Set(students.flatMap(s => s.placements.map(p => p.name)));
+                
+                // --- START: New logic for top placements ---
+                const allPlacements = students.flatMap(s =>
+                    s.placements.map(p => ({
+                        ...p,
+                        handle: s.handle,
+                        percentile: (p.rank / p.total) * 100
+                    }))
+                );
 
-                const allCompetitions = new Set();
-                students.forEach(student => {
-                    student.placements.forEach(p => {
-                        allCompetitions.add(p.name);
-                    });
-                });
-                const competitionsArray = Array.from(allCompetitions).sort();
+                const topTeamPlacements = Object.values(allPlacements
+                    .filter(p => p.teamId)
+                    .reduce((acc, p) => {
+                        const key = `${p.teamId}-${p.name}`;
+                        if (!acc[key] || p.percentile < acc[key].percentile) {
+                             const team = teamDatabase.find(t => t.id === p.teamId);
+                             if(team){
+                                acc[key] = { ...p, teamName: team.name };
+                             }
+                        }
+                        return acc;
+                    }, {}))
+                    .sort((a, b) => a.percentile - b.percentile)
+                    .slice(0, 5);
 
-                let html = `<div class="stat-card p-6">
-                                <h3 class="font-bold text-2xl text-indigo-700 mb-4">${uniName}</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-8">
-                                    <div class="p-4 bg-gray-100 rounded-lg">
-                                        <p class="text-3xl font-bold">${students.length}</p>
-                                        <p class="text-sm text-gray-600">Total Students</p>
-                                    </div>
-                                    <div class="p-4 bg-gray-100 rounded-lg">
-                                        <p class="text-3xl font-bold">${activeTeams.length}</p>
-                                        <p class="text-sm text-gray-600">Active Teams</p>
-                                    </div>
-                                    <div class="p-4 bg-gray-100 rounded-lg">
-                                        <p class="text-3xl font-bold">${allTeams.length}</p>
-                                        <p class="text-sm text-gray-600">All Teams</p>
-                                    </div>
+                const topStudentPlacements = allPlacements
+                    .filter(p => !p.teamId)
+                    .sort((a, b) => a.percentile - b.percentile)
+                    .slice(0, 5);
+                // --- END: New logic for top placements ---
+
+
+                let html = `
+                    <div class="stat-card p-6">
+                        <h3 class="font-bold text-2xl text-indigo-700 mb-4">${uniName}</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-8">
+                            <div class="p-4 bg-gray-100 rounded-lg"><p class="text-3xl font-bold">${students.length}</p><p class="text-sm text-gray-600">Total Students</p></div>
+                            <div class="p-4 bg-gray-100 rounded-lg"><p class="text-3xl font-bold">${activeTeams.length}</p><p class="text-sm text-gray-600">Active Teams</p></div>
+                            <div class="p-4 bg-gray-100 rounded-lg"><p class="text-3xl font-bold">${allTeams.length}</p><p class="text-sm text-gray-600">All Teams</p></div>
+                        </div>
+
+                        <div id="universityGrowthContainer" class="mb-8"></div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                            <div>
+                                <h4 class="text-xl font-semibold mb-3">Top 5 Team Placements</h4>
+                                <div class="space-y-2">
+                                    ${topTeamPlacements.length > 0 ? topTeamPlacements.map(p => `
+                                        <div class="p-3 bg-teal-50 rounded text-sm border border-teal-200">
+                                            <div class="font-bold text-teal-800">Top ${p.percentile.toFixed(1)}%</div>
+                                            <div class="text-teal-700">${createTeamLink(p.teamName, p.teamId)} in ${createCompetitionLink(p.name)}</div>
+                                            <div class="text-xs text-teal-600">Rank ${p.rank} / ${p.total}</div>
+                                        </div>
+                                    `).join('') : '<p class="text-gray-500 text-sm p-2 bg-gray-50 rounded">No team placements recorded.</p>'}
                                 </div>
-
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                    <!-- Students List -->
-                                    <div>
-                                        <h4 class="text-xl font-semibold mb-3">Students (${students.length})</h4>
-                                        <div class="space-y-2 max-h-96 overflow-y-auto pr-2 border rounded-lg p-2 bg-white">
-                                            ${students.length > 0 ? students.sort((a,b) => a.handle.localeCompare(b.handle)).map(s => `<div class="p-2 bg-green-50 rounded text-sm">${createUserLink(s.handle)}</div>`).join('') : '<p class="text-gray-500 text-sm p-2">No students from this university.</p>'}
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold mb-3">Top 5 Student Placements</h4>
+                                <div class="space-y-2">
+                                    ${topStudentPlacements.length > 0 ? topStudentPlacements.map(p => `
+                                        <div class="p-3 bg-green-50 rounded text-sm border border-green-200">
+                                            <div class="font-bold text-green-800">Top ${p.percentile.toFixed(1)}%</div>
+                                            <div class="text-green-700">${createUserLink(p.handle)} in ${createCompetitionLink(p.name)}</div>
+                                            <div class="text-xs text-green-600">Rank ${p.rank} / ${p.total}</div>
                                         </div>
-                                    </div>
-
-                                    <!-- Teams List -->
-                                    <div>
-                                        <h4 class="text-xl font-semibold mb-3">Teams (${allTeams.length})</h4>
-                                        <div class="space-y-2 max-h-96 overflow-y-auto pr-2 border rounded-lg p-2 bg-white">
-                                            ${allTeams.length > 0 ? allTeams.sort((a,b) => a.name.localeCompare(b.name)).map(t => `<div class="p-2 ${t.isActive ? 'bg-teal-50' : 'bg-gray-100'} rounded text-sm">${createTeamLink(t.name, t.id)} ${!t.isActive ? '<span class="text-xs text-red-600">(Inactive)</span>' : ''}</div>`).join('') : '<p class="text-gray-500 text-sm p-2">No teams from this university.</p>'}
-                                        </div>
-                                    </div>
-
-                                    <!-- Competitions List -->
-                                    <div>
-                                        <h4 class="text-xl font-semibold mb-3">Competitions Participated In (${competitionsArray.length})</h4>
-                                        <div class="space-y-2 max-h-96 overflow-y-auto pr-2 border rounded-lg p-2 bg-white">
-                                            ${competitionsArray.length > 0 ? competitionsArray.map(c => `<div class="p-2 bg-blue-50 rounded text-sm">${createCompetitionLink(c)}</div>`).join('') : '<p class="text-gray-500 text-sm p-2">No competitions recorded for these students.</p>'}
-                                        </div>
-                                    </div>
+                                    `).join('') : '<p class="text-gray-500 text-sm p-2 bg-gray-50 rounded">No solo placements recorded.</p>'}
                                 </div>
-                            </div>`;
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div>
+                                <h4 class="text-xl font-semibold mb-3">Students (${students.length})</h4>
+                                <div class="space-y-2 max-h-96 overflow-y-auto pr-2 border rounded-lg p-2 bg-white">
+                                    ${students.length > 0 ? students.sort((a,b) => a.handle.localeCompare(b.handle)).map(s => `<div class="p-2 bg-gray-50 rounded text-sm">${createUserLink(s.handle)}</div>`).join('') : '<p class="text-gray-500 text-sm p-2">No students.</p>'}
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold mb-3">Teams (${allTeams.length})</h4>
+                                <div class="space-y-2 max-h-96 overflow-y-auto pr-2 border rounded-lg p-2 bg-white">
+                                    ${allTeams.length > 0 ? allTeams.sort((a,b) => a.name.localeCompare(b.name)).map(t => `<div class="p-2 ${t.isActive ? 'bg-gray-50' : 'bg-gray-100'} rounded text-sm">${createTeamLink(t.name, t.id)} ${!t.isActive ? '<span class="text-xs text-red-600">(Inactive)</span>' : ''}</div>`).join('') : '<p class="text-gray-500 text-sm p-2">No teams.</p>'}
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold mb-3">Competitions (${competitions.size})</h4>
+                                <div class="space-y-2 max-h-96 overflow-y-auto pr-2 border rounded-lg p-2 bg-white">
+                                    ${competitions.size > 0 ? Array.from(competitions).sort().map(c => `<div class="p-2 bg-gray-50 rounded text-sm">${createCompetitionLink(c)}</div>`).join('') : '<p class="text-gray-500 text-sm p-2">No competitions.</p>'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
                 contentEl.innerHTML = html;
+                renderUniversityGrowthChart(uniName);
+            }
+
+            function renderUniversityGrowthChart(uniName, viewType = 'cumulative') {
+                const container = document.getElementById('universityGrowthContainer');
+                const students = userDatabase.filter(u => u.university === uniName && u.joinDate);
+                
+                if (students.length === 0) {
+                    container.innerHTML = '';
+                    return;
+                }
+                
+                container.innerHTML = `
+                    <div class="flex justify-between items-center mb-3">
+                        <h4 class="text-xl font-semibold">User Growth</h4>
+                        <div id="uniGrowthToggle" class="space-x-1">
+                            <button data-view="cumulative" class="analytics-toggle-btn ${viewType === 'cumulative' ? 'active' : ''}">Cumulative</button>
+                            <button data-view="monthly" class="analytics-toggle-btn ${viewType === 'monthly' ? 'active' : ''}">Monthly</button>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-white rounded-lg shadow-inner">
+                        <canvas id="universityGrowthChart"></canvas>
+                    </div>
+                `;
+
+                const joinDates = {};
+                students.forEach(u => {
+                    const month = u.joinDate.slice(0, 7);
+                    joinDates[month] = (joinDates[month] || 0) + 1;
+                });
+                const sortedMonths = Object.keys(joinDates).sort();
+
+                let dataPoints = [];
+                let chartLabel = 'New Users per Month';
+                if (viewType === 'cumulative') {
+                    chartLabel = 'Total Users (Cumulative)';
+                    let cumulativeTotal = 0;
+                    dataPoints = sortedMonths.map(month => {
+                        cumulativeTotal += joinDates[month];
+                        return cumulativeTotal;
+                    });
+                } else {
+                    dataPoints = sortedMonths.map(month => joinDates[month]);
+                }
+                
+                renderChart('universityGrowthChart', 'line', {
+                    labels: sortedMonths,
+                    datasets: [{
+                        label: chartLabel,
+                        data: dataPoints,
+                        borderColor: '#4338ca',
+                        backgroundColor: 'rgba(67, 56, 202, 0.1)',
+                        fill: true,
+                        tension: 0.1
+                    }]
+                }, { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } });
+
+                document.getElementById('uniGrowthToggle').addEventListener('click', e => {
+                    if(e.target.tagName === 'BUTTON') {
+                        renderUniversityGrowthChart(uniName, e.target.dataset.view);
+                    }
+                });
             }
             
             function renderCompetitionAnalytics() {
@@ -2306,6 +2520,105 @@
                 return compName;
             }
             
+            function updateSelectAllState(tableElement) {
+                if (!tableElement) return;
+                const headCheckbox = tableElement.querySelector('thead input[type="checkbox"]');
+                const bodyCheckboxes = tableElement.querySelectorAll('tbody input[type="checkbox"]');
+                const total = bodyCheckboxes.length;
+                const checkedCount = Array.from(bodyCheckboxes).filter(cb => cb.checked).length;
+                
+                if (headCheckbox) {
+                    headCheckbox.checked = total > 0 && total === checkedCount;
+                }
+            }
+            
+             // --- Gemini API ---
+            async function callGeminiApi(prompt, retries = 3, delay = 1000) {
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }],
+                };
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 429 && retries > 0) {
+                             console.warn(`Rate limited. Retrying in ${delay}ms... (${retries} retries left)`);
+                             await new Promise(res => setTimeout(res, delay));
+                             return callGeminiApi(prompt, retries - 1, delay * 2);
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        return result.candidates[0].content.parts[0].text;
+                    } else {
+                        throw new Error("Invalid response structure from Gemini API");
+                    }
+                } catch (error) {
+                    if (retries > 0) {
+                         console.warn(`API call failed. Retrying in ${delay}ms... (${retries} retries left)`);
+                         await new Promise(res => setTimeout(res, delay));
+                         return callGeminiApi(prompt, retries - 1, delay * 2);
+                    } else {
+                        console.error("Error calling Gemini API:", error);
+                        return `Error: Could not retrieve insights. ${error.message}`;
+                    }
+                }
+            }
+            
+            async function generateAiInsights() {
+                aiInsightContent.innerHTML = '<div class="flex items-center justify-center gap-2 text-gray-600"><div class="spinner w-6 h-6 border-2 rounded-full"></div><span>Generating insights... Please wait.</span></div>';
+                showAiModal();
+
+                const totalUsers = userDatabase.length;
+                const totalTeams = teamDatabase.length;
+                const top5Users = userDatabase.sort((a,b) => (b.lunaHardScore + b.lunaNovaScore) - (a.lunaHardScore + a.lunaNovaScore)).slice(0, 5).map(u => `${u.handle} (Score: ${(u.lunaHardScore + u.lunaNovaScore).toFixed(2)})`).join(', ');
+                const uniDistribution = universityDatabase.map(uni => {
+                    const count = userDatabase.filter(u => u.university === uni).length;
+                    return `${uni}: ${count} users`;
+                }).join('\n');
+
+                const prompt = `
+                    Based on the following competitive programming community data, provide a brief, insightful summary. The data is about users, their universities, teams, and placements in competitions.
+
+                    - Total Users: ${totalUsers}
+                    - Total Teams: ${totalTeams}
+                    - Top 5 Users by Score: ${top5Users || 'N/A'}
+                    - University Distribution:\n${uniDistribution || 'N/A'}
+
+                    Analyze this data and provide:
+                    1. A short, overall summary of the community's status.
+                    2. Identify one key strength based on the data.
+                    3. Suggest one area for potential improvement or focus.
+                    
+                    Format the response in clear sections using markdown headings.
+                `;
+
+                const insights = await callGeminiApi(prompt);
+                
+                // A simple markdown to HTML converter
+                const formattedInsights = insights
+                    .replace(/### (.*)/g, '<h3 class="text-xl font-semibold text-fuchsia-700 mt-4 mb-2">$1</h3>')
+                    .replace(/## (.*)/g, '<h2 class="text-2xl font-bold text-fuchsia-800 mb-3">$1</h2>')
+                    .replace(/\* \*(.*)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\* (.*)/g, '<li class="ml-5 list-disc">$1</li>')
+                    .replace(/\n/g, '<br>');
+
+                aiInsightContent.innerHTML = formattedInsights;
+            }
+
+
             // --- EVENT LISTENERS ---
             appContainer.addEventListener('click', (e) => {
                 const userLink = e.target.closest('.user-link');
@@ -2341,13 +2654,21 @@
                 }
             });
 
-            editorTabButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    editorTabButtons.forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
-                    renderCurrentEditorView();
-                });
+            editorContainer.addEventListener('click', e => {
+                if(e.target.matches('.editor-tab-btn')){
+                     editorContainer.querySelectorAll('.editor-tab-btn').forEach(btn => btn.classList.remove('active'));
+                     e.target.classList.add('active');
+                     renderCurrentEditorView();
+                }
             });
+            document.querySelector('#tabContentEditors .flex.space-x-1').addEventListener('click', e => {
+                if(e.target.matches('.editor-tab-btn')){
+                    document.querySelectorAll('#tabContentEditors .editor-tab-btn').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+                    renderCurrentEditorView();
+                }
+            });
+
 
             downloadAllUsersCsvBtn.addEventListener('click', () => downloadUsersCSV(userDatabase));
             downloadSelectedUsersCsvBtn.addEventListener('click', () => {
@@ -2386,9 +2707,15 @@
                     renderUserDatabaseTable();
                 }
             });
-            document.getElementById('selectAllUsersCheckbox').addEventListener('change', e => {
-                document.querySelectorAll('#detailedUserTableBody .user-select-checkbox').forEach(cb => cb.checked = e.target.checked);
+            
+            detailedUserTable.addEventListener('change', e => {
+                 if (e.target.id === 'selectAllUsersCheckbox') {
+                    document.querySelectorAll('#detailedUserTableBody .user-select-checkbox').forEach(cb => cb.checked = e.target.checked);
+                 } else if (e.target.matches('.user-select-checkbox')) {
+                    updateSelectAllState(detailedUserTable);
+                 }
             });
+            
             detailedUserTableBody.addEventListener('click', e => {
                 const target = e.target; const row = target.closest('tr'); if (!row) return; const userId = row.dataset.id; const user = userDatabase.find(u => u.id === userId); if (!user) return;
                 if (target.classList.contains('delete-db-user-btn')) {
@@ -2428,6 +2755,10 @@
             detailsModal.addEventListener('click', (e) => { 
                 if (e.target === detailsModal) hideModal(); 
             });
+            aiInsightBtn.addEventListener('click', generateAiInsights);
+            closeAiModalBtn.addEventListener('click', hideAiModal);
+            aiModal.addEventListener('click', (e) => { if(e.target === aiModal) hideAiModal()});
+
             confirmCancelBtn.addEventListener('click', hideConfirmationModal);
             confirmOkBtn.addEventListener('click', () => { if (confirmCallback) confirmCallback(); hideConfirmationModal(); });
             jsonFileInput.addEventListener('change', (e) => { loadJsonFile(e.target.files[0]); e.target.value = ''; });
@@ -2462,16 +2793,16 @@
                         teams: teamDatabase,
                         competitions: competitionDatabase,
                         universities: universityDatabase,
-                        version: 'v12' // Increment version
+                        version: 'v14' // Increment version
                     };
-                    localStorage.setItem('electiToolData_v12', JSON.stringify(dataToSave));
+                    localStorage.setItem('electiToolData_v14', JSON.stringify(dataToSave));
                 } catch (e) {
                     console.error("Could not save to localStorage. Data might be too large.", e);
                 }
             }
 
             function loadDataFromLocalStorage() {
-                const savedData = localStorage.getItem('electiToolData_v12');
+                const savedData = localStorage.getItem('electiToolData_v14');
                 if (savedData) {
                     try {
                         const data = JSON.parse(savedData);
