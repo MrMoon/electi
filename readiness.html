@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Operation Electi - Readiness Model</title>
+    <title>Operation Electi - Readiness Model v15</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -338,7 +338,7 @@
                 contestCount: 0.03,
                 lunaScore: 0.04,
                 placementScore: 0.06,
-                avgDiv2PerfScore: 0.12,
+                avgDiv2PerformanceScore: 0.12,
                 weightedSolves: 0.05,
                 practiceQuality: 0.11, 
                 accuracy: 0.025,
@@ -552,7 +552,7 @@
                     (scoreContestCount * weights.contestCount) +
                     (scoreFromCombinedLuna * weights.lunaScore) +
                     (scoreFromPlacements * weights.placementScore) +
-                    (scoreFromAvgDiv2Performance * weights.avgDiv2PerfScore) +
+                    (scoreFromAvgDiv2Performance * weights.avgDiv2PerformanceScore) +
                     (scoreWeightedSolvedProblems * weights.weightedSolves) +
                     (scoreFromPracticeQuality * weights.practiceQuality) +
                     (scoreFromAccuracy * weights.accuracy);
@@ -1347,6 +1347,9 @@
                             <p><strong>Total Solved:</strong> <span class="font-mono float-right">${userData.totalSolvedCount}</span></p>
                             <p><strong>Gym / Other:</strong> <span class="font-mono float-right">${userData.gymSolvesCount}</span></p>
                             <p><strong>Skipped:</strong> <span class="font-mono float-right">${userData.skippedSubmissionsCount}</span></p>
+                            <hr class="my-1 border-gray-200"/>
+                            <p><strong>Last Submission:</strong> <span class="font-mono float-right">${userData.lastActivity}</span></p>
+                            <p><strong>Last Accepted:</strong> <span class="font-mono float-right">${userData.lastAcceptedActivity}</span></p>
                         </div>
                     </div>
                     
@@ -1514,7 +1517,7 @@
                         'Max Rating': (data.scoreMaxRating * penaltyFactor) * weights.maxRating,
                         'Avg Rating': (data.scoreAvgRating * penaltyFactor) * weights.avgRating,
                         'Contest Count': (data.scoreContestCount * penaltyFactor) * weights.contestCount,
-                        'Div. 2 Perf.': (data.scoreFromAvgDiv2Performance * penaltyFactor) * weights.avgDiv2PerfScore,
+                        'Div. 2 Perf.': (data.scoreFromAvgDiv2Performance * penaltyFactor) * weights.avgDiv2PerformanceScore,
                         'Practice Quality': (data.scoreFromPracticeQuality * penaltyFactor) * weights.practiceQuality,
                         'Accuracy': (data.scoreFromAccuracy * penaltyFactor) * weights.accuracy,
                         'Solved Problems': (data.scoreWeightedSolvedProblems * penaltyFactor) * weights.weightedSolves,
