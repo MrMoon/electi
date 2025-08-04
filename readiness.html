@@ -323,7 +323,6 @@
             const closeModalBtn = document.getElementById('closeModalBtn');
             const computeTeamBtn = document.getElementById('computeTeamBtn');
             const teamResultContainer = document.getElementById('teamResultContainer');
-            // References for the returning users table
             const returningUsersContainer = document.getElementById('returningUsersContainer');
             const returningUsersTableBody = document.querySelector('#returningUsersTable tbody');
 
@@ -350,6 +349,73 @@
                 practiceQuality: 0.11, 
                 accuracy: 0.025,
             };
+
+            // --- START: LocalStorage Functionality ---
+            /**
+             * Saves the current user list to localStorage.
+             */
+            function saveUsersToStorage() {
+                try {
+                    localStorage.setItem('readinessToolUsers_v15', JSON.stringify(usersToAnalyze));
+                } catch (e) {
+                    console.error("Failed to save user list to localStorage:", e);
+                    displayError("Could not save user list. Storage might be full.");
+                }
+            }
+
+            /**
+             * Loads users from localStorage on page load.
+             * It prioritizes loading from the main JSON database ('electiToolData_v18')
+             * and falls back to its own saved list ('readinessToolUsers_v15').
+             */
+            function loadUsersFromStorage() {
+                const mainDataKey = 'electiToolData_v18';
+                const readinessDataKey = 'readinessToolUsers_v15';
+                
+                // Priority 1: Check for main JSON database from other tools
+                const mainDataJSON = localStorage.getItem(mainDataKey);
+                if (mainDataJSON) {
+                    try {
+                        const data = JSON.parse(mainDataJSON);
+                        if (data && Array.isArray(data.users) && data.users.length > 0) {
+                            // Convert JSON format to the format this tool expects
+                            usersToAnalyze = data.users.map(user => {
+                                const placementsPercentages = user.placements.map(p => {
+                                    return (p.total > 0) ? (p.rank / p.total) * 100 : 100;
+                                });
+                                return {
+                                    handle: user.handle,
+                                    lunaNovaScore: user.lunaNovaScore || 0,
+                                    lunaHardScore: user.lunaHardScore || 0,
+                                    placements: placementsPercentages,
+                                    isTrusted: user.isTrusted !== false
+                                };
+                            });
+                            displayInfo(`Loaded ${usersToAnalyze.length} users from the main database.`);
+                            // Successfully loaded, so we exit and will overwrite any old readiness-specific data.
+                            return; 
+                        }
+                    } catch (e) {
+                        console.error("Error parsing main data from localStorage:", e);
+                    }
+                }
+
+                // Priority 2: If no main DB data, check for readiness-specific data
+                const readinessDataJSON = localStorage.getItem(readinessDataKey);
+                if (readinessDataJSON) {
+                    try {
+                        const loadedUsers = JSON.parse(readinessDataJSON);
+                        if (Array.isArray(loadedUsers) && loadedUsers.length > 0) {
+                            usersToAnalyze = loadedUsers;
+                            displayInfo(`Loaded ${loadedUsers.length} users from your last session.`);
+                        }
+                    } catch (e) {
+                        console.error("Error parsing readiness data from localStorage:", e);
+                    }
+                }
+            }
+            // --- END: LocalStorage Functionality ---
+
 
             // --- API Request Queue for Rate Limiting ---
             const apiQueue = {
@@ -594,6 +660,7 @@
 
                 usersToAnalyze.push({ handle, lunaNovaScore, lunaHardScore, placements, isTrusted });
                 updateUserListDisplay();
+                saveUsersToStorage(); // <-- SAVE TO LOCALSTORAGE
                 handleInput.value = '';
                 lunaNovaScoreInput.value = '';
                 lunaHardScoreInput.value = '';
@@ -644,7 +711,8 @@
                 if (newUsersFromCsv.length === 0) throw new Error('No valid new users found in CSV.');
                 usersToAnalyze.push(...newUsersFromCsv);
                 updateUserListDisplay();
-                displayError(`Loaded ${newUsersFromCsv.length} new users. Total: ${usersToAnalyze.length}`);
+                saveUsersToStorage(); // <-- SAVE TO LOCALSTORAGE
+                displayInfo(`Loaded ${newUsersFromCsv.length} new users. Total: ${usersToAnalyze.length}`);
                 csvFileInput.value = '';
             }
 
@@ -710,6 +778,7 @@
                 usersToAnalyze = [];
                 cachedUserData = [];
                 updateUserListDisplay();
+                saveUsersToStorage(); // <-- SAVE TO LOCALSTORAGE
                 resultsTableBody.innerHTML = '';
                 resultsContainer.classList.add('hidden');
                 updateReturningUsersView();
@@ -765,7 +834,7 @@
 
                 if (usersToProcess.length === 0) {
                      hideLoading();
-                     displayError("All users in the list are up-to-date.");
+                     displayInfo("All users in the list are up-to-date.");
                      updateReturningUsersView();
                      updateTableView();
                      return;
@@ -1654,7 +1723,16 @@
                  container.innerHTML = penaltyHtml;
             }
 
-            function displayError(message) { errorMessageDiv.textContent = message; errorMessageDiv.classList.remove('hidden'); }
+            function displayError(message) { 
+                errorMessageDiv.textContent = message; 
+                errorMessageDiv.classList.remove('hidden', 'bg-blue-100', 'border-blue-400', 'text-blue-700');
+                errorMessageDiv.classList.add('bg-red-100', 'border-red-400', 'text-red-700');
+            }
+            function displayInfo(message) { 
+                errorMessageDiv.textContent = message; 
+                errorMessageDiv.classList.remove('hidden', 'bg-red-100', 'border-red-400', 'text-red-700');
+                errorMessageDiv.classList.add('bg-blue-100', 'border-blue-400', 'text-blue-700');
+            }
             function hideError() { errorMessageDiv.classList.add('hidden'); }
             function showLoading() { loadingIndicator.classList.remove('hidden'); document.querySelectorAll('button, input, select').forEach(el => { if(el.id !== 'cancelProcessingBtn') el.disabled = true; }); }
             function hideLoading() { 
@@ -1696,6 +1774,7 @@
                 if (target.classList.contains('remove-list-btn')) {
                     usersToAnalyze.splice(index, 1);
                     updateUserListDisplay();
+                    saveUsersToStorage(); // <-- SAVE TO LOCALSTORAGE
                 } else if (target.classList.contains('edit-list-btn')) {
                     showEditUserForm(index);
                 } else if (target.classList.contains('save-edit-btn')) {
@@ -1717,6 +1796,7 @@
                     cachedUserData = cachedUserData.filter(u => u.handle.toLowerCase() !== handleLower);
 
                     updateUserListDisplay();
+                    saveUsersToStorage(); // <-- SAVE TO LOCALSTORAGE
                 } else if (target.classList.contains('cancel-edit-btn')) {
                     updateUserListDisplay();
                 }
@@ -1730,6 +1810,7 @@
                     const handleLower = usersToAnalyze[index].handle.toLowerCase();
                     cachedUserData = cachedUserData.filter(u => u.handle.toLowerCase() !== handleLower);
                     updateUserListDisplay();
+                    saveUsersToStorage(); // <-- SAVE TO LOCALSTORAGE
                 }
                 if (target.classList.contains('team-select-checkbox')) {
                     const selectedCount = document.querySelectorAll('.team-select-checkbox:checked').length;
@@ -1761,6 +1842,7 @@
                     cachedUserData = cachedUserData.filter(u => u.handle.toLowerCase() !== handleLower);
                     usersToAnalyze = usersToAnalyze.filter(u => u.handle.toLowerCase() !== handleLower);
                     updateUserListDisplay();
+                    saveUsersToStorage(); // <-- SAVE TO LOCALSTORAGE
                     updateReturningUsersView();
                     downloadResultsBtn.disabled = cachedUserData.filter(d => !d.error).length === 0;
                 }
@@ -1852,7 +1934,10 @@
                 teamResultContainer.classList.remove('hidden');
             });
 
+            // --- Initial Load From Storage ---
+            loadUsersFromStorage();
             updateUserListDisplay();
+            saveUsersToStorage(); // Always save on load to sync/create the readiness-specific key
             updateSortIndicators();
         });
     </script>
