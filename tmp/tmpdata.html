@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -143,6 +144,21 @@
             color: #4338ca;
             font-weight: 600;
         }
+        .analytics-toggle-btn {
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            border: 1px solid #d1d5db;
+            background-color: white;
+            color: #4b5563;
+            cursor: pointer;
+        }
+        .analytics-toggle-btn.active {
+            background-color: #4338ca;
+            color: white;
+            border-color: #4338ca;
+        }
         .placement-entry {
             display: grid;
             grid-template-columns: 1fr;
@@ -190,12 +206,41 @@
         .user-link:hover, .team-link:hover, .competition-link:hover {
             text-decoration: underline;
         }
+        .toast-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: #2d3748;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 100;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .toast-notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .toast-notification.info { background-color: #2b6cb0; }
+        .toast-notification.error { background-color: #c53030; }
+        /* Select2 Styles */
+        .select2-container--default .select2-selection--multiple {
+            border: 1px solid #d1d5db;
+            background-color: #f9fafb;
+            border-radius: 4px;
+        }
+        .select2-container .select2-selection--multiple {
+            min-height: 38px;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800">
 
     <div id="app-container" class="container mx-auto p-4 sm:p-6 lg:p-8">
-        <header class="text-center mb-10">
+        <header class="text-center mb-6">
             <div class="flex justify-center items-center gap-4 mb-2">
                 <img src="https://i.ibb.co/JNyxxBv/logo.png" alt="Operation Electi Logo" class="h-16 w-16" onerror="this.onerror=null; this.src='https://placehold.co/64x64/e0e0e0/333?text=Logo';">
                 <h1 class="text-5xl font-bold text-gray-900">Operation Electi</h1>
@@ -203,23 +248,202 @@
             <p class="mt-2 text-lg text-gray-600">An advanced analytics and user management tool.</p>
         </header>
 
+        <!-- Data Management Panel -->
+        <div class="bg-white rounded-lg shadow-md p-4 mb-8">
+            <div class="flex flex-wrap justify-center items-center gap-x-6 gap-y-4">
+                <div class="text-center">
+                    <p class="font-medium text-gray-700 text-sm">Upload Users (CSV)</p>
+                    <label for="uploadUsersCsv" class="file-input-label bg-green-600 hover:bg-green-700 text-sm mt-1">Choose File</label>
+                    <input type="file" id="uploadUsersCsv" accept=".csv">
+                </div>
+                <div class="text-center">
+                    <p class="font-medium text-gray-700 text-sm">Upload Competitions (CSV)</p>
+                    <label for="uploadCompetitionsCsv" class="file-input-label bg-blue-600 hover:bg-blue-700 text-sm mt-1">Choose File</label>
+                    <input type="file" id="uploadCompetitionsCsv" accept=".csv">
+                </div>
+                <div class="text-center">
+                    <p class="font-medium text-gray-700 text-sm">Upload Universities (CSV)</p>
+                    <label for="uploadUniversitiesCsv" class="file-input-label bg-indigo-600 hover:bg-indigo-700 text-sm mt-1">Choose File</label>
+                    <input type="file" id="uploadUniversitiesCsv" accept=".csv">
+                </div>
+                <div class="text-center">
+                    <p class="font-medium text-gray-700 text-sm">Full Backup (JSON)</p>
+                    <button id="downloadDbFullBackupBtn" class="file-input-label bg-purple-600 hover:bg-purple-700 text-sm mt-1 w-full text-center">Download</button>
+                </div>
+                <div class="text-center">
+                    <p class="font-medium text-gray-700 text-sm">Restore Backup (JSON)</p>
+                    <label for="jsonFileInput" class="file-input-label bg-red-600 hover:bg-red-700 text-sm mt-1">Restore</label>
+                    <input type="file" id="jsonFileInput" accept=".json">
+                </div>
+                 <div class="text-center">
+                    <p class="font-medium text-gray-700 text-sm">AI Insights</p>
+                    <button id="aiInsightBtn" class="file-input-label bg-fuchsia-600 hover:bg-fuchsia-700 text-sm mt-1 w-full text-center">Generate</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Tab Controls -->
         <div class="mb-8 border-b border-gray-200">
             <nav class="flex -mb-px space-x-6" aria-label="Tabs">
-                <button id="tabBtnAnalyticsDashboard" class="tab-btn active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg">
-                    Advanced Analytics
-                </button>
-                <button id="tabBtnDatabase" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                <button id="tabBtnDatabase" class="tab-btn active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg">
                     User Database
                 </button>
-                 <button id="tabBtnEditors" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                <button id="tabBtnEditors" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">
                     Data Editors
+                </button>
+                <button id="tabBtnAnalyticsDashboard" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                    Advanced Analytics
                 </button>
             </nav>
         </div>
 
         <!-- Tab Content -->
-        <div id="tabContentAnalyticsDashboard">
+        <div id="tabContentDatabase">
+            <!-- Form, Stats, and Table will be stacked vertically -->
+            
+            <!-- Add/Update User Form -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h2 class="text-2xl font-bold mb-4">Add/Update User Info</h2>
+                <form id="detailedUserForm" class="space-y-4">
+                     <!-- User Info Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="handleField">Codeforces Handle*</label>
+                            <input type="text" id="handleField" name="handle" placeholder="e.g., tourist" required>
+                        </div>
+                        <div>
+                            <label for="fullNameField">Full Name</label>
+                            <input type="text" id="fullNameField" name="fullName" placeholder="e.g., Gennady Korotkevich">
+                        </div>
+                        <div>
+                            <label for="linkedinField">LinkedIn Profile</label>
+                            <input type="url" id="linkedinField" name="linkedin" placeholder="https://linkedin.com/in/...">
+                        </div>
+                    </div>
+                    <!-- University & Scores Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="md:col-span-2">
+                            <label for="universityInput">University</label>
+                            <input type="text" list="university-list" name="university" id="universityInput" placeholder="Type or select university">
+                            <datalist id="university-list"></datalist>
+                        </div>
+                        <div>
+                            <label for="lunaNovaScoreField">Luna Nova Score</label>
+                            <input type="number" step="0.01" id="lunaNovaScoreField" name="lunaNovaScore" placeholder="0.00">
+                        </div>
+                        <div>
+                            <label for="lunaHardScoreField">Luna Score</label>
+                            <input type="number" step="0.01" id="lunaHardScoreField" name="lunaHardScore" placeholder="0.00">
+                        </div>
+                    </div>
+                     <!-- Other Info Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                        <div>
+                            <label for="acmLevel">ACM Level</label>
+                            <select name="acmLevel" id="acmLevel">
+                                <option value="0">None</option>
+                                <option value="-1">Codeability</option>
+                                <option value="10">Level 0</option>
+                                <option value="1">Level 1</option>
+                                <option value="2">Level 2</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="joinDate">Join Date</label>
+                            <input type="month" id="joinDate" name="joinDate">
+                        </div>
+                         <div>
+                            <label for="universityStartDate">University Start Date</label>
+                            <input type="month" id="universityStartDate" name="universityStartDate">
+                        </div>
+                        <div class="flex items-end gap-4">
+                            <div class="flex-grow">
+                                <label class="block text-sm font-medium text-gray-700">Profile Picture</label>
+                                <input type="hidden" name="profilePicUrl" id="profilePicUrlHidden">
+                                <label for="profilePicFile" id="profilePicFileLabel" class="file-input-label bg-gray-600 hover:bg-gray-700 text-sm !px-3 !py-2.5 whitespace-nowrap w-full text-center">Choose File</label>
+                                <input type="file" id="profilePicFile" accept="image/*">
+                            </div>
+                            <div class="flex items-center pb-1">
+                                <input type="checkbox" name="isTrusted" id="isTrustedCheckbox" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
+                                <label for="isTrustedCheckbox" class="ml-2 !mb-0 block text-sm font-medium text-gray-900">Trusted</label>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Placements Section -->
+                    <hr class="!my-6"/>
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-lg font-semibold">Placements</h3>
+                    </div>
+                    <div id="placementsContainer" class="space-y-4 max-h-96 overflow-y-auto pr-2"></div>
+                    <button type="button" id="addPlacementBtn" class="w-full text-sm bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200">Add Placement</button>
+                    <datalist id="competition-list"></datalist>
+                    <hr class="!my-6"/>
+                    <!-- Action Buttons -->
+                    <div class="flex gap-4">
+                        <button type="submit" id="saveUserBtn" class="w-full bg-green-600 text-white font-bold py-2.5 px-4 rounded-md hover:bg-green-700 transition duration-200">Save User</button>
+                        <button type="button" id="clearFormBtn" class="w-full bg-gray-500 text-white font-bold py-2.5 px-4 rounded-md hover:bg-gray-600 transition duration-200">Clear Form</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Statistics Section -->
+            <div class="stat-card mb-8">
+                <h2 class="text-xl font-bold mb-4">Database Statistics</h2>
+                <div id="statsContainer" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 text-center">
+                    <!-- Stats will be dynamically inserted here -->
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    <div class="p-4"><canvas id="acmLevelChart"></canvas></div>
+                    <div class="p-4"><canvas id="competitionChart"></canvas></div>
+                </div>
+            </div>
+            
+            <!-- User Table Section -->
+            <div class="bg-white rounded-lg shadow-md">
+                <div class="p-4 border-b border-gray-200 flex flex-wrap justify-between items-center gap-4">
+                     <h2 class="text-xl font-bold">User Database (<span id="databaseUserCount">0</span>)</h2>
+                     <div class="dropdown">
+                        <button class="bg-purple-600 text-white font-bold py-2 px-4 rounded-md hover:bg-purple-700 transition duration-200 flex items-center gap-2">
+                            Download
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </button>
+                        <div class="dropdown-content">
+                            <button id="downloadSelectedUsersCsvBtn">Download Selected Users (CSV)</button>
+                            <button id="downloadAllUsersCsvBtn">Download All Users (CSV)</button>
+                            <button id="downloadSimpleUsersCsvBtn">Download Simple CSV</button>
+                            <button id="downloadDbFullBackupBtn_dummy">Download Full Backup (JSON)</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table id="detailedUserTable" class="w-full text-sm text-left text-gray-600">
+                        <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
+                            <tr>
+                                <th class="p-2 w-10 text-center"><input type="checkbox" id="selectAllUsersCheckbox"></th>
+                                <th class="p-2 sortable-header" data-sort-key="handle">Handle <span class="sort-icon"></span></th>
+                                <th class="p-2 sortable-header" data-sort-key="fullName">Full Name <span class="sort-icon"></span></th>
+                                <th class="p-2 sortable-header" data-sort-key="university">University <span class="sort-icon"></span></th>
+                                <th class="p-2 sortable-header sort-desc" data-sort-key="updatedAt">Last Updated <span class="sort-icon"></span></th>
+                                <th class="p-2 text-center">Actions</th>
+                            </tr>
+                            <tr>
+                                <th></th>
+                                <th><input type="text" data-filter-key="handle" placeholder="Filter..."></th>
+                                <th><input type="text" data-filter-key="fullName" placeholder="Filter..."></th>
+                                <th><input type="text" data-filter-key="university" placeholder="Filter..."></th>
+                                <th></th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="detailedUserTableBody">
+                            <tr><td colspan="6" class="p-4 text-center text-gray-500">No users in the database yet.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div id="tabContentAnalyticsDashboard" class="hidden">
              <div class="bg-white rounded-lg shadow-md p-6">
                 <div class="border-b border-gray-200 mb-4">
                     <nav id="analyticsSubTabs" class="flex flex-wrap -mb-px" aria-label="Analytics Tabs">
@@ -232,196 +456,6 @@
                 </div>
                 <div id="advancedStatsContainer">
                     <!-- Advanced analytics content will be rendered here -->
-                </div>
-            </div>
-        </div>
-
-        <div id="tabContentDatabase" class="hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <!-- Left Column: Data Management -->
-                <div class="lg:col-span-4 space-y-6">
-                    <div class="bg-white rounded-lg shadow-md p-6 sticky top-8">
-                        <h2 class="text-xl font-bold mb-4">Data Management</h2>
-                        <div class="grid grid-cols-1 gap-6">
-                            <!-- Upload Section -->
-                            <div class="space-y-4">
-                                <h3 class="text-lg font-semibold text-gray-800">Upload Data</h3>
-                                <div class="p-4 border rounded-lg bg-gray-50">
-                                    <p class="font-medium text-gray-700">Upload Users (CSV)</p>
-                                    <p class="text-xs text-gray-500 mb-2">Replaces existing users with the same handle.</p>
-                                    <label for="uploadUsersCsv" class="file-input-label bg-green-600 hover:bg-green-700">Choose File</label>
-                                    <input type="file" id="uploadUsersCsv" accept=".csv">
-                                </div>
-                                <div class="p-4 border rounded-lg bg-gray-50">
-                                    <p class="font-medium text-gray-700">Upload Competitions (CSV)</p>
-                                    <p class="text-xs text-gray-500 mb-2">Adds or updates competitions.</p>
-                                    <label for="uploadCompetitionsCsv" class="file-input-label bg-blue-600 hover:bg-blue-700">Choose File</label>
-                                    <input type="file" id="uploadCompetitionsCsv" accept=".csv">
-                                </div>
-                                <div class="p-4 border rounded-lg bg-gray-50">
-                                    <p class="font-medium text-gray-700">Upload Universities (CSV)</p>
-                                    <p class="text-xs text-gray-500 mb-2">Adds new universities to the list.</p>
-                                    <label for="uploadUniversitiesCsv" class="file-input-label bg-indigo-600 hover:bg-indigo-700">Choose File</label>
-                                    <input type="file" id="uploadUniversitiesCsv" accept=".csv">
-                                </div>
-                            </div>
-                            <!-- Backup Section -->
-                            <div class="space-y-4">
-                                <h3 class="text-lg font-semibold text-gray-800">Backup & Restore</h3>
-                                <div class="p-4 border rounded-lg bg-gray-50">
-                                    <p class="font-medium text-gray-700">Full System Backup (JSON)</p>
-                                    <p class="text-xs text-gray-500 mb-2">Save all users, competitions, and universities.</p>
-                                    <button id="downloadDbFullBackupBtn" class="file-input-label bg-purple-600 hover:bg-purple-700 w-full text-center">Download Backup</button>
-                                </div>
-                                <div class="p-4 border rounded-lg bg-gray-50">
-                                    <p class="font-medium text-gray-700">Restore from Backup (JSON)</p>
-                                    <p class="text-xs text-gray-500 mb-2">Overwrite all existing data.</p>
-                                    <label for="jsonFileInput" class="file-input-label bg-red-600 hover:bg-red-700 w-full text-center">Restore from File</label>
-                                    <input type="file" id="jsonFileInput" accept=".json">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Column: Form, Stats, and Table -->
-                <div class="lg:col-span-8 space-y-8">
-                    <!-- Add/Update User Form -->
-                    <div class="bg-white rounded-lg shadow-md p-6">
-                        <h2 class="text-2xl font-bold mb-4">Add/Update User Info</h2>
-                        <form id="detailedUserForm" class="space-y-4">
-                             <!-- User Info Row -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div>
-                                    <label for="handleField">Codeforces Handle*</label>
-                                    <input type="text" id="handleField" name="handle" placeholder="e.g., tourist" required>
-                                </div>
-                                <div>
-                                    <label for="fullNameField">Full Name</label>
-                                    <input type="text" id="fullNameField" name="fullName" placeholder="e.g., Gennady Korotkevich">
-                                </div>
-                                <div>
-                                    <label for="linkedinField">LinkedIn Profile</label>
-                                    <input type="url" id="linkedinField" name="linkedin" placeholder="https://linkedin.com/in/...">
-                                </div>
-                            </div>
-                            <!-- University & Scores Row -->
-                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div class="md:col-span-2">
-                                    <label for="universityInput">University</label>
-                                    <input type="text" list="university-list" name="university" id="universityInput" placeholder="Type or select university">
-                                    <datalist id="university-list"></datalist>
-                                </div>
-                                <div>
-                                    <label for="lunaNovaScoreField">Luna Nova Score</label>
-                                    <input type="number" step="0.01" id="lunaNovaScoreField" name="lunaNovaScore" placeholder="0.00">
-                                </div>
-                                <div>
-                                    <label for="lunaHardScoreField">Luna Score</label>
-                                    <input type="number" step="0.01" id="lunaHardScoreField" name="lunaHardScore" placeholder="0.00">
-                                </div>
-                            </div>
-                             <!-- Other Info Row -->
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                                <div>
-                                    <label for="acmLevel">ACM Level</label>
-                                    <select name="acmLevel" id="acmLevel">
-                                        <option value="0">None</option>
-                                        <option value="-1">Codeability</option>
-                                        <option value="10">Level 0</option>
-                                        <option value="1">Level 1</option>
-                                        <option value="2">Level 2</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="joinDate">Join Date</label>
-                                    <input type="month" id="joinDate" name="joinDate">
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700">Profile Picture</label>
-                                    <div class="flex items-center gap-2">
-                                        <input type="text" name="profilePicUrl" id="profilePicUrl" placeholder="Image URL" class="bg-gray-50">
-                                        <label for="profilePicFile" class="file-input-label bg-gray-600 hover:bg-gray-700 text-sm !px-3 !py-1.5 whitespace-nowrap">Choose</label>
-                                        <input type="file" id="profilePicFile" accept="image/*">
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Placements Section -->
-                            <hr class="!my-6"/>
-                            <div class="flex justify-between items-center">
-                                <h3 class="text-lg font-semibold">Placements</h3>
-                                <div class="flex items-center">
-                                    <input type="checkbox" name="isTrusted" id="isTrustedCheckbox" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
-                                    <label for="isTrustedCheckbox" class="ml-2 !mb-0 block text-sm font-medium text-gray-900">This is a trusted user</label>
-                                </div>
-                            </div>
-                            <div id="placementsContainer" class="space-y-4 max-h-96 overflow-y-auto pr-2"></div>
-                            <button type="button" id="addPlacementBtn" class="w-full text-sm bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-md hover:bg-gray-300 transition duration-200">Add Placement</button>
-                            <datalist id="competition-list"></datalist>
-                            <datalist id="team-list"></datalist>
-                            <hr class="!my-6"/>
-                            <!-- Action Buttons -->
-                            <div class="flex gap-4">
-                                <button type="submit" class="w-full bg-green-600 text-white font-bold py-2.5 px-4 rounded-md hover:bg-green-700 transition duration-200">Save User</button>
-                                <button type="button" id="clearFormBtn" class="w-full bg-gray-500 text-white font-bold py-2.5 px-4 rounded-md hover:bg-gray-600 transition duration-200">Clear Form</button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- Statistics Section -->
-                    <div class="stat-card">
-                        <h2 class="text-xl font-bold mb-4">Database Statistics</h2>
-                        <div id="statsContainer" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 text-center">
-                            <!-- Stats will be dynamically inserted here -->
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                            <div class="p-4"><canvas id="acmLevelChart"></canvas></div>
-                            <div class="p-4"><canvas id="competitionChart"></canvas></div>
-                        </div>
-                    </div>
-                    
-                    <!-- User Table Section -->
-                    <div class="bg-white rounded-lg shadow-md">
-                        <div class="p-4 border-b border-gray-200 flex flex-wrap justify-between items-center gap-4">
-                             <h2 class="text-xl font-bold">User Database (<span id="databaseUserCount">0</span>)</h2>
-                             <div class="dropdown">
-                                <button class="bg-purple-600 text-white font-bold py-2 px-4 rounded-md hover:bg-purple-700 transition duration-200 flex items-center gap-2">
-                                    Download
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                                </button>
-                                <div class="dropdown-content">
-                                    <button id="downloadSelectedUsersCsvBtn">Download Selected Users (CSV)</button>
-                                    <button id="downloadAllUsersCsvBtn">Download All Users (CSV)</button>
-                                    <button id="downloadDbFullBackupBtn_dummy">Download Full Backup (JSON)</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table id="detailedUserTable" class="w-full text-sm text-left text-gray-600">
-                                <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
-                                    <tr>
-                                        <th class="p-2 w-10 text-center"><input type="checkbox" id="selectAllUsersCheckbox"></th>
-                                        <th class="p-2 sortable-header" data-sort-key="handle">Handle <span class="sort-icon"></span></th>
-                                        <th class="p-2 sortable-header" data-sort-key="fullName">Full Name <span class="sort-icon"></span></th>
-                                        <th class="p-2 sortable-header" data-sort-key="university">University <span class="sort-icon"></span></th>
-                                        <th class="p-2 sortable-header sort-desc" data-sort-key="updatedAt">Last Updated <span class="sort-icon"></span></th>
-                                        <th class="p-2 text-center">Actions</th>
-                                    </tr>
-                                    <tr>
-                                        <th></th>
-                                        <th><input type="text" data-filter-key="handle" placeholder="Filter..."></th>
-                                        <th><input type="text" data-filter-key="fullName" placeholder="Filter..."></th>
-                                        <th><input type="text" data-filter-key="university" placeholder="Filter..."></th>
-                                        <th></th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="detailedUserTableBody">
-                                    <tr><td colspan="6" class="p-4 text-center text-gray-500">No users in the database yet.</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -465,8 +499,25 @@
             <div id="modalContentContainer"></div>
         </div>
     </div>
+    
+    <!-- AI Modal -->
+    <div id="aiModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-2xl p-6 relative transform scale-95">
+            <h3 class="text-2xl font-bold mb-4 text-fuchsia-800">AI-Powered Insights</h3>
+            <div id="aiInsightContent" class="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
+                <p class="text-gray-600">Generating insights... Please wait.</p>
+            </div>
+            <div class="flex justify-end gap-4 mt-6">
+                <button id="closeAiModalBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Close</button>
+            </div>
+        </div>
+    </div>
 
+    <!-- Toast Notification -->
+    <div id="toast-container"></div>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             // --- STATE VARIABLES ---
@@ -477,6 +528,16 @@
             let charts = {}; // Object to hold all chart instances
             let dbSortState = { key: 'updatedAt', direction: 'desc' };
             let dbFilters = {};
+            let editorSortStates = {
+                competitions: { key: 'name', direction: 'asc' },
+                universities: { key: 'name', direction: 'asc' },
+                teams: { key: 'name', direction: 'asc' }
+            };
+            let editorFilters = {
+                competitions: {},
+                universities: {},
+                teams: {}
+            };
             let confirmCallback = null;
 
             // --- DOM ELEMENT REFERENCES ---
@@ -491,21 +552,21 @@
                 editors: document.getElementById('tabContentEditors'),
                 analyticsdashboard: document.getElementById('tabContentAnalyticsDashboard'),
             };
-            const editorTabButtons = document.querySelectorAll('.editor-tab-btn');
             const editorContainer = document.getElementById('editorContainer');
             const analyticsSubTabs = document.getElementById('analyticsSubTabs');
             
             const jsonFileInput = document.getElementById('jsonFileInput');
             const downloadSelectedUsersCsvBtn = document.getElementById('downloadSelectedUsersCsvBtn');
             const downloadAllUsersCsvBtn = document.getElementById('downloadAllUsersCsvBtn');
+            const downloadSimpleUsersCsvBtn = document.getElementById('downloadSimpleUsersCsvBtn');
             const downloadDbFullBackupBtn = document.getElementById('downloadDbFullBackupBtn');
             const downloadDbFullBackupBtn_dummy = document.getElementById('downloadDbFullBackupBtn_dummy');
             const detailedUserForm = document.getElementById('detailedUserForm');
+            const handleField = document.getElementById('handleField');
             const clearFormBtn = document.getElementById('clearFormBtn');
             const placementsContainer = document.getElementById('placementsContainer');
             const addPlacementBtn = document.getElementById('addPlacementBtn');
             const competitionDataList = document.getElementById('competition-list');
-            const teamDataList = document.getElementById('team-list');
             const universityInput = document.getElementById('universityInput');
             const universityDataList = document.getElementById('university-list');
             const detailedUserTable = document.getElementById('detailedUserTable');
@@ -526,7 +587,12 @@
             const uploadCompetitionsCsvInput = document.getElementById('uploadCompetitionsCsv');
             const uploadUniversitiesCsvInput = document.getElementById('uploadUniversitiesCsv');
             const profilePicFileInput = document.getElementById('profilePicFile');
-            const profilePicUrlInput = document.getElementById('profilePicUrl');
+            const profilePicFileLabel = document.getElementById('profilePicFileLabel');
+            const profilePicUrlHiddenInput = document.getElementById('profilePicUrlHidden');
+            const aiInsightBtn = document.getElementById('aiInsightBtn');
+            const aiModal = document.getElementById('aiModal');
+            const aiInsightContent = document.getElementById('aiInsightContent');
+            const closeAiModalBtn = document.getElementById('closeAiModalBtn');
 
             // --- CHART HELPERS ---
             function destroyChart(chartId) {
@@ -550,7 +616,44 @@
                 return dateStr.slice(0, 7); 
             }
 
-            // --- CONFIRMATION MODAL ---
+            function formatMonthYear(dateString) {
+                if (!dateString) return 'N/A';
+                const date = new Date(dateString);
+                return date.toLocaleString('default', { month: 'short', year: 'numeric' });
+            }
+            
+            function formatMMYYYY(dateString) {
+                if (!dateString) return 'N/A';
+                try {
+                    const date = new Date(dateString);
+                    // Add a day to the date to handle timezone issues where it might be the last day of the previous month in UTC
+                    date.setDate(date.getDate() + 1);
+                    const year = date.getUTCFullYear();
+                    const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+                    return `${month}-${year}`;
+                } catch (e) {
+                    return 'Invalid Date';
+                }
+            }
+
+            // --- NOTIFICATION / MODAL ---
+            function showToast(message, type = 'info', duration = 3000) {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast-notification ${type}`;
+                toast.textContent = message;
+                container.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.classList.add('show');
+                }, 10);
+
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    toast.addEventListener('transitionend', () => toast.remove());
+                }, duration);
+            }
+            
             function showConfirmationModal(title, message, onConfirm) { 
                 confirmationModalTitle.textContent = title; 
                 confirmationModalMessage.textContent = message; 
@@ -569,10 +672,25 @@
                     confirmCallback = null; 
                 }, 300); 
             }
+             function showAiModal() {
+                aiModal.classList.remove('hidden');
+                setTimeout(() => {
+                    aiModal.querySelector('.modal-overlay')?.classList.remove('opacity-0');
+                    aiModal.querySelector('.modal-content')?.classList.remove('scale-95');
+                }, 10);
+            }
+
+            function hideAiModal() {
+                aiModal.querySelector('.modal-overlay')?.classList.add('opacity-0');
+                aiModal.querySelector('.modal-content')?.classList.add('scale-95');
+                setTimeout(() => {
+                    aiModal.classList.add('hidden');
+                }, 300);
+            }
 
             // --- UI and Helper Functions ---
             function loadJsonFile(file) { 
-                if (!file) { displayError('Please select a JSON backup file.'); return; } 
+                if (!file) { showToast('Please select a JSON backup file.', 'error'); return; } 
                 const reader = new FileReader(); 
                 reader.onload = (e) => { 
                     try { 
@@ -586,10 +704,10 @@
                             universityDatabase = data.universities || [];
                             teamDatabase = data.teams || [];
                             renderAll();
-                            displayError(`Successfully loaded backup from ${new Date(data.createdAt).toLocaleString()}.`, 'info');
+                            showToast(`Successfully loaded backup from ${new Date(data.createdAt).toLocaleString()}.`, 'info');
                         });
                     } catch (error) { 
-                        displayError(`Error parsing JSON: ${error.message}`); 
+                        showToast(`Error parsing JSON: ${error.message}`, 'error'); 
                     } 
                 }; 
                 reader.readAsText(file); 
@@ -605,7 +723,6 @@
                 const compName = placement ? placement.name : '';
                 const compData = competitionDatabase[compName] || {};
                 const teamId = placement ? placement.teamId : '';
-                const teamName = teamId ? (teamDatabase.find(t => t.id === teamId)?.name || '') : '';
 
                 placementDiv.innerHTML = `
                     <button type="button" class="remove-placement-btn absolute -top-2.5 -right-2.5 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center font-bold text-sm hover:bg-red-600 z-10">&times;</button>
@@ -616,26 +733,29 @@
                         </div>
                         <div class="team-selection-container ${teamId ? '' : 'hidden'} flex-grow">
                             <label class="font-medium text-xs text-gray-600 sr-only">Team Name*</label>
-                            <input type="text" list="team-list-${uniqueId}" placeholder="Select Team" class="team-name-input w-full text-sm p-2 border border-gray-300 rounded-md" value="${teamName}">
-                            <datalist id="team-list-${uniqueId}"></datalist>
+                            <select class="team-name-select w-full text-sm p-2 border border-gray-300 rounded-md">
+                                <option value="">Select a team...</option>
+                            </select>
                         </div>
                     </div>
-                    <div class="placement-fields">
-                        <div>
+                    <div class="placement-fields grid-cols-1 sm:grid-cols-3">
+                        <div class="sm:col-span-1">
                             <label class="font-medium text-xs text-gray-600">Competition*</label>
                             <input type="text" list="competition-list" placeholder="Competition Name" class="comp-name-input w-full text-sm p-2 border border-gray-300 rounded-md" value="${compName}" required>
                         </div>
-                        <div>
+                        <div class="sm:col-span-1">
                             <label class="font-medium text-xs text-gray-600">Date*</label>
                             <input type="month" class="comp-date-input w-full text-sm p-2 border border-gray-300 rounded-md" value="${compData.date || ''}" required>
                         </div>
-                        <div>
-                             <label class="font-medium text-xs text-gray-600">Rank*</label>
-                             <input type="number" placeholder="Rank" min="1" class="comp-rank-input w-full text-sm p-2 border border-gray-300 rounded-md" value="${placement ? placement.rank : ''}" required>
-                        </div>
-                        <div>
-                             <label class="font-medium text-xs text-gray-600">Total Participants*</label>
-                             <input type="number" placeholder="Total" min="1" class="comp-total-input w-full text-sm p-2 border border-gray-300 rounded-md" value="${placement ? placement.total : (compData.total || '')}" required>
+                        <div class="sm:col-span-1 grid grid-cols-2 gap-2">
+                             <div>
+                                <label class="font-medium text-xs text-gray-600">Rank*</label>
+                                <input type="number" placeholder="Rank" min="1" class="comp-rank-input w-full text-sm p-2 border border-gray-300 rounded-md" value="${placement ? placement.rank : ''}" required>
+                             </div>
+                             <div>
+                                <label class="font-medium text-xs text-gray-600">Total*</label>
+                                <input type="number" placeholder="Total" min="1" class="comp-total-input w-full text-sm p-2 border border-gray-300 rounded-md" value="${placement ? placement.total : (compData.total || '')}" required>
+                             </div>
                         </div>
                     </div>
                     <div class="mt-2">
@@ -648,9 +768,11 @@
                 // Attach event listeners to the new elements
                 const teamCheckbox = placementDiv.querySelector('.team-placement-checkbox');
                 const compNameInput = placementDiv.querySelector('.comp-name-input');
-                const teamNameInput = placementDiv.querySelector('.team-name-input');
+                const teamSelect = placementDiv.querySelector('.team-name-select');
 
-                updateTeamDatalistForEntry(placementDiv);
+                updateTeamSelectForEntry(placementDiv);
+                if (teamId) teamSelect.value = teamId;
+
 
                 placementDiv.querySelector('.remove-placement-btn').addEventListener('click', () => {
                     showConfirmationModal('Remove Placement?', 'Are you sure you want to remove this placement entry?', () => placementDiv.remove());
@@ -679,10 +801,10 @@
 
                     // Auto-populate from teammate
                     const isTeamPlacement = teamCheckbox.checked;
-                    const selectedTeamName = teamNameInput.value;
-                    if (!isTeamPlacement || !selectedTeamName || !currentCompName) return;
+                    const selectedTeamId = teamSelect.value;
+                    if (!isTeamPlacement || !selectedTeamId || !currentCompName) return;
 
-                    const selectedTeam = teamDatabase.find(t => t.name.toLowerCase() === selectedTeamName.toLowerCase());
+                    const selectedTeam = teamDatabase.find(t => t.id === selectedTeamId);
                     if (!selectedTeam) return;
 
                     for (const memberHandle of selectedTeam.members) {
@@ -692,14 +814,14 @@
                             if (teamPlacement) {
                                 compRankInput.value = teamPlacement.rank;
                                 compTotalInput.value = teamPlacement.total;
-                                displayError(`Auto-filled rank for ${currentCompName} from teammate ${member.handle}.`, 'info');
+                                showToast(`Auto-filled rank for ${currentCompName} from teammate ${member.handle}.`, 'info');
                                 return;
                             }
                         }
                     }
                 });
                 
-                teamNameInput.addEventListener('input', () => {
+                teamSelect.addEventListener('change', () => {
                      compNameInput.dispatchEvent(new Event('input')); // Re-trigger check
                 });
 
@@ -708,11 +830,17 @@
 
             function handleDetailedUserFormSubmit(e) {
                 e.preventDefault();
+                const saveButton = document.getElementById('saveUserBtn');
+
+                // --- Start of Async Change ---
                 const formData = new FormData(detailedUserForm);
                 const handle = formData.get('handle').trim();
-                if (!handle) { alert("Handle is required."); return; }
+                if (!handle) { 
+                    showToast("Handle is required.", 'error'); 
+                    return; 
+                }
 
-                const placements = [];
+                const placementsData = [];
                 let placementError = false;
                 document.querySelectorAll('.placement-entry').forEach(entry => {
                     if (placementError) return;
@@ -722,81 +850,101 @@
                     const rankStr = entry.querySelector('.comp-rank-input').value;
                     const totalStr = entry.querySelector('.comp-total-input').value;
                     const isTeamPlacement = entry.querySelector('.team-placement-checkbox').checked;
-                    const teamName = entry.querySelector('.team-name-input').value.trim();
-                    const team = isTeamPlacement ? teamDatabase.find(t => t.name.toLowerCase() === teamName.toLowerCase()) : null;
+                    const teamId = entry.querySelector('.team-name-select').value;
 
                     if (!name || !rankStr || !totalStr || !date || !link) {
-                        alert('Competition Name, Date, Link, Rank, and Total fields are required for all placements.');
+                        showToast('Competition Name, Date, Link, Rank, and Total fields are required for all placements.', 'error');
                         placementError = true; return;
                     }
-                    if(isTeamPlacement && !team) {
-                        alert(`Team "${teamName}" not found. Please create the team first in the Data Editors tab.`);
+                    if(isTeamPlacement && !teamId) {
+                        showToast(`A team must be selected for a team placement in "${name}".`, 'error');
                         placementError = true; return;
                     }
 
                     const rank = parseInt(rankStr, 10);
                     const total = parseInt(totalStr, 10);
                     if (rank > total) {
-                         alert(`Placement error for "${name}": Rank (${rank}) cannot be greater than Total (${total}).`);
+                         showToast(`Placement error for "${name}": Rank (${rank}) cannot be greater than Total (${total}).`, 'error');
                          placementError = true; return;
                     }
 
-                    placements.push({ name, rank, total, teamId: team ? team.id : null });
-                    if (!competitionDatabase[name] || competitionDatabase[name].total !== total || competitionDatabase[name].date !== date || competitionDatabase[name].link !== link) {
-                        competitionDatabase[name] = { total, date, link };
-                    }
+                    placementsData.push({ name, rank, total, teamId: isTeamPlacement ? teamId : null, date, link });
                 });
 
                 if (placementError) return;
                 
-                const universityName = formData.get('university').trim();
-                if (universityName && !universityDatabase.includes(universityName)) {
-                    universityDatabase.push(universityName);
-                    universityDatabase.sort();
-                }
+                saveButton.disabled = true;
+                saveButton.innerHTML = `<div class="flex justify-center items-center gap-2"><div class="spinner w-4 h-4 border-2 rounded-full"></div>Saving...</div>`;
+                
+                setTimeout(() => {
+                    const universityName = formData.get('university').trim();
+                    if (universityName && !universityDatabase.includes(universityName)) {
+                        universityDatabase.push(universityName);
+                        universityDatabase.sort();
+                    }
 
-                const userToSave = {
-                    id: handle.toLowerCase(),
-                    handle: handle,
-                    fullName: formData.get('fullName').trim(),
-                    linkedin: formData.get('linkedin').trim(),
-                    university: universityName,
-                    profilePicUrl: formData.get('profilePicUrl').trim(),
-                    lunaNovaScore: parseFloat(formData.get('lunaNovaScore')) || 0,
-                    lunaHardScore: parseFloat(formData.get('lunaHardScore')) || 0,
-                    acmLevel: parseInt(formData.get('acmLevel'), 10),
-                    joinDate: formData.get('joinDate') || null,
-                    isTrusted: detailedUserForm.querySelector('#isTrustedCheckbox').checked,
-                    placements: placements,
-                    updatedAt: new Date()
-                };
+                    // Process competitions from placements
+                    placementsData.forEach(p => {
+                        if (!competitionDatabase[p.name] || competitionDatabase[p.name].total !== p.total || competitionDatabase[p.name].date !== p.date || competitionDatabase[p.name].link !== p.link) {
+                           competitionDatabase[p.name] = { total: parseInt(p.total, 10), date: p.date, link: p.link };
+                        }
+                    });
 
-                saveUserAndUpdateTeams(userToSave);
-                clearDetailedUserForm();
-                renderAll();
+                    const userToSave = {
+                        id: handle.toLowerCase(),
+                        handle: handle,
+                        fullName: formData.get('fullName').trim(),
+                        linkedin: formData.get('linkedin').trim(),
+                        university: universityName,
+                        profilePicUrl: formData.get('profilePicUrl').trim(),
+                        lunaNovaScore: parseFloat(formData.get('lunaNovaScore')) || 0,
+                        lunaHardScore: parseFloat(formData.get('lunaHardScore')) || 0,
+                        acmLevel: parseInt(formData.get('acmLevel'), 10),
+                        joinDate: formData.get('joinDate') || null,
+                        universityStartDate: formData.get('universityStartDate') || null,
+                        isTrusted: detailedUserForm.querySelector('#isTrustedCheckbox').checked,
+                        placements: placementsData.map(({name, rank, total, teamId}) => ({name, rank, total, teamId})), // Save only necessary fields
+                        updatedAt: new Date()
+                    };
+
+                    saveUserAndUpdateTeams(userToSave);
+                    
+                    // Restore button and give feedback
+                    saveButton.disabled = false;
+                    saveButton.innerHTML = 'Save User';
+                    clearDetailedUserForm();
+                    renderAll();
+                    showToast(`User ${userToSave.handle} saved successfully.`, 'info');
+
+                }, 50); // Small delay to allow UI to update
+                // --- End of Async Change ---
             }
+
 
             function saveUserAndUpdateTeams(userToSave) {
                 const existingIndex = userDatabase.findIndex(u => u.id === userToSave.id);
                 if (existingIndex > -1) {
-                    userDatabase[existingIndex] = userToSave;
+                    // Replace the existing user object with the updated one
+                    userDatabase.splice(existingIndex, 1, userToSave);
                 } else {
                     userDatabase.push(userToSave);
                 }
 
+                // Propagate team placements to other members
                 userToSave.placements.filter(p => p.teamId).forEach(teamPlacement => {
                     const team = teamDatabase.find(t => t.id === teamPlacement.teamId);
                     if (!team) return;
 
                     team.members.forEach(memberHandle => {
-                        if (memberHandle.toLowerCase() === userToSave.id) return; 
+                        if (memberHandle.toLowerCase() === userToSave.id) return; // Don't propagate to self
 
                         let member = userDatabase.find(u => u.handle.toLowerCase() === memberHandle.toLowerCase());
                         if (member) {
-                            const hasPlacement = member.placements.some(p => p.name === teamPlacement.name && p.rank === teamPlacement.rank && p.teamId === teamPlacement.teamId);
+                            const hasPlacement = member.placements.some(p => p.name.toLowerCase() === teamPlacement.name.toLowerCase() && p.teamId === teamPlacement.teamId);
                             if (!hasPlacement) {
                                 member.placements.push(teamPlacement);
                                 member.updatedAt = new Date();
+                                showToast(`Propagated '${teamPlacement.name}' to ${member.handle}.`, 'info');
                             }
                         }
                     });
@@ -809,6 +957,10 @@
                 detailedUserForm.querySelector('[name="handle"]').readOnly = false;
                 detailedUserForm.querySelector('#isTrustedCheckbox').checked = true;
                 universityInput.value = "";
+                profilePicUrlHiddenInput.value = "";
+                profilePicFileLabel.classList.remove('bg-green-600', 'hover:bg-green-700');
+                profilePicFileLabel.classList.add('bg-gray-600', 'hover:bg-gray-700');
+                profilePicFileLabel.textContent = "Choose File";
             }
 
             function renderAll() {
@@ -821,7 +973,7 @@
             
             function updateAllDatalists() {
                 updateCompetitionDatalist();
-                document.querySelectorAll('.placement-entry').forEach(updateTeamDatalistForEntry);
+                document.querySelectorAll('.placement-entry').forEach(updateTeamSelectForEntry);
                 populateUniversityDatalist();
             }
 
@@ -847,6 +999,7 @@
 
                 if (filteredUsers.length === 0) {
                     detailedUserTableBody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-gray-500">No matching users found.</td></tr>`;
+                    updateSelectAllState(detailedUserTable);
                     return;
                 }
 
@@ -871,6 +1024,7 @@
                     detailedUserTableBody.appendChild(row);
                 });
                 updateDbSortIndicators();
+                updateSelectAllState(detailedUserTable);
             }
             
             // --- CSV and Backup/Restore ---
@@ -894,10 +1048,10 @@
             }
 
             function handleFileUpload(file, handler) {
-                if (!file) { displayError('Please select a file to upload.'); return; }
+                if (!file) { showToast('Please select a file to upload.', 'error'); return; }
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    try { handler(e.target.result); } catch (error) { displayError(`Error processing file: ${error.message}`); console.error(error); }
+                    try { handler(e.target.result); } catch (error) { showToast(`Error processing file: ${error.message}`, 'error'); console.error(error); }
                 };
                 reader.readAsText(file);
             }
@@ -920,6 +1074,7 @@
                                 lunaHardScore: parseFloat(newUserRow.lunaHardScore) || 0,
                                 acmLevel: parseInt(newUserRow.acmLevel, 10) || 0,
                                 joinDate: newUserRow.joinDate || null,
+                                universityStartDate: newUserRow.universityStartDate || null,
                                 isTrusted: newUserRow.isTrusted ? newUserRow.isTrusted.toLowerCase() === 'true' : true,
                                 placements: placements,
                                 updatedAt: new Date()
@@ -930,7 +1085,7 @@
                         }
                     });
                     renderAll();
-                    displayError(`${newUsers.length} users processed.`);
+                    showToast(`${newUsers.length} users processed.`, 'info');
                 });
             }
 
@@ -949,7 +1104,7 @@
                     }
                 });
                 renderAll();
-                displayError(`${addedCount} competitions added or updated.`);
+                showToast(`${addedCount} competitions added or updated.`, 'info');
             }
 
             function handleUniversityUpload(csvText) {
@@ -963,7 +1118,7 @@
                 });
                 universityDatabase.sort();
                 renderAll();
-                displayError(`${addedCount} new universities added.`);
+                showToast(`${addedCount} new universities added.`, 'info');
             }
 
              function handleTeamUpload(csvText) {
@@ -972,35 +1127,62 @@
                 newTeams.forEach(teamRow => {
                     const name = teamRow['Team Name'];
                     const university = teamRow['University'];
-                    const members = teamRow['Members'] ? teamRow['Members'].split(';').map(h => h.trim()) : [];
+                    const members = teamRow['Members'] ? teamRow['Members'].split(',').map(h => h.trim()) : [];
                     if (name && university) {
                         const existingTeam = teamDatabase.find(t => t.name.toLowerCase() === name.toLowerCase());
+                        const teamData = {
+                            name, university, members,
+                            isActive: teamRow['Is Active'] ? teamRow['Is Active'].toLowerCase() === 'true' : true,
+                            createdAt: teamRow['Created At'] || new Date().toISOString(),
+                            inactiveAt: teamRow['Inactive At'] || null
+                        };
+
                         if (existingTeam) {
-                            existingTeam.university = university;
-                            existingTeam.members = members;
+                            existingTeam.university = teamData.university;
+                            existingTeam.members = teamData.members;
+                            existingTeam.isActive = teamData.isActive;
+                            existingTeam.inactiveAt = teamData.inactiveAt;
                         } else {
-                            teamDatabase.push({ id: crypto.randomUUID(), name, university, members });
+                            teamData.id = crypto.randomUUID();
+                            teamDatabase.push(teamData);
                         }
                         addedCount++;
                     }
                 });
                 renderAll();
-                displayError(`${addedCount} teams added or updated.`);
+                showToast(`${addedCount} teams added or updated.`, 'info');
             }
             
             function downloadUsersCSV(usersToDownload) {
                 if (usersToDownload.length === 0) { alert("No users selected to download."); return; }
-                const headers = ['handle', 'fullName', 'linkedin', 'university', 'profilePicUrl', 'lunaNovaScore', 'lunaHardScore', 'acmLevel', 'joinDate', 'isTrusted', 'placements_json'];
+                const headers = ['handle', 'fullName', 'linkedin', 'university', 'profilePicUrl', 'lunaNovaScore', 'lunaHardScore', 'acmLevel', 'joinDate', 'universityStartDate', 'isTrusted', 'placements_json'];
                 const rows = usersToDownload.map(user => {
                     const placementsStr = `"${JSON.stringify(user.placements).replace(/"/g, '""')}"`;
                     return [
                         user.handle, user.fullName, user.linkedin, user.university,
                         user.profilePicUrl || '', user.lunaNovaScore, user.lunaHardScore, user.acmLevel,
-                        user.joinDate || '', user.isTrusted, placementsStr
+                        user.joinDate || '', user.universityStartDate || '', user.isTrusted, placementsStr
                     ].join(',');
                 });
                 const csvString = [headers.join(','), ...rows].join('\n');
                 downloadFile(csvString, `users_export_${getFormattedDateTimeString()}.csv`, 'text/csv;charset=utf-8;');
+            }
+
+            function downloadSimpleUsersCSV() {
+                if (userDatabase.length === 0) { alert("No users in the database to download."); return; }
+                const headers = ['handle', 'luna_nova', 'luna_hard', 'placements', 'is_trusted'];
+                const rows = userDatabase.map(user => {
+                    const placementsStr = `"${user.placements.map(p => `${p.rank}/${p.total}`).join(';')}"`;
+                    return [
+                        user.handle,
+                        user.lunaNovaScore,
+                        user.lunaHardScore,
+                        placementsStr,
+                        user.isTrusted
+                    ].join(',');
+                });
+                const csvString = [headers.join(','), ...rows].join('\n');
+                downloadFile(csvString, `users_simple_export_${getFormattedDateTimeString()}.csv`, 'text/csv;charset=utf-8;');
             }
             
             function downloadDbFullBackup() {
@@ -1033,8 +1215,11 @@
                 attachEditorTableEventListeners(activeTab);
             }
 
-            function getGenericEditorHTML(type, title, tableHeaders) {
+            function getGenericEditorHTML(type, title, headers) {
                 const typeCaps = capitalize(type);
+                const tableHeaders = headers.map(h => `<th class="p-3 sortable-header" data-sort-key="${h.key}">${h.label} <span class="sort-icon"></span></th>`).join('');
+                const filterHeaders = headers.map(h => `<th>${h.filterable ? `<input type="text" data-filter-key="${h.key}" placeholder="Filter...">` : ''}</th>`).join('');
+
                 return `
                     <div id="editorContent${typeCaps}" data-editor-type="${type}">
                         <div class="flex justify-between items-center mb-4">
@@ -1043,6 +1228,7 @@
                         <div id="${type}EditorView">
                              <div class="flex flex-wrap gap-4 items-center mb-4">
                                 <button id="add${typeCaps}RowBtn" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700 transition text-sm">Add New ${typeCaps.slice(0,-1)}</button>
+                                <button id="deleteSelected${typeCaps}Btn" class="bg-red-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-700 transition text-sm">Delete Selected</button>
                                 <div class="flex-grow"></div>
                                 <label for="upload${typeCaps}CsvEditor" class="file-input-label bg-blue-600 hover:bg-blue-700 !text-sm !py-2 !px-4">Upload CSV</label>
                                 <input type="file" id="upload${typeCaps}CsvEditor" accept=".csv">
@@ -1051,7 +1237,14 @@
                             <div class="overflow-x-auto border rounded-lg">
                                 <table id="${type}EditorTable" class="w-full text-sm text-left text-gray-600 editor-table">
                                     <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
-                                        <tr>${tableHeaders.map(h => `<th class="p-3">${h}</th>`).join('')}</tr>
+                                        <tr>
+                                            <th class="p-2 w-10 text-center"><input type="checkbox" class="select-all-editor-checkbox"></th>
+                                            ${tableHeaders}
+                                        </tr>
+                                        <tr>
+                                            <th></th>
+                                            ${filterHeaders}
+                                        </tr>
                                     </thead>
                                     <tbody></tbody>
                                 </table>
@@ -1062,55 +1255,116 @@
             }
 
             function getCompetitionEditorHTML() {
-                return getGenericEditorHTML('competitions', 'Competition Editor', ['Competition Name', 'Date (YYYY-MM)', 'Total Participants', 'Link', 'Actions']);
+                return getGenericEditorHTML('competitions', 'Competition Editor', [
+                    { label: 'Competition Name', key: 'name', filterable: true },
+                    { label: 'Date (YYYY-MM)', key: 'date', filterable: true },
+                    { label: 'Total Participants', key: 'total', filterable: true },
+                    { label: 'Link', key: 'link', filterable: false },
+                    { label: 'Actions', key: 'actions', filterable: false }
+                ]);
             }
 
             function getUniversityEditorHTML() {
-                return getGenericEditorHTML('universities', 'University Editor', ['University Name', 'Actions']);
+                return getGenericEditorHTML('universities', 'University Editor', [
+                    { label: 'University Name', key: 'name', filterable: true },
+                    { label: 'Actions', key: 'actions', filterable: false }
+                ]);
             }
 
             function getTeamEditorHTML() {
-                return getGenericEditorHTML('teams', 'Team Editor', ['Team Name', 'University', 'Members (handles, ; separated)', 'Actions']);
+                return getGenericEditorHTML('teams', 'Team Editor', [
+                    { label: 'Team Name', key: 'name', filterable: true },
+                    { label: 'University', key: 'university', filterable: true },
+                    { label: 'Members', key: 'members', filterable: false },
+                    { label: 'Active', key: 'isActive', filterable: false },
+                    { label: 'Created At', key: 'createdAt', filterable: true },
+                    { label: 'Inactive At', key: 'inactiveAt', filterable: true },
+                    { label: 'Actions', key: 'actions', filterable: false }
+                ]);
             }
 
             function renderEditorTable(editorType) {
-                const tableBody = document.querySelector(`#${editorType}EditorTable tbody`);
+                const table = document.querySelector(`#${editorType}EditorTable`);
+                if (!table) return;
+                const tableBody = table.querySelector('tbody');
                 if (!tableBody) return;
                 tableBody.innerHTML = '';
-
+                
+                let data;
                 switch (editorType) {
                     case 'competitions':
-                        Object.entries(competitionDatabase).sort((a,b) => a[0].localeCompare(b[0])).forEach(([name, data]) => {
-                            const row = tableBody.insertRow();
-                            row.dataset.id = name;
-                            row.innerHTML = `
-                                <td class="p-2" data-key="name">${createCompetitionLink(name)}</td>
-                                <td class="p-2" data-key="date">${data.date || ''}</td>
-                                <td class="p-2" data-key="total">${data.total || ''}</td>
-                                <td class="p-2" data-key="link"><a href="${data.link || '#'}" target="_blank" class="text-blue-600 hover:underline">${data.link ? 'Link' : ''}</a></td>
-                                <td class="p-2 whitespace-nowrap"><button class="edit-btn text-blue-600 hover:underline">Edit</button></td>`;
-                        });
+                        data = Object.entries(competitionDatabase).map(([name, d]) => ({ ...d, name }));
                         break;
                     case 'universities':
-                        universityDatabase.forEach(name => {
-                            const row = tableBody.insertRow();
-                            row.dataset.id = name;
-                            row.innerHTML = `<td class="p-2" data-key="name">${name}</td>
-                                <td class="p-2 whitespace-nowrap"><button class="edit-btn text-blue-600 hover:underline">Edit</button> <button class="delete-btn text-red-600 hover:underline ml-2">Delete</button></td>`;
-                        });
+                        data = universityDatabase.map(name => ({ name }));
                         break;
                     case 'teams':
-                        teamDatabase.sort((a,b) => a.name.localeCompare(b.name)).forEach(team => {
-                            const row = tableBody.insertRow();
-                            row.dataset.id = team.id;
-                            row.innerHTML = `
-                                <td class="p-2" data-key="name">${createTeamLink(team.name, team.id)}</td>
-                                <td class="p-2" data-key="university">${team.university}</td>
-                                <td class="p-2" data-key="members">${team.members.map(m => createUserLink(m)).join('; ')}</td>
-                                <td class="p-2 whitespace-nowrap"><button class="edit-btn text-blue-600 hover:underline">Edit</button> <button class="delete-btn text-red-600 hover:underline ml-2">Delete</button></td>`;
-                        });
+                        data = [...teamDatabase];
                         break;
                 }
+
+                // Apply filters
+                const filters = editorFilters[editorType];
+                const filteredData = data.filter(item => {
+                    return Object.entries(filters).every(([key, value]) => {
+                        let itemValue = item[key];
+                        // Special handling for date filtering
+                        if (key === 'createdAt' || key === 'inactiveAt') {
+                            itemValue = formatMMYYYY(itemValue);
+                        }
+                        return String(itemValue || '').toLowerCase().includes(value.toLowerCase());
+                    });
+                });
+
+                // Apply sorting
+                const { key, direction } = editorSortStates[editorType];
+                filteredData.sort((a, b) => {
+                    const valA = a[key] || '';
+                    const valB = b[key] || '';
+                    if (valA < valB) return direction === 'asc' ? -1 : 1;
+                    if (valA > valB) return direction === 'asc' ? 1 : -1;
+                    return 0;
+                });
+
+                // Render rows
+                filteredData.forEach(item => {
+                    const row = tableBody.insertRow();
+                    switch (editorType) {
+                        case 'competitions':
+                            row.dataset.id = item.name;
+                            row.innerHTML = `
+                                <td class="p-2 text-center"><input type="checkbox" class="editor-select-checkbox" data-id="${item.name}"></td>
+                                <td class="p-2" data-key="name">${createCompetitionLink(item.name)}</td>
+                                <td class="p-2" data-key="date">${item.date || ''}</td>
+                                <td class="p-2" data-key="total">${item.total || ''}</td>
+                                <td class="p-2" data-key="link"><a href="${item.link || '#'}" target="_blank" class="text-blue-600 hover:underline">${item.link ? 'Link' : ''}</a></td>
+                                <td class="p-2 whitespace-nowrap"><button class="edit-btn text-blue-600 hover:underline">Edit</button> <button class="delete-btn text-red-600 hover:underline ml-2">Delete</button></td>`;
+                            break;
+                        case 'universities':
+                            row.dataset.id = item.name;
+                            row.innerHTML = `
+                                <td class="p-2 text-center"><input type="checkbox" class="editor-select-checkbox" data-id="${item.name}"></td>
+                                <td class="p-2" data-key="name">${item.name}</td>
+                                <td class="p-2 whitespace-nowrap"><button class="edit-btn text-blue-600 hover:underline">Edit</button> <button class="delete-btn text-red-600 hover:underline ml-2">Delete</button></td>`;
+                            break;
+                        case 'teams':
+                            row.dataset.id = item.id;
+                            row.innerHTML = `
+                                <td class="p-2 text-center"><input type="checkbox" class="editor-select-checkbox" data-id="${item.id}"></td>
+                                <td class="p-2" data-key="name">${createTeamLink(item.name, item.id)}</td>
+                                <td class="p-2" data-key="university">${item.university}</td>
+                                <td class="p-2" data-key="members">
+                                    <div class="space-y-1">${item.members.map(m => `<div>${createUserLink(m)}</div>`).join('')}</div>
+                                </td>
+                                <td class="p-2" data-key="isActive"><input type="checkbox" ${item.isActive ? 'checked' : ''} disabled></td>
+                                <td class="p-2" data-key="createdAt">${formatMMYYYY(item.createdAt)}</td>
+                                <td class="p-2" data-key="inactiveAt">${formatMMYYYY(item.inactiveAt)}</td>
+                                <td class="p-2 whitespace-nowrap"><button class="edit-btn text-blue-600 hover:underline">Edit</button> <button class="delete-btn text-red-600 hover:underline ml-2">Delete</button></td>`;
+                            break;
+                    }
+                });
+                updateEditorSortIndicators(editorType);
+                updateSelectAllState(table);
             }
             
             function addEditorTableRow(editorType) {
@@ -1121,21 +1375,49 @@
                 let cells = '';
                 switch (editorType) {
                     case 'competitions':
-                        cells = `<td><input type="text" data-key="name" placeholder="New Competition"></td>
+                        cells = `<td></td>
+                                 <td><input type="text" data-key="name" placeholder="New Competition"></td>
                                  <td><input type="month" data-key="date"></td>
                                  <td><input type="number" data-key="total" placeholder="0"></td>
                                  <td><input type="url" data-key="link" placeholder="URL"></td>`;
                         break;
                     case 'universities':
-                        cells = `<td><input type="text" data-key="name" placeholder="New University"></td>`;
+                        cells = `<td></td>
+                                 <td><input type="text" data-key="name" placeholder="New University"></td>`;
                         break;
                     case 'teams':
-                        cells = `<td><input type="text" data-key="name" placeholder="New Team"></td>
+                        const today = new Date();
+                        const year = today.getFullYear();
+                        const month = (today.getMonth() + 1).toString().padStart(2, '0');
+
+                        cells = `<td></td>
+                                 <td><input type="text" data-key="name" placeholder="New Team"></td>
                                  <td><input type="text" list="university-list" data-key="university" placeholder="University"></td>
-                                 <td><textarea data-key="members" placeholder="handle1; handle2"></textarea></td>`;
+                                 <td><select data-key="members" class="team-members-select" multiple="multiple" style="width: 100%;"></select></td>
+                                 <td><input type="checkbox" data-key="isActive" class="is-active-checkbox" checked></td>
+                                 <td><input type="month" data-key="createdAt" value="${year}-${month}"></td>
+                                 <td><input type="month" data-key="inactiveAt" class="inactive-at-input" disabled></td>
+                                 `;
                         break;
                 }
                 row.innerHTML = `${cells}<td class="p-2 whitespace-nowrap"><button class="save-btn text-green-600 hover:underline">Save</button> <button class="cancel-btn text-gray-600 hover:underline ml-2">Cancel</button></td>`;
+                
+                if (editorType === 'teams') {
+                    const select = row.querySelector('.team-members-select');
+                    userDatabase.forEach(user => {
+                        $(select).append(new Option(user.handle, user.handle, false, false));
+                    });
+                    $(select).select2({ placeholder: "Select members" });
+
+                    const isActiveCheckbox = row.querySelector('.is-active-checkbox');
+                    const inactiveAtInput = row.querySelector('.inactive-at-input');
+                    isActiveCheckbox.addEventListener('change', (e) => {
+                        inactiveAtInput.disabled = e.target.checked;
+                        if(e.target.checked) {
+                            inactiveAtInput.value = '';
+                        }
+                    });
+                }
             }
 
             function handleEditorTableEvents(e, editorType) {
@@ -1145,22 +1427,55 @@
                 const id = row.dataset.id;
 
                 if (btn.classList.contains('edit-btn')) {
+                    const itemData = editorType === 'teams' ? teamDatabase.find(t => t.id === id) : null;
+
                     row.querySelectorAll('td[data-key]').forEach(td => {
                         const key = td.dataset.key;
-                        const value = td.textContent;
-                        if (key === 'members') {
-                            td.innerHTML = `<textarea data-key="members">${value}</textarea>`;
+                        let value = td.textContent.trim();
+                         if (key === 'members') {
+                            const members = Array.from(td.querySelectorAll('.user-link')).map(link => link.dataset.handle);
+                            td.innerHTML = `<select data-key="members" class="team-members-select" multiple="multiple" style="width: 100%;"></select>`;
+                            const select = td.querySelector('.team-members-select');
+                            userDatabase.forEach(user => {
+                                const isSelected = members.includes(user.handle);
+                                $(select).append(new Option(user.handle, user.handle, isSelected, isSelected));
+                            });
+                            $(select).select2({ placeholder: "Select members" }).trigger('change');
                         } else if (key === 'university') {
                             td.innerHTML = `<input type="text" list="university-list" data-key="university" value="${value}">`;
                         } else if (key === 'date') {
                              td.innerHTML = `<input type="month" data-key="date" value="${value}">`;
+                        } else if (key === 'inactiveAt') {
+                             td.innerHTML = `<input type="month" data-key="inactiveAt" class="inactive-at-input" value="${formatDateForInput(itemData?.inactiveAt)}" ${itemData?.isActive ? 'disabled' : ''}>`;
                         } else if (key === 'link') {
                              td.innerHTML = `<input type="url" data-key="link" value="${td.querySelector('a')?.href || ''}">`;
+                        } else if (key === 'isActive') {
+                            const isChecked = td.querySelector('input').checked;
+                            td.innerHTML = `<input type="checkbox" data-key="isActive" class="is-active-checkbox" ${isChecked ? 'checked' : ''}>`;
+                        } else if (key === 'createdAt') {
+                            const team = teamDatabase.find(t => t.id === id);
+                            const dateValue = team ? new Date(team.createdAt) : new Date();
+                            dateValue.setDate(dateValue.getDate() + 1);
+                            const year = dateValue.getUTCFullYear();
+                            const month = (dateValue.getUTCMonth() + 1).toString().padStart(2, '0');
+                            td.innerHTML = `<input type="month" data-key="createdAt" value="${year}-${month}">`;
                         } else {
                             td.innerHTML = `<input type="text" data-key="${key}" value="${value}">`;
                         }
                     });
-                    btn.outerHTML = `<button class="save-btn text-green-600 hover:underline">Save</button> <button class="cancel-btn text-gray-600 hover:underline ml-2">Cancel</button>`;
+                    btn.closest('td').innerHTML = `<button class="save-btn text-green-600 hover:underline">Save</button> <button class="cancel-btn text-gray-600 hover:underline ml-2">Cancel</button>`;
+                    
+                    if (editorType === 'teams') {
+                        const isActiveCheckbox = row.querySelector('.is-active-checkbox');
+                        const inactiveAtInput = row.querySelector('.inactive-at-input');
+                        isActiveCheckbox.addEventListener('change', (e) => {
+                            inactiveAtInput.disabled = e.target.checked;
+                            if(e.target.checked) {
+                                inactiveAtInput.value = '';
+                            }
+                        });
+                    }
+
                 } else if (btn.classList.contains('cancel-btn')) {
                     if (id.startsWith('new_')) {
                         row.remove();
@@ -1168,8 +1483,9 @@
                         renderEditorTable(editorType); // Just re-render to cancel edits
                     }
                 } else if (btn.classList.contains('delete-btn')) {
-                    showConfirmationModal(`Delete ${editorType.slice(0, -1)}?`, `Are you sure you want to delete this entry? This cannot be undone.`, () => {
+                    showConfirmationModal(`Delete ${capitalize(editorType.slice(0, -1))}?`, `Are you sure you want to delete this entry? This cannot be undone.`, () => {
                         switch (editorType) {
+                            case 'competitions': delete competitionDatabase[id]; break;
                             case 'universities': universityDatabase = universityDatabase.filter(name => name !== id); break;
                             case 'teams': teamDatabase = teamDatabase.filter(t => t.id !== id); break;
                         }
@@ -1179,15 +1495,21 @@
                     const data = {};
                     let newId;
                     let isValid = true;
-                    row.querySelectorAll('[data-key]').forEach(input => {
+                    
+                    row.querySelectorAll('input[data-key], select[data-key]').forEach(input => {
                         const key = input.dataset.key;
-                        const value = input.value.trim();
-                        if (key === 'name' && !value) {
+                        const value = input.type === 'checkbox' ? input.checked : (input.value || '').trim();
+                         if (key === 'name' && !value) {
                             isValid = false;
                             alert("Name cannot be empty.");
                         }
                         if (key === 'name') newId = value;
-                        data[key] = value;
+
+                        if (key === 'members') {
+                            data[key] = $(input).val();
+                        } else {
+                            data[key] = value;
+                        }
                     });
 
                     if (!isValid) return;
@@ -1212,15 +1534,35 @@
                                 universityDatabase.push(universityName);
                                 universityDatabase.sort();
                             }
+                            
+                            const createdAtDate = data.createdAt ? new Date(data.createdAt).toISOString() : new Date().toISOString();
+                            let inactiveAtDate = data.inactiveAt ? new Date(data.inactiveAt).toISOString() : null;
+
+                            if (data.isActive) {
+                                inactiveAtDate = null; // Force inactive date to null if team is active
+                            }
+
+                            if (inactiveAtDate && new Date(inactiveAtDate) < new Date(createdAtDate)) {
+                                showToast('Inactive date cannot be before the created date.', 'error');
+                                return;
+                            }
+
+                            const teamIndex = teamDatabase.findIndex(t => t.id === id);
                             const teamData = {
-                                id: id.startsWith('new_') ? crypto.randomUUID() : id,
                                 name: data.name,
-                                university: universityName,
-                                members: data.members.split(';').map(h => h.trim()).filter(Boolean)
+                                university: data.university,
+                                members: data.members || [],
+                                isActive: data.isActive,
+                                createdAt: createdAtDate,
+                                inactiveAt: inactiveAtDate
                             };
-                            const teamIndex = teamDatabase.findIndex(t => t.id === teamData.id);
-                            if (teamIndex > -1) teamDatabase[teamIndex] = teamData;
-                            else teamDatabase.push(teamData);
+
+                            if (teamIndex > -1) {
+                                teamDatabase[teamIndex] = { ...teamDatabase[teamIndex], ...teamData };
+                            } else {
+                                teamData.id = crypto.randomUUID();
+                                teamDatabase.push(teamData);
+                            }
                             break;
                     }
                     renderAll();
@@ -1242,29 +1584,98 @@
                         universityDatabase.forEach(name => rows.push([name]));
                         break;
                     case 'teams':
-                        rows.push(['Team Name', 'University', 'Members']);
+                        rows.push(['Team Name', 'University', 'Members', 'Is Active', 'Created At', 'Inactive At']);
                         teamDatabase.forEach(team => {
-                            rows.push([team.name, team.university, team.members.join(';')]);
+                            rows.push([`"${team.name}"`, `"${team.university}"`, `"${team.members.join(',')}"`, team.isActive, new Date(team.createdAt).toISOString(), team.inactiveAt ? new Date(team.inactiveAt).toISOString() : '']);
                         });
                         break;
                 }
-                const csvString = rows.map(e => e.join(",")).join("\n");
+                const csvString = rows.map(e => e.map(cell => typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell).join(",")).join("\n");
                 downloadFile(csvString, `${editorType}_export_${getFormattedDateTimeString()}.csv`, 'text/csv;charset=utf-8;')
             }
 
-            function attachEditorTableEventListeners(editorType) {
-                const typeCaps = capitalize(editorType);
-                document.getElementById(`add${typeCaps}RowBtn`)?.addEventListener('click', () => addEditorTableRow(editorType));
-                document.querySelector(`#${editorType}EditorTable tbody`)?.addEventListener('click', (e) => handleEditorTableEvents(e, editorType));
-                
-                const uploadInput = document.getElementById(`upload${typeCaps}CsvEditor`);
-                if (uploadInput) {
-                    uploadInput.addEventListener('change', (e) => {
-                        const handlers = { competitions: handleCompetitionUpload, universities: handleUniversityUpload, teams: handleTeamUpload };
-                        handleFileUpload(e.target.files[0], handlers[editorType]); e.target.value = '';
-                    });
+            function handleDeleteSelected(editorType) {
+                const table = document.getElementById(`${editorType}EditorTable`);
+                const selectedCheckboxes = table.querySelectorAll('.editor-select-checkbox:checked');
+                if (selectedCheckboxes.length === 0) {
+                    showToast('No items selected to delete.', 'error');
+                    return;
                 }
-                document.getElementById(`download${typeCaps}CsvEditor`)?.addEventListener('click', () => downloadEditorCSV(editorType));
+
+                const idsToDelete = Array.from(selectedCheckboxes).map(cb => cb.dataset.id);
+
+                showConfirmationModal(`Delete ${selectedCheckboxes.length} items?`, 'This action is permanent and cannot be undone.', () => {
+                    let deletedCount = 0;
+                    switch (editorType) {
+                        case 'competitions':
+                            idsToDelete.forEach(id => { if(competitionDatabase[id]) { delete competitionDatabase[id]; deletedCount++; } });
+                            break;
+                        case 'universities':
+                            const initialLengthUni = universityDatabase.length;
+                            universityDatabase = universityDatabase.filter(name => !idsToDelete.includes(name));
+                            deletedCount = initialLengthUni - universityDatabase.length;
+                            break;
+                        case 'teams':
+                            const initialLengthTeam = teamDatabase.length;
+                            teamDatabase = teamDatabase.filter(t => !idsToDelete.includes(t.id));
+                            deletedCount = initialLengthTeam - teamDatabase.length;
+                            break;
+                    }
+                    showToast(`${deletedCount} items deleted.`, 'info');
+                    renderAll();
+                });
+            }
+
+            function attachEditorTableEventListeners(editorType) {
+                const editorContentDiv = document.querySelector(`[data-editor-type="${editorType}"]`);
+                if(!editorContentDiv) return;
+
+                editorContentDiv.addEventListener('click', e => {
+                    const targetId = e.target.id;
+                    const editorTable = editorContentDiv.querySelector('.editor-table');
+
+                    if (targetId === `add${capitalize(editorType)}RowBtn`) {
+                        addEditorTableRow(editorType);
+                    } else if (targetId === `deleteSelected${capitalize(editorType)}Btn`) {
+                        handleDeleteSelected(editorType);
+                    } else if (targetId === `download${capitalize(editorType)}CsvEditor`) {
+                        downloadEditorCSV(editorType);
+                    } else if (e.target.closest('.sortable-header')) {
+                        const header = e.target.closest('.sortable-header');
+                        const key = header.dataset.sortKey;
+                        let direction = 'desc';
+                        if (editorSortStates[editorType].key === key) {
+                            direction = editorSortStates[editorType].direction === 'desc' ? 'asc' : 'desc';
+                        }
+                        editorSortStates[editorType] = { key, direction };
+                        renderEditorTable(editorType);
+                    } else if (e.target.matches('.save-btn, .cancel-btn, .edit-btn, .delete-btn')) {
+                        handleEditorTableEvents(e, editorType);
+                    }
+                });
+                
+                editorContentDiv.addEventListener('change', e => {
+                    const target = e.target;
+                    const editorTable = editorContentDiv.querySelector('.editor-table');
+                    if (target.matches('.select-all-editor-checkbox')) {
+                        editorTable.querySelectorAll('tbody .editor-select-checkbox').forEach(cb => {
+                            cb.checked = target.checked;
+                        });
+                    } else if(target.matches('.editor-select-checkbox')) {
+                        updateSelectAllState(editorTable);
+                    } else if (target.id === `upload${capitalize(editorType)}CsvEditor`) {
+                         const handlers = { competitions: handleCompetitionUpload, universities: handleUniversityUpload, teams: handleTeamUpload };
+                         handleFileUpload(target.files[0], handlers[editorType]); 
+                         target.value = ''; // Reset file input
+                    }
+                });
+
+                editorContentDiv.addEventListener('keyup', e => {
+                    if (e.target.matches('input[data-filter-key]')) {
+                        editorFilters[editorType][e.target.dataset.filterKey] = e.target.value;
+                        renderEditorTable(editorType);
+                    }
+                });
             }
 
             function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
@@ -1278,21 +1689,44 @@
                     competitionDataList.appendChild(option);
                 });
             }
-            function updateTeamDatalistForEntry(placementEntryDiv) {
-                const datalist = placementEntryDiv.querySelector('datalist[id^="team-list"]');
-                if (!datalist) return;
-                datalist.innerHTML = '';
-                const currentUniversity = universityInput.value;
-                const filteredTeams = currentUniversity ? teamDatabase.filter(t => t.university === currentUniversity) : teamDatabase;
-                filteredTeams.sort((a,b) => a.name.localeCompare(b.name)).forEach(team => {
+            function updateTeamSelectForEntry(placementEntryDiv) {
+                const select = placementEntryDiv.querySelector('.team-name-select');
+                if (!select) return;
+                
+                const currentVal = select.value;
+                const currentUserHandle = handleField.value.toLowerCase();
+
+                if (!currentUserHandle) {
+                    select.innerHTML = '<option value="">Enter user handle first</option>';
+                    select.disabled = true;
+                    return;
+                }
+                
+                const userTeams = teamDatabase.filter(t => t.isActive && t.members.map(m => m.toLowerCase()).includes(currentUserHandle));
+                
+                if (userTeams.length === 0) {
+                     select.innerHTML = '<option value="">No teams for this user</option>';
+                     select.disabled = true;
+                     return;
+                }
+
+                select.disabled = false;
+                select.innerHTML = '<option value="">Select a team...</option>';
+                userTeams.sort((a,b) => a.name.localeCompare(b.name)).forEach(team => {
                     const option = document.createElement('option');
-                    option.value = team.name;
-                    datalist.appendChild(option);
+                    option.value = team.id;
+                    const membersStr = team.members.join(', ');
+                    const createdAtStr = formatMMYYYY(team.createdAt);
+                    option.textContent = `${team.name} (Since: ${createdAtStr} | Members: ${membersStr})`;
+                    option.title = `${team.name} (Created: ${createdAtStr})\nMembers: ${membersStr}`;
+                    select.appendChild(option);
                 });
+                select.value = currentVal;
             }
             function populateUniversityDatalist(selectedValue = '') {
                 const allUnis = new Set(universityDatabase);
                 userDatabase.forEach(u => { if(u.university) allUnis.add(u.university) });
+                teamDatabase.forEach(t => { if(t.university) allUnis.add(t.university) });
                 universityDatabase = Array.from(allUnis).sort();
 
                 universityDataList.innerHTML = '';
@@ -1524,7 +1958,12 @@
                 let html = `
                     <div class="stat-card p-6 mb-8">
                         <h3 class="font-bold text-2xl text-teal-700 mb-2">Performance Summary: ${createTeamLink(team.name, team.id)}</h3>
-                        <p class="text-sm text-gray-500 mb-4">Members: ${team.members.map(m => createUserLink(m)).join(', ')}</p>
+                        <div class="text-sm text-gray-600 mb-4">
+                            <h4 class="font-semibold text-gray-700 mb-1">Members:</h4>
+                            <div class="pl-2 space-y-1">
+                                ${team.members.map(m => `<div>${createUserLink(m)}</div>`).join('')}
+                            </div>
+                        </div>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                             <div class="p-4 bg-gray-100 rounded-lg">
                                 <p class="text-3xl font-bold">${totalCompetitions}</p>
@@ -1592,7 +2031,9 @@
                             <div id="universityAnalyticsContent"></div>`;
                 advancedStatsContainer.innerHTML = html;
                 const selector = document.getElementById('universityAnalyticsSelect');
-                selector.addEventListener('change', (e) => renderUniversityAnalyticsContent(e.target.value));
+                selector.addEventListener('change', (e) => {
+                    renderUniversityAnalyticsContent(e.target.value);
+                });
                 renderUniversityAnalyticsContent(selector.value);
             }
 
@@ -1600,109 +2041,380 @@
                 const contentEl = document.getElementById('universityAnalyticsContent');
                 if (!uniName) {
                     contentEl.innerHTML = `<div class="text-center p-8 bg-gray-50 rounded-lg">
-                        <h3 class="text-xl font-bold">University Leaderboard</h3>
+                        <h3 class="text-xl font-bold">University Breakdown</h3>
                         <p class="text-gray-500">Select a university to see a detailed breakdown.</p>
                     </div>`;
                     return;
                 }
 
                 const students = userDatabase.filter(u => u.university === uniName);
-                const teams = teamDatabase.filter(t => t.university === uniName);
-                const competitions = [...new Set(students.flatMap(s => s.placements.map(p => p.name)))].sort();
-
-                // User Growth for this University
-                const joinDates = {};
-                students.filter(u => u.joinDate).forEach(u => {
-                    const month = u.joinDate.slice(0, 7);
-                    joinDates[month] = (joinDates[month] || 0) + 1;
-                });
+                const allTeams = teamDatabase.filter(t => t.university === uniName);
+                const activeTeams = allTeams.filter(t => t.isActive);
                 
-                const sortedMonths = Object.keys(joinDates).sort();
-                let cumulativeTotal = 0;
-                const cumulativeData = sortedMonths.map(month => {
-                    cumulativeTotal += joinDates[month];
-                    return cumulativeTotal;
+                const allPlacements = students.flatMap(s =>
+                    s.placements.map(p => ({
+                        ...p,
+                        handle: s.handle,
+                        percentile: (p.rank / p.total) * 100
+                    }))
+                );
+
+                const topTeamPlacements = Object.values(allPlacements
+                    .filter(p => p.teamId)
+                    .reduce((acc, p) => {
+                        const key = `${p.teamId}-${p.name}`;
+                        if (!acc[key] || p.percentile < acc[key].percentile) {
+                             const team = teamDatabase.find(t => t.id === p.teamId);
+                             if(team){
+                                acc[key] = { ...p, teamName: team.name };
+                             }
+                        }
+                        return acc;
+                    }, {}))
+                    .sort((a, b) => a.percentile - b.percentile)
+                    .slice(0, 5);
+
+                const topStudentPlacements = allPlacements
+                    .filter(p => !p.teamId)
+                    .sort((a, b) => a.percentile - b.percentile)
+                    .slice(0, 5);
+                
+                let html = `
+                    <div class="stat-card p-6">
+                        <h3 class="font-bold text-2xl text-indigo-700 mb-4">${uniName}</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-8">
+                            <div class="p-4 bg-gray-100 rounded-lg"><p class="text-3xl font-bold">${students.length}</p><p class="text-sm text-gray-600">Total Students</p></div>
+                            <div class="p-4 bg-gray-100 rounded-lg"><p class="text-3xl font-bold">${activeTeams.length}</p><p class="text-sm text-gray-600">Active Teams</p></div>
+                            <div class="p-4 bg-gray-100 rounded-lg"><p class="text-3xl font-bold">${allTeams.length}</p><p class="text-sm text-gray-600">All Teams</p></div>
+                        </div>
+
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                            <div id="universityGrowthContainer"></div>
+                            <div id="universityActiveTeamsContainer"></div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                            <div>
+                                <h4 class="text-xl font-semibold mb-3">Students by Academic Year</h4>
+                                <div class="p-4 bg-white rounded-lg shadow-inner h-64 flex items-center justify-center">
+                                    <canvas id="studentsByYearChart"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold mb-3">Top 5 Student Placements</h4>
+                                <div class="space-y-2">
+                                    ${topStudentPlacements.length > 0 ? topStudentPlacements.map(p => `
+                                        <div class="p-3 bg-green-50 rounded text-sm border border-green-200">
+                                            <div class="font-bold text-green-800">Top ${p.percentile.toFixed(1)}%</div>
+                                            <div class="text-green-700">${createUserLink(p.handle)} in ${createCompetitionLink(p.name)}</div>
+                                            <div class="text-xs text-green-600">Rank ${p.rank} / ${p.total}</div>
+                                        </div>
+                                    `).join('') : '<p class="text-gray-500 text-sm p-2 bg-gray-50 rounded">No solo placements recorded.</p>'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div>
+                                <h4 class="text-xl font-semibold mb-3">Students (${students.length})</h4>
+                                <input type="text" id="studentSearchInput" placeholder="Search students..." class="w-full p-2 border rounded-md mb-2 bg-gray-50">
+                                <div id="studentListContainer" class="space-y-2 max-h-96 overflow-y-auto pr-2 border rounded-lg p-2 bg-white">
+                                    ${students.length > 0 ? students.sort((a,b) => a.handle.localeCompare(b.handle)).map(s => `<div class="p-2 bg-gray-50 rounded text-sm">${createUserLink(s.handle)}</div>`).join('') : '<p class="text-gray-500 text-sm p-2">No students.</p>'}
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold mb-3">Teams (${allTeams.length})</h4>
+                                <input type="text" id="teamSearchInput" placeholder="Search teams..." class="w-full p-2 border rounded-md mb-2 bg-gray-50">
+                                <div id="teamListContainer" class="space-y-2 max-h-96 overflow-y-auto pr-2 border rounded-lg p-2 bg-white">
+                                    ${allTeams.length > 0 ? allTeams.sort((a,b) => a.name.localeCompare(b.name)).map(t => `<div class="p-2 ${t.isActive ? 'bg-gray-50' : 'bg-gray-100'} rounded text-sm">${createTeamLink(t.name, t.id)} ${!t.isActive ? '<span class="text-xs text-red-600">(Inactive)</span>' : ''}</div>`).join('') : '<p class="text-gray-500 text-sm p-2">No teams.</p>'}
+                                </div>
+                            </div>
+                             <div>
+                                <h4 class="text-xl font-semibold mb-3">Top 5 Team Placements</h4>
+                                <div class="space-y-2">
+                                    ${topTeamPlacements.length > 0 ? topTeamPlacements.map(p => `
+                                        <div class="p-3 bg-teal-50 rounded text-sm border border-teal-200">
+                                            <div class="font-bold text-teal-800">Top ${p.percentile.toFixed(1)}%</div>
+                                            <div class="text-teal-700">${createTeamLink(p.teamName, p.teamId)} in ${createCompetitionLink(p.name)}</div>
+                                            <div class="text-xs text-teal-600">Rank ${p.rank} / ${p.total}</div>
+                                        </div>
+                                    `).join('') : '<p class="text-gray-500 text-sm p-2 bg-gray-50 rounded">No team placements recorded.</p>'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                contentEl.innerHTML = html;
+                renderUniversityGrowthChart(uniName);
+                renderUniversityActiveTeamsChart(uniName);
+                renderStudentsByYearChart(uniName);
+
+                // Add search event listeners
+                document.getElementById('studentSearchInput').addEventListener('keyup', (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    document.querySelectorAll('#studentListContainer > div').forEach(div => {
+                        div.style.display = div.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
+                    });
+                });
+                document.getElementById('teamSearchInput').addEventListener('keyup', (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    document.querySelectorAll('#teamListContainer > div').forEach(div => {
+                        div.style.display = div.textContent.toLowerCase().includes(searchTerm) ? '' : 'none';
+                    });
+                });
+            }
+
+            function renderUniversityGrowthChart(uniName) {
+                const container = document.getElementById('universityGrowthContainer');
+                container.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between mb-3 gap-y-2">
+                        <h4 class="text-xl font-semibold">Cumulative User Growth</h4>
+                        <div class="flex flex-wrap items-end gap-2">
+                             <div>
+                                <label for="uniGrowthStartDate" class="text-xs font-medium">Start Date</label>
+                                <input type="month" id="uniGrowthStartDate" class="p-1.5 border rounded-md bg-white text-sm">
+                            </div>
+                            <div>
+                                <label for="uniGrowthEndDate" class="text-xs font-medium">End Date</label>
+                                <input type="month" id="uniGrowthEndDate" class="p-1.5 border rounded-md bg-white text-sm">
+                            </div>
+                            <button id="renderUniGrowthBtn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 text-sm">Update</button>
+                        </div>
+                    </div>
+                    <div class="p-4 bg-white rounded-lg shadow-inner">
+                        <canvas id="universityGrowthChart"></canvas>
+                    </div>
+                `;
+
+                const updateButton = document.getElementById('renderUniGrowthBtn');
+                updateButton.addEventListener('click', () => {
+                    const startDate = document.getElementById('uniGrowthStartDate').value;
+                    const endDate = document.getElementById('uniGrowthEndDate').value;
+                    if (startDate && endDate && startDate > endDate) {
+                        showToast('Start date cannot be after end date.', 'error');
+                        return;
+                    }
+                    drawUniversityGrowthChart(uniName, startDate, endDate);
                 });
 
-                let html = `<div class="stat-card p-6">
-                                <h3 class="font-bold text-2xl text-indigo-700 mb-4">${uniName}</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                                    <div class="p-4 bg-gray-100 rounded-lg">
-                                        <p class="text-3xl font-bold">${students.length}</p>
-                                        <p class="text-sm text-gray-600">Students</p>
-                                    </div>
-                                    <div class="p-4 bg-gray-100 rounded-lg">
-                                        <p class="text-3xl font-bold">${teams.length}</p>
-                                        <p class="text-sm text-gray-600">Teams</p>
-                                    </div>
-                                    <div class="p-4 bg-gray-100 rounded-lg">
-                                        <p class="text-3xl font-bold">${competitions.length}</p>
-                                        <p class="text-sm text-gray-600">Competitions</p>
-                                    </div>
-                                </div>
-                                <div class="mt-8">
-                                    <h4 class="text-lg font-bold mb-2">Cumulative User Growth at ${uniName}</h4>
-                                    <div class="p-4 bg-white rounded-lg shadow-inner">
-                                        ${sortedMonths.length > 0 ? '<canvas id="universityGrowthChart"></canvas>' : '<p class="text-center text-gray-500 py-4">No join date data available for this university.</p>'}
-                                    </div>
-                                </div>
-                                <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                                    <div>
-                                        <h3 class="text-xl font-semibold mb-3">Students (${students.length})</h3>
-                                        <div class="space-y-2 max-h-96 overflow-y-auto pr-2">
-                                            ${students.length > 0 ? students.map(s => `<div class="p-2 bg-gray-50 rounded text-sm">${createUserLink(s.handle)}</div>`).join('') : '<p class="text-gray-500">No students found.</p>'}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h3 class="text-xl font-semibold mb-3">Teams (${teams.length})</h3>
-                                        <div class="space-y-2 max-h-96 overflow-y-auto pr-2">
-                                            ${teams.length > 0 ? teams.map(t => `<div class="p-2 bg-gray-50 rounded text-sm">${createTeamLink(t.name, t.id)}</div>`).join('') : '<p class="text-gray-500">No teams found.</p>'}
-                                        </div>
-                                    </div>
-                                    <div class="md:col-span-2">
-                                        <h3 class="text-xl font-semibold mb-3">Competition Participation (${competitions.length})</h3>
-                                        <div class="space-y-2 max-h-96 overflow-y-auto pr-2">
-                                            ${competitions.length > 0 ? competitions.map(c => {
-                                                const participants = students.filter(s => s.placements.some(p => p.name === c));
-                                                const teamsInComp = teams.filter(t => participants.some(p => p.placements.some(pl => pl.teamId === t.id && pl.name === c)));
-                                                const individualsInComp = participants.filter(p => p.placements.some(pl => !pl.teamId && pl.name === c));
-                                                
-                                                return `
-                                                <details class="competition-item">
-                                                    <summary>${createCompetitionLink(c)}</summary>
-                                                    <div class="participant-list mt-2 space-y-2">
-                                                        ${teamsInComp.length > 0 ? `<div><h4 class="font-semibold text-sm">Teams:</h4><div class="text-sm pl-2">${teamsInComp.map(t => createTeamLink(t.name, t.id)).join(', ')}</div></div>` : ''}
-                                                        ${individualsInComp.length > 0 ? `<div><h4 class="font-semibold text-sm">Individuals:</h4><div class="text-sm pl-2">${individualsInComp.map(i => createUserLink(i.handle)).join(', ')}</div></div>` : ''}
-                                                        ${teamsInComp.length === 0 && individualsInComp.length === 0 ? '<p class="text-xs text-gray-500">No participant details.</p>' : ''}
-                                                    </div>
-                                                </details>
-                                                `;
-                                            }).join('') : '<p class="text-gray-500">No competitions found.</p>'}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>`;
-                contentEl.innerHTML = html;
+                drawUniversityGrowthChart(uniName); // Initial draw
+            }
 
-                if (sortedMonths.length > 0) {
-                    renderChart('universityGrowthChart', 'line', {
-                        labels: sortedMonths,
-                        datasets: [{
-                            label: `Total Users at ${uniName}`,
-                            data: cumulativeData,
-                            borderColor: '#4f46e5',
-                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
-                            fill: true,
-                            tension: 0.1,
-                            stepped: false,
-                        }]
-                    }, {
-                        scales: { y: { beginAtZero: true, title: { display: true, text: 'Total Users' } } },
-                        plugins: { title: { display: false } }
-                    });
+            function showUsersUpToMonth(uniName, month) {
+                const users = userDatabase.filter(u => u.university === uniName && u.joinDate && u.joinDate.slice(0, 7) <= month)
+                                        .sort((a,b) => a.handle.localeCompare(b.handle));
+                
+                let content = `
+                    <h2 class="text-2xl font-bold text-indigo-800 mb-2">Users in ${uniName}</h2>
+                    <p class="text-lg text-gray-600 mb-4">Joined on or before ${formatMonthYear(month + '-02')}</p>
+                    <hr class="my-4">
+                    <div class="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                        ${users.length > 0 ? users.map(u => `
+                            <div class="p-2 bg-gray-50 rounded text-sm">${createUserLink(u.handle)}</div>
+                        `).join('') : '<p class="text-gray-500">No users found for this period.</p>'}
+                    </div>
+                `;
+                modalContentContainer.innerHTML = content;
+                detailsModal.classList.remove('hidden');
+            }
+
+            function drawUniversityGrowthChart(uniName, startDate = null, endDate = null) {
+                let students = userDatabase.filter(u => u.university === uniName && u.joinDate);
+                if (students.length === 0) {
+                    destroyChart('universityGrowthChart');
+                    return;
                 }
+
+                students.sort((a,b) => new Date(a.joinDate) - new Date(b.joinDate));
+
+                const firstMonth = students[0].joinDate.slice(0, 7);
+                const lastMonth = students[students.length - 1].joinDate.slice(0, 7);
+
+                const effectiveStartDate = startDate || firstMonth;
+                const effectiveEndDate = endDate || lastMonth;
+
+                // Calculate initial count before the start date
+                let cumulativeTotal = 0;
+                students.forEach(u => {
+                    if (u.joinDate.slice(0, 7) < effectiveStartDate) {
+                        cumulativeTotal++;
+                    }
+                });
+
+                const joinCounts = {};
+                students.forEach(u => {
+                    const month = u.joinDate.slice(0, 7);
+                    if (month >= effectiveStartDate && month <= effectiveEndDate) {
+                         joinCounts[month] = (joinCounts[month] || 0) + 1;
+                    }
+                });
+
+                const labels = [];
+                const dataPoints = [];
+                let current = new Date(effectiveStartDate + '-02'); // Use day 2 to avoid timezone issues
+                const end = new Date(effectiveEndDate + '-02');
+
+                while(current <= end) {
+                    const monthStr = current.getFullYear() + '-' + (current.getMonth() + 1).toString().padStart(2, '0');
+                    labels.push(monthStr);
+                    cumulativeTotal += (joinCounts[monthStr] || 0);
+                    dataPoints.push(cumulativeTotal);
+                    current.setMonth(current.getMonth() + 1);
+                }
+
+                renderChart('universityGrowthChart', 'line', {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Cumulative Users',
+                        data: dataPoints,
+                        borderColor: '#4338ca',
+                        backgroundColor: 'rgba(67, 56, 202, 0.1)',
+                        fill: true,
+                        tension: 0.1,
+                        stepped: true,
+                    }]
+                }, { 
+                    scales: { y: { beginAtZero: false, ticks: { stepSize: 1 } } },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const chart = charts['universityGrowthChart'];
+                            const index = elements[0].index;
+                            const month = chart.data.labels[index];
+                            showUsersUpToMonth(uniName, month);
+                        }
+                    }
+                });
+            }
+
+            function renderUniversityActiveTeamsChart(uniName) {
+                const container = document.getElementById('universityActiveTeamsContainer');
+                container.innerHTML = `
+                    <h4 class="text-xl font-semibold mb-3">Active Teams Growth</h4>
+                    <div class="p-4 bg-white rounded-lg shadow-inner">
+                        <canvas id="universityActiveTeamsChart"></canvas>
+                    </div>
+                `;
+                drawUniversityActiveTeamsChart(uniName);
+            }
+
+            function showActiveTeamsUpToMonth(uniName, month) {
+                const monthDate = new Date(month + '-02');
+                const teams = teamDatabase.filter(team => {
+                    if (team.university !== uniName) return false;
+                    const createdAt = new Date(team.createdAt);
+                    const inactiveAt = team.inactiveAt ? new Date(team.inactiveAt) : null;
+                    return createdAt <= monthDate && (!inactiveAt || inactiveAt > monthDate);
+                }).sort((a,b) => a.name.localeCompare(b.name));
+                
+                let content = `
+                    <h2 class="text-2xl font-bold text-teal-800 mb-2">Active Teams in ${uniName}</h2>
+                    <p class="text-lg text-gray-600 mb-4">As of ${formatMonthYear(month + '-02')}</p>
+                    <hr class="my-4">
+                    <div class="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                        ${teams.length > 0 ? teams.map(t => `
+                            <div class="p-2 bg-gray-50 rounded text-sm">${createTeamLink(t.name, t.id)}</div>
+                        `).join('') : '<p class="text-gray-500">No active teams found for this period.</p>'}
+                    </div>
+                `;
+                modalContentContainer.innerHTML = content;
+                detailsModal.classList.remove('hidden');
+            }
+
+            function drawUniversityActiveTeamsChart(uniName) {
+                const teams = teamDatabase.filter(t => t.university === uniName);
+                if (teams.length === 0) {
+                    destroyChart('universityActiveTeamsChart');
+                    return;
+                }
+                const dates = teams.flatMap(t => [t.createdAt, t.inactiveAt]).filter(Boolean);
+                if (dates.length === 0) return;
+
+                const allMonths = new Set();
+                dates.forEach(d => allMonths.add(d.slice(0, 7)));
+                const sortedMonths = Array.from(allMonths).sort();
+
+                const dataPoints = sortedMonths.map(month => {
+                    const monthDate = new Date(month + '-02');
+                    return teams.filter(team => {
+                        const createdAt = new Date(team.createdAt);
+                        const inactiveAt = team.inactiveAt ? new Date(team.inactiveAt) : null;
+                        return createdAt <= monthDate && (!inactiveAt || inactiveAt > monthDate);
+                    }).length;
+                });
+
+                renderChart('universityActiveTeamsChart', 'line', {
+                    labels: sortedMonths,
+                    datasets: [{
+                        label: 'Active Teams',
+                        data: dataPoints,
+                        borderColor: '#0d9488',
+                        backgroundColor: 'rgba(13, 148, 136, 0.1)',
+                        fill: true,
+                        tension: 0.1,
+                        stepped: true
+                    }]
+                }, { 
+                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const chart = charts['universityActiveTeamsChart'];
+                            const index = elements[0].index;
+                            const month = chart.data.labels[index];
+                            showActiveTeamsUpToMonth(uniName, month);
+                        }
+                    }
+                });
             }
             
+            function renderStudentsByYearChart(uniName) {
+                const students = userDatabase.filter(u => u.university === uniName);
+                if (students.length === 0) {
+                    destroyChart('studentsByYearChart');
+                    return;
+                }
+
+                const yearCounts = { '1st Year': 0, '2nd Year': 0, '3rd Year': 0, '4th Year': 0, '5th Year+': 0, 'Graduated': 0, 'Unknown': 0 };
+                const currentYear = new Date().getFullYear();
+                const currentMonth = new Date().getMonth();
+
+                students.forEach(s => {
+                    if (!s.universityStartDate) {
+                        yearCounts['Unknown']++;
+                        return;
+                    }
+                    const start = new Date(s.universityStartDate);
+                    const startYear = start.getFullYear();
+                    const startMonth = start.getMonth();
+                    
+                    let academicYear = currentYear - startYear;
+                    if (currentMonth < startMonth) {
+                        academicYear--;
+                    }
+                    academicYear++; // Convert to 1-based index
+
+                    if (academicYear === 1) yearCounts['1st Year']++;
+                    else if (academicYear === 2) yearCounts['2nd Year']++;
+                    else if (academicYear === 3) yearCounts['3rd Year']++;
+                    else if (academicYear === 4) yearCounts['4th Year']++;
+                    else if (academicYear > 4) yearCounts['5th Year+']++;
+                    else yearCounts['Graduated']++;
+                });
+                
+                const labels = Object.keys(yearCounts).filter(k => yearCounts[k] > 0);
+                const data = labels.map(l => yearCounts[l]);
+
+                renderChart('studentsByYearChart', 'pie', {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6b7280', '#a1a1aa'],
+                    }]
+                }, {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right' }, title: { display: false } }
+                });
+            }
+
+
             function renderCompetitionAnalytics() {
                 let html = `<div class="mb-4">
                                 <label for="competitionAnalyticsSelect" class="text-sm font-medium">Select Competition:</label>
@@ -1862,14 +2574,6 @@
                 });
                 const topIndividuals = Object.entries(individualScores).sort((a,b) => b[1] - a[1]).slice(0, 5);
                 
-                // Progression Over Time (User Join Dates)
-                const joinDates = {};
-                userDatabase.filter(u => u.joinDate).forEach(u => {
-                    const month = u.joinDate.slice(0, 7);
-                    joinDates[month] = (joinDates[month] || 0) + 1;
-                });
-                const sortedMonths = Object.keys(joinDates).sort();
-
                 let html = `
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div>
@@ -1896,34 +2600,96 @@
                             </div>
                         </div>
                     </div>
+
                     <div class="mt-8">
-                        <h3 class="text-xl font-bold mb-3">User Growth Over Time</h3>
+                        <h3 class="text-xl font-bold mb-3">Active Teams Growth Over Time</h3>
                         <div class="p-4 bg-white rounded-lg shadow-inner">
-                            <canvas id="userGrowthChart"></canvas>
+                            <canvas id="activeTeamsGrowthChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-xl font-bold mb-3">User Distribution by University</h3>
+                            <div class="p-4 bg-white rounded-lg shadow-inner h-80 flex items-center justify-center">
+                                <canvas id="userDistributionChart"></canvas>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-bold mb-3">Team Distribution by University</h3>
+                            <div class="p-4 bg-white rounded-lg shadow-inner h-80 flex items-center justify-center">
+                                <canvas id="teamDistributionChart"></canvas>
+                            </div>
                         </div>
                     </div>
                 `;
                 advancedStatsContainer.innerHTML = html;
+                renderActiveTeamsGrowthChart();
+                renderDistributionCharts();
+            }
 
-                if (sortedMonths.length > 0) {
-                    renderChart('userGrowthChart', 'line', {
-                        labels: sortedMonths,
-                        datasets: [{
-                            label: 'New Users per Month',
-                            data: sortedMonths.map(month => joinDates[month]),
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            fill: true,
-                            tension: 0.1
-                        }]
-                    }, {
-                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
-                        plugins: { title: { display: false } }
-                    });
+            function renderActiveTeamsGrowthChart() {
+                if (teamDatabase.length === 0) {
+                    destroyChart('activeTeamsGrowthChart');
+                    return;
                 }
+                const dates = teamDatabase.flatMap(t => [t.createdAt, t.inactiveAt]).filter(Boolean);
+                if (dates.length === 0) return;
+
+                const allMonths = new Set();
+                dates.forEach(d => allMonths.add(d.slice(0, 7)));
+                const sortedMonths = Array.from(allMonths).sort();
+
+                const dataPoints = sortedMonths.map(month => {
+                    const monthDate = new Date(month + '-02');
+                    return teamDatabase.filter(team => {
+                        const createdAt = new Date(team.createdAt);
+                        const inactiveAt = team.inactiveAt ? new Date(team.inactiveAt) : null;
+                        const isActiveInMonth = createdAt <= monthDate && (!inactiveAt || inactiveAt >= monthDate);
+                        return isActiveInMonth;
+                    }).length;
+                });
+
+                renderChart('activeTeamsGrowthChart', 'line', {
+                    labels: sortedMonths,
+                    datasets: [{
+                        label: 'Active Teams',
+                        data: dataPoints,
+                        borderColor: '#0d9488',
+                        backgroundColor: 'rgba(13, 148, 136, 0.1)',
+                        fill: true,
+                        tension: 0.1,
+                        stepped: true
+                    }]
+                }, { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } });
+            }
+
+            function renderDistributionCharts() {
+                // User Distribution
+                const userUniCounts = universityDatabase.reduce((acc, uni) => {
+                    acc[uni] = userDatabase.filter(u => u.university === uni).length;
+                    return acc;
+                }, {});
+                const sortedUserUnis = Object.entries(userUniCounts).filter(([,count]) => count > 0).sort((a,b) => b[1] - a[1]);
+                renderChart('userDistributionChart', 'pie', {
+                    labels: sortedUserUnis.map(u => u[0]),
+                    datasets: [{ data: sortedUserUnis.map(u => u[1]), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6b7280', '#ec4899', '#6366f1', '#f97316', '#06b6d4'] }]
+                }, { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } });
+
+                // Team Distribution
+                const teamUniCounts = universityDatabase.reduce((acc, uni) => {
+                    acc[uni] = teamDatabase.filter(t => t.university === uni).length;
+                    return acc;
+                }, {});
+                const sortedTeamUnis = Object.entries(teamUniCounts).filter(([,count]) => count > 0).sort((a,b) => b[1] - a[1]);
+                renderChart('teamDistributionChart', 'pie', {
+                    labels: sortedTeamUnis.map(u => u[0]),
+                    datasets: [{ data: sortedTeamUnis.map(u => u[1]), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6b7280', '#ec4899', '#6366f1', '#f97316', '#06b6d4'] }]
+                }, { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } });
             }
             
             function updateDbSortIndicators() { detailedUserTable.querySelectorAll('th.sortable-header').forEach(th => { th.classList.remove('sort-asc', 'sort-desc'); if (th.dataset.sortKey === dbSortState.key) th.classList.add(`sort-${dbSortState.direction}`); th.querySelector('.sort-icon').textContent = dbSortState.direction === 'asc' ? '▲' : '▼'; }); }
+            function updateEditorSortIndicators(editorType) { const table = document.getElementById(`${editorType}EditorTable`); if (!table) return; table.querySelectorAll('th.sortable-header').forEach(th => { th.classList.remove('sort-asc', 'sort-desc'); if (th.dataset.sortKey === editorSortStates[editorType].key) th.classList.add(`sort-${editorSortStates[editorType].direction}`); th.querySelector('.sort-icon').textContent = editorSortStates[editorType].direction === 'asc' ? '▲' : '▼'; }); }
             
             function getFormattedDateTimeString() { const now = new Date(); const pad = (num) => num.toString().padStart(2, '0'); return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`; }
             
@@ -1946,7 +2712,8 @@
 
                 let content = `
                     <h2 class="text-3xl font-bold text-teal-800 mb-2">${team.name}</h2>
-                    <p class="text-lg text-gray-600 mb-4">${team.university}</p>
+                    <p class="text-lg text-gray-600 mb-1">${team.university}</p>
+                    <p class="text-sm text-gray-500">Created: ${formatMonthYear(team.createdAt)} ${team.inactiveAt ? `| Inactive since: ${formatMonthYear(team.inactiveAt)}` : ''}</p>
                     <hr class="my-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
@@ -1984,8 +2751,9 @@
                     <div class="flex flex-col md:flex-row gap-6 items-start">
                         <img src="${profilePicUrl}" alt="Profile Picture" class="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-md">
                         <div class="flex-grow">
-                            <h2 class="text-3xl font-bold mb-1 flex items-center">${handle} ${trustedBadge}</h2>
-                            <p class="text-lg text-gray-600">${dbData?.fullName || ''}</p>
+                            <h2 class="text-3xl font-bold mb-1 flex items-center">${dbData.handle} ${trustedBadge}</h2>
+                            <p class="text-lg text-gray-600 mb-2">${dbData?.fullName || ''}</p>
+                            ${createCodeforcesLink(dbData.handle)}
                         </div>
                     </div>
                     <hr class="my-6">
@@ -1993,9 +2761,10 @@
 
                 const levelMap = { '0': 'None', '-1': 'Codeability', '10': 'Level 0', '1': 'Level 1', '2': 'Level 2'};
                 content += `
-                <div class="mb-6 p-4 bg-gray-50 rounded-lg grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                <div class="mb-6 p-4 bg-gray-50 rounded-lg grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                     <div><strong class="block text-gray-500">University</strong> <span class="text-lg">${dbData.university || 'N/A'}</span></div>
                     <div><strong class="block text-gray-500">ACM Level</strong> <span class="text-lg">${levelMap[dbData.acmLevel] || 'N/A'}</span></div>
+                    <div><strong class="block text-gray-500">Uni Start Date</strong> <span class="text-lg">${formatMonthYear(dbData.universityStartDate)}</span></div>
                     <div><strong class="block text-gray-500">LinkedIn</strong> ${dbData.linkedin ? `<a href="${dbData.linkedin}" target="_blank" class="text-blue-600 hover:underline text-lg">Profile</a>` : '<span class="text-lg">N/A</span>'}</div>
                 </div>`;
 
@@ -2054,17 +2823,21 @@
             function hideModal() { 
                 detailsModal.classList.add('hidden'); 
             }
-            function displayError(message, type = 'error') { 
-                // This function can be expanded to show a proper toast notification
-                console.log(`${type.toUpperCase()}: ${message}`);
-                // Example of a simple alert, though a custom UI element would be better
-                if (type === 'error') {
-                    alert(`Error: ${message}`);
-                }
-            }
 
             function createUserLink(handle) {
+                if (!handle) return 'N/A';
                 return `<button class="user-link" data-handle="${handle}">${handle}</button>`;
+            }
+
+            function createCodeforcesLink(handle) {
+                if (!handle) return '';
+                return `<a href="https://codeforces.com/profile/${handle}" target="_blank" class="text-blue-600 hover:underline text-sm" title="View Codeforces Profile">
+                    View on Codeforces
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                        <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                    </svg>
+                </a>`;
             }
 
             function createTeamLink(teamName, teamId) {
@@ -2079,21 +2852,122 @@
                 return compName;
             }
             
+            function updateSelectAllState(tableElement) {
+                if (!tableElement) return;
+                const headCheckbox = tableElement.querySelector('thead input[type="checkbox"]');
+                const bodyCheckboxes = tableElement.querySelectorAll('tbody input[type="checkbox"]');
+                const total = bodyCheckboxes.length;
+                const checkedCount = Array.from(bodyCheckboxes).filter(cb => cb.checked).length;
+                
+                if (headCheckbox) {
+                    headCheckbox.checked = total > 0 && total === checkedCount;
+                }
+            }
+            
+             // --- Gemini API ---
+            async function callGeminiApi(prompt, retries = 3, delay = 1000) {
+                const apiKey = ""; 
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{ role: "user", parts: [{ text: prompt }] }],
+                };
+
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 429 && retries > 0) {
+                             console.warn(`Rate limited. Retrying in ${delay}ms... (${retries} retries left)`);
+                             await new Promise(res => setTimeout(res, delay));
+                             return callGeminiApi(prompt, retries - 1, delay * 2);
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        return result.candidates[0].content.parts[0].text;
+                    } else {
+                        throw new Error("Invalid response structure from Gemini API");
+                    }
+                } catch (error) {
+                    if (retries > 0) {
+                         console.warn(`API call failed. Retrying in ${delay}ms... (${retries} retries left)`);
+                         await new Promise(res => setTimeout(res, delay));
+                         return callGeminiApi(prompt, retries - 1, delay * 2);
+                    } else {
+                        console.error("Error calling Gemini API:", error);
+                        return `Error: Could not retrieve insights. ${error.message}`;
+                    }
+                }
+            }
+            
+            async function generateAiInsights() {
+                aiInsightContent.innerHTML = '<div class="flex items-center justify-center gap-2 text-gray-600"><div class="spinner w-6 h-6 border-2 rounded-full"></div><span>Generating insights... Please wait.</span></div>';
+                showAiModal();
+
+                const totalUsers = userDatabase.length;
+                const totalTeams = teamDatabase.length;
+                const top5Users = userDatabase.sort((a,b) => (b.lunaHardScore + b.lunaNovaScore) - (a.lunaHardScore + a.lunaNovaScore)).slice(0, 5).map(u => `${u.handle} (Score: ${(u.lunaHardScore + u.lunaNovaScore).toFixed(2)})`).join(', ');
+                const uniDistribution = universityDatabase.map(uni => {
+                    const count = userDatabase.filter(u => u.university === uni).length;
+                    return `${uni}: ${count} users`;
+                }).join('\n');
+
+                const prompt = `
+                    Based on the following competitive programming community data, provide a brief, insightful summary. The data is about users, their universities, teams, and placements in competitions.
+
+                    - Total Users: ${totalUsers}
+                    - Total Teams: ${totalTeams}
+                    - Top 5 Users by Score: ${top5Users || 'N/A'}
+                    - University Distribution:\n${uniDistribution || 'N/A'}
+
+                    Analyze this data and provide:
+                    1. A short, overall summary of the community's status.
+                    2. Identify one key strength based on the data.
+                    3. Suggest one area for potential improvement or focus.
+                    
+                    Format the response in clear sections using markdown headings.
+                `;
+
+                const insights = await callGeminiApi(prompt);
+                
+                // A simple markdown to HTML converter
+                const formattedInsights = insights
+                    .replace(/### (.*)/g, '<h3 class="text-xl font-semibold text-fuchsia-700 mt-4 mb-2">$1</h3>')
+                    .replace(/## (.*)/g, '<h2 class="text-2xl font-bold text-fuchsia-800 mb-3">$1</h2>')
+                    .replace(/\* \*(.*)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\* (.*)/g, '<li class="ml-5 list-disc">$1</li>')
+                    .replace(/\n/g, '<br>');
+
+                aiInsightContent.innerHTML = formattedInsights;
+            }
+
+
             // --- EVENT LISTENERS ---
             appContainer.addEventListener('click', (e) => {
-                if (e.target.matches('.user-link')) {
+                const userLink = e.target.closest('.user-link');
+                const teamLink = e.target.closest('.team-link');
+                if (userLink) {
                     e.preventDefault();
-                    showUserDetailsModal(e.target.dataset.handle);
-                } else if (e.target.matches('.team-link')) {
+                    showUserDetailsModal(userLink.dataset.handle);
+                } else if (teamLink) {
                     e.preventDefault();
-                    showTeamDetailsModal(e.target.dataset.teamId);
+                    showTeamDetailsModal(teamLink.dataset.teamId);
                 }
             });
 
             Object.values(tabButtons).forEach(button => {
                 button.addEventListener('click', () => {
-                    Object.values(tabButtons).forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
+                    Object.values(tabButtons).forEach(btn => btn.classList.remove('active', 'text-blue-600', 'border-blue-600'));
+                    button.classList.add('active', 'text-blue-600', 'border-blue-600');
                     Object.values(tabContents).forEach(content => content.classList.add('hidden'));
                     const contentId = button.id.replace('tabBtn', 'tabContent');
                     document.getElementById(contentId).classList.remove('hidden');
@@ -2112,13 +2986,21 @@
                 }
             });
 
-            editorTabButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    editorTabButtons.forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
-                    renderCurrentEditorView();
-                });
+            editorContainer.addEventListener('click', e => {
+                if(e.target.matches('.editor-tab-btn')){
+                     editorContainer.querySelectorAll('.editor-tab-btn').forEach(btn => btn.classList.remove('active'));
+                     e.target.classList.add('active');
+                     renderCurrentEditorView();
+                }
             });
+            document.querySelector('#tabContentEditors .flex.space-x-1').addEventListener('click', e => {
+                if(e.target.matches('.editor-tab-btn')){
+                    document.querySelectorAll('#tabContentEditors .editor-tab-btn').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+                    renderCurrentEditorView();
+                }
+            });
+
 
             downloadAllUsersCsvBtn.addEventListener('click', () => downloadUsersCSV(userDatabase));
             downloadSelectedUsersCsvBtn.addEventListener('click', () => {
@@ -2126,12 +3008,18 @@
                 const selectedUsers = userDatabase.filter(user => selectedIds.includes(user.id));
                 downloadUsersCSV(selectedUsers);
             });
+            downloadSimpleUsersCsvBtn.addEventListener('click', downloadSimpleUsersCSV);
             downloadDbFullBackupBtn.addEventListener('click', downloadDbFullBackup);
             downloadDbFullBackupBtn_dummy.addEventListener('click', downloadDbFullBackup);
             detailedUserForm.addEventListener('submit', handleDetailedUserFormSubmit);
-            universityInput.addEventListener('input', () => {
-                 document.querySelectorAll('.placement-entry').forEach(updateTeamDatalistForEntry);
+            
+            handleField.addEventListener('input', () => {
+                document.querySelectorAll('.placement-entry').forEach(updateTeamSelectForEntry);
             });
+            universityInput.addEventListener('input', () => {
+                 document.querySelectorAll('.placement-entry').forEach(updateTeamSelectForEntry);
+            });
+
             clearFormBtn.addEventListener('click', () => { showConfirmationModal('Clear Form?', 'Are you sure you want to clear all fields in the user form?', clearDetailedUserForm); });
             addPlacementBtn.addEventListener('click', () => addPlacementInput());
             
@@ -2152,9 +3040,15 @@
                     renderUserDatabaseTable();
                 }
             });
-            document.getElementById('selectAllUsersCheckbox').addEventListener('change', e => {
-                document.querySelectorAll('#detailedUserTableBody .user-select-checkbox').forEach(cb => cb.checked = e.target.checked);
+            
+            detailedUserTable.addEventListener('change', e => {
+                 if (e.target.id === 'selectAllUsersCheckbox') {
+                    document.querySelectorAll('#detailedUserTableBody .user-select-checkbox').forEach(cb => cb.checked = e.target.checked);
+                 } else if (e.target.matches('.user-select-checkbox')) {
+                    updateSelectAllState(detailedUserTable);
+                 }
             });
+            
             detailedUserTableBody.addEventListener('click', e => {
                 const target = e.target; const row = target.closest('tr'); if (!row) return; const userId = row.dataset.id; const user = userDatabase.find(u => u.id === userId); if (!user) return;
                 if (target.classList.contains('delete-db-user-btn')) {
@@ -2169,37 +3063,74 @@
                     detailedUserForm.querySelector('[name="fullName"]').value = user.fullName;
                     detailedUserForm.querySelector('[name="linkedin"]').value = user.linkedin;
                     populateUniversityDatalist(user.university);
-                    detailedUserForm.querySelector('[name="profilePicUrl"]').value = user.profilePicUrl || '';
+                    
+                    profilePicUrlHiddenInput.value = user.profilePicUrl || '';
+                    if(user.profilePicUrl) {
+                        profilePicFileLabel.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+                        profilePicFileLabel.classList.add('bg-green-600', 'hover:bg-green-700');
+                        profilePicFileLabel.textContent = "Image Uploaded";
+                    }
+
                     detailedUserForm.querySelector('[name="lunaNovaScore"]').value = user.lunaNovaScore;
                     detailedUserForm.querySelector('[name="lunaHardScore"]').value = user.lunaHardScore;
                     detailedUserForm.querySelector('[name="acmLevel"]').value = user.acmLevel;
                     detailedUserForm.querySelector('[name="joinDate"]').value = formatDateForInput(user.joinDate);
+                    detailedUserForm.querySelector('[name="universityStartDate"]').value = formatDateForInput(user.universityStartDate);
                     detailedUserForm.querySelector('#isTrustedCheckbox').checked = user.isTrusted !== false; // Default to true if undefined
                     placementsContainer.innerHTML = '';
                     user.placements.forEach(p => addPlacementInput(p));
+                    handleField.dispatchEvent(new Event('input')); // Manually trigger to populate team dropdowns
                     detailedUserForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } else if (target.classList.contains('details-db-user-btn')) {
                     showUserDetailsModal(user.handle);
                 }
             });
             closeModalBtn.addEventListener('click', hideModal);
+            
+            // FIX: Add event listener to modal overlay for navigation
             detailsModal.addEventListener('click', (e) => { 
-                if (e.target === detailsModal) hideModal(); 
+                if (e.target === detailsModal) {
+                    hideModal();
+                    return;
+                }
+                 const userLink = e.target.closest('.user-link');
+                const teamLink = e.target.closest('.team-link');
+                if (userLink) {
+                    e.preventDefault();
+                    showUserDetailsModal(userLink.dataset.handle);
+                } else if (teamLink) {
+                    e.preventDefault();
+                    showTeamDetailsModal(teamLink.dataset.teamId);
+                }
             });
+
+            aiInsightBtn.addEventListener('click', generateAiInsights);
+            closeAiModalBtn.addEventListener('click', hideAiModal);
+            aiModal.addEventListener('click', (e) => { if(e.target === aiModal) hideAiModal()});
+
             confirmCancelBtn.addEventListener('click', hideConfirmationModal);
             confirmOkBtn.addEventListener('click', () => { if (confirmCallback) confirmCallback(); hideConfirmationModal(); });
             jsonFileInput.addEventListener('change', (e) => { loadJsonFile(e.target.files[0]); e.target.value = ''; });
             uploadUsersCsvInput.addEventListener('change', (e) => { handleFileUpload(e.target.files[0], handleUserUpload); e.target.value = ''; });
             uploadCompetitionsCsvInput.addEventListener('change', (e) => { handleFileUpload(e.target.files[0], handleCompetitionUpload); e.target.value = ''; });
             uploadUniversitiesCsvInput.addEventListener('change', (e) => { handleFileUpload(e.target.files[0], handleUniversityUpload); e.target.value = ''; });
+            
             profilePicFileInput.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (file && file.type.startsWith('image/')) {
                     const reader = new FileReader();
-                    reader.onload = (event) => { profilePicUrlInput.value = event.target.result; };
+                    reader.onload = (event) => { 
+                        profilePicUrlHiddenInput.value = event.target.result; 
+                        profilePicFileLabel.classList.remove('bg-gray-600', 'hover:bg-gray-700');
+                        profilePicFileLabel.classList.add('bg-green-600', 'hover:bg-green-700');
+                        profilePicFileLabel.textContent = "Image Uploaded";
+                    };
                     reader.readAsDataURL(file);
                 } else {
-                    profilePicUrlInput.value = '';
+                    profilePicUrlHiddenInput.value = '';
+                    profilePicFileLabel.classList.remove('bg-green-600', 'hover:bg-green-700');
+                    profilePicFileLabel.classList.add('bg-gray-600', 'hover:bg-gray-700');
+                    profilePicFileLabel.textContent = "Choose File";
                 }
             });
 
@@ -2211,16 +3142,16 @@
                         teams: teamDatabase,
                         competitions: competitionDatabase,
                         universities: universityDatabase,
-                        version: 'v5' // Increment version
+                        version: 'v16' // Increment version for new data model
                     };
-                    localStorage.setItem('electiToolData_v5', JSON.stringify(dataToSave));
+                    localStorage.setItem('electiToolData_v16', JSON.stringify(dataToSave));
                 } catch (e) {
                     console.error("Could not save to localStorage. Data might be too large.", e);
                 }
             }
 
             function loadDataFromLocalStorage() {
-                const savedData = localStorage.getItem('electiToolData_v5');
+                const savedData = localStorage.getItem('electiToolData_v16');
                 if (savedData) {
                     try {
                         const data = JSON.parse(savedData);
@@ -2243,10 +3174,10 @@
                 loadDataFromLocalStorage();
                 updateDbSortIndicators();
                 // Set the default active tab
-                document.getElementById('tabBtnAnalyticsDashboard').classList.add('active');
-                document.getElementById('tabContentAnalyticsDashboard').classList.remove('hidden');
-                document.getElementById('tabBtnDatabase').classList.remove('active');
-                document.getElementById('tabContentDatabase').classList.add('hidden');
+                Object.values(tabButtons).forEach(btn => btn.classList.remove('active'));
+                Object.values(tabContents).forEach(content => content.classList.add('hidden'));
+                document.getElementById('tabBtnDatabase').classList.add('active');
+                document.getElementById('tabContentDatabase').classList.remove('hidden');
                 renderAll();
             }
 
