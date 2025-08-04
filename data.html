@@ -206,26 +206,36 @@
         .user-link:hover, .team-link:hover, .competition-link:hover {
             text-decoration: underline;
         }
-        .toast-notification {
+        
+        /* UPDATED: Toast Notification Styles */
+        #toast-container {
             position: fixed;
             bottom: 20px;
             right: 20px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        .toast-notification {
             background-color: #2d3748;
             color: white;
             padding: 12px 20px;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 100;
             opacity: 0;
-            transform: translateY(20px);
+            transform: translateX(20px);
             transition: opacity 0.3s ease, transform 0.3s ease;
+            position: relative;
         }
         .toast-notification.show {
             opacity: 1;
-            transform: translateY(0);
+            transform: translateX(0);
         }
         .toast-notification.info { background-color: #2b6cb0; }
         .toast-notification.error { background-color: #c53030; }
+
         /* Select2 Styles */
         .select2-container--default .select2-selection--multiple {
             border: 1px solid #d1d5db;
@@ -515,7 +525,7 @@
         </div>
     </div>
 
-    <!-- Toast Notification -->
+    <!-- Toast Notification Container -->
     <div id="toast-container"></div>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -671,10 +681,12 @@
                 toast.textContent = message;
                 container.appendChild(toast);
 
+                // Animate in
                 setTimeout(() => {
                     toast.classList.add('show');
                 }, 10);
 
+                // Animate out and remove
                 setTimeout(() => {
                     toast.classList.remove('show');
                     toast.addEventListener('transitionend', () => toast.remove());
@@ -751,30 +763,34 @@
                 const compData = competitionDatabase[compName] || {};
                 const teamId = placement ? placement.teamId : '';
 
+                // UPDATED: Placement input layout
                 placementDiv.innerHTML = `
                     <button type="button" class="remove-placement-btn absolute -top-2.5 -right-2.5 bg-red-500 text-white rounded-full h-6 w-6 flex items-center justify-center font-bold text-sm hover:bg-red-600 z-10">&times;</button>
-                    <div class="flex justify-between items-center gap-4">
-                        <div class="flex items-center gap-2">
-                            <input type="checkbox" class="team-placement-checkbox h-4 w-4 rounded border-gray-400" ${teamId ? 'checked' : ''}>
-                            <label class="text-sm font-medium !mb-0">Team Placement</label>
-                        </div>
-                        <div class="team-selection-container ${teamId ? '' : 'hidden'} flex-grow">
-                            <label class="font-medium text-xs text-gray-600 sr-only">Team Name*</label>
-                            <select class="team-name-select w-full text-sm p-2 border border-gray-300 rounded-md">
-                                <option value="">Select a team...</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="placement-fields grid-cols-1 sm:grid-cols-3">
-                        <div class="sm:col-span-1">
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="sm:col-span-2">
                             <label class="font-medium text-xs text-gray-600">Competition*</label>
                             <input type="text" list="competition-list" placeholder="Competition Name" class="comp-name-input w-full text-sm p-2 border border-gray-300 rounded-md" value="${compName}" required>
                         </div>
-                        <div class="sm:col-span-1">
+
+                        <div class="sm:col-span-2">
+                            <label class="flex items-center gap-2 mb-2 cursor-pointer">
+                                <input type="checkbox" class="team-placement-checkbox h-4 w-4 rounded border-gray-400" ${teamId ? 'checked' : ''}>
+                                <span class="text-sm font-medium">Team Placement</span>
+                            </label>
+                            <div class="team-selection-container ${teamId ? '' : 'hidden'}">
+                                <label class="font-medium text-xs text-gray-600 sr-only">Team Name*</label>
+                                <select class="team-name-select w-full text-sm p-2 border border-gray-300 rounded-md">
+                                    <option value="">Select a team...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
                             <label class="font-medium text-xs text-gray-600">Date*</label>
                             <input type="month" class="comp-date-input w-full text-sm p-2 border border-gray-300 rounded-md" value="${compData.date || ''}" required>
                         </div>
-                        <div class="sm:col-span-1 grid grid-cols-2 gap-2">
+                        <div class="grid grid-cols-2 gap-2">
                              <div>
                                 <label class="font-medium text-xs text-gray-600">Rank*</label>
                                 <input type="number" placeholder="Rank" min="1" class="comp-rank-input w-full text-sm p-2 border border-gray-300 rounded-md" value="${placement ? placement.rank : ''}" required>
@@ -796,6 +812,7 @@
                 const teamCheckbox = placementDiv.querySelector('.team-placement-checkbox');
                 const compNameInput = placementDiv.querySelector('.comp-name-input');
                 const teamSelect = placementDiv.querySelector('.team-name-select');
+                const compDateInput = placementDiv.querySelector('.comp-date-input');
 
                 updateTeamSelectForEntry(placementDiv);
                 if (teamId) teamSelect.value = teamId;
@@ -804,11 +821,16 @@
                 placementDiv.querySelector('.remove-placement-btn').addEventListener('click', () => {
                     showConfirmationModal('Remove Placement?', 'Are you sure you want to remove this placement entry?', () => placementDiv.remove());
                 });
+
+                // Add listener for manual date changes
+                compDateInput.addEventListener('change', () => {
+                    updateTeamSelectForEntry(placementDiv);
+                });
                 
                 teamCheckbox.addEventListener('change', (e) => {
                     placementDiv.querySelector('.team-selection-container').classList.toggle('hidden', !e.target.checked);
                     if (e.target.checked) {
-                        compNameInput.dispatchEvent(new Event('input')); // Trigger check
+                        updateTeamSelectForEntry(placementDiv);
                     }
                 });
 
@@ -825,6 +847,9 @@
                         if (comp.total) compTotalInput.value = comp.total;
                         if (comp.link) compLinkInput.value = comp.link;
                     }
+
+                    // Always update team list when competition might have changed date
+                    updateTeamSelectForEntry(placementDiv);
 
                     // Auto-populate from teammate
                     const isTeamPlacement = teamCheckbox.checked;
@@ -1728,23 +1753,52 @@
                     competitionDataList.appendChild(option);
                 });
             }
+
+            // UPDATED: Team select dropdown format
             function updateTeamSelectForEntry(placementEntryDiv) {
                 const select = placementEntryDiv.querySelector('.team-name-select');
                 if (!select) return;
                 
                 const currentVal = select.value;
                 const currentUserHandle = handleField.value.toLowerCase();
+                const contestDateInput = placementEntryDiv.querySelector('.comp-date-input');
+                const contestDateStr = contestDateInput.value; // YYYY-MM
 
                 if (!currentUserHandle) {
                     select.innerHTML = '<option value="">Enter user handle first</option>';
                     select.disabled = true;
                     return;
                 }
-                
-                const userTeams = teamDatabase.filter(t => t.isActive && t.members.map(m => m.toLowerCase()).includes(currentUserHandle));
+
+                if (!contestDateStr) {
+                    select.innerHTML = '<option value="">Select contest date first</option>';
+                    select.disabled = true;
+                    return;
+                }
+
+                // Use the last day of the month for accurate comparison
+                const contestDate = new Date(contestDateStr);
+                contestDate.setMonth(contestDate.getMonth() + 1, 0); 
+                contestDate.setHours(23, 59, 59, 999); // Set to end of the day to be inclusive
+
+                const userTeams = teamDatabase.filter(t => {
+                    const isMember = t.members.map(m => m.toLowerCase()).includes(currentUserHandle);
+                    if (!isMember) return false;
+
+                    const teamCreatedAt = new Date(t.createdAt);
+                    if (teamCreatedAt > contestDate) return false; // Team created after contest
+
+                    const teamInactiveAt = t.inactiveAt ? new Date(t.inactiveAt) : null;
+                    // If team is inactive, the inactive date must be AFTER the contest date
+                    if (teamInactiveAt && teamInactiveAt < contestDate) {
+                        return false;
+                    }
+
+                    return true;
+                });
                 
                 if (userTeams.length === 0) {
-                     select.innerHTML = '<option value="">No teams for this user</option>';
+                     select.innerHTML = '<option value="">No active teams for this date</option>';
                      select.disabled = true;
                      return;
                 }
@@ -1754,14 +1808,17 @@
                 userTeams.sort((a,b) => a.name.localeCompare(b.name)).forEach(team => {
                     const option = document.createElement('option');
                     option.value = team.id;
+                    const createdAtStr = formatMonthYear(team.createdAt);
+                    const inactiveAtStr = team.inactiveAt ? formatMonthYear(team.inactiveAt) : 'now';
                     const membersStr = team.members.join(', ');
-                    const createdAtStr = formatMMYYYY(team.createdAt);
-                    option.textContent = `${team.name} (Since: ${createdAtStr} | Members: ${membersStr})`;
-                    option.title = `${team.name} (Created: ${createdAtStr})\nMembers: ${membersStr}`;
+                    
+                    option.textContent = `${team.name} (${createdAtStr} to ${inactiveAtStr}) (${membersStr})`;
+                    option.title = `University: ${team.university}`;
                     select.appendChild(option);
                 });
                 select.value = currentVal;
             }
+
             function populateUniversityDatalist(selectedValue = '') {
                 const allUnis = new Set(universityDatabase);
                 userDatabase.forEach(u => { if(u.university) allUnis.add(u.university) });
@@ -2107,6 +2164,7 @@
                 renderUniversityAnalyticsContent(selector.value);
             }
 
+            // UPDATED: University Analytics Layout
             function renderUniversityAnalyticsContent(uniName) {
                 const contentEl = document.getElementById('universityAnalyticsContent');
                 if (!uniName) {
@@ -2165,12 +2223,6 @@
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                             <div>
-                                <h4 class="text-xl font-semibold mb-3">Students by Academic Year</h4>
-                                <div class="p-4 bg-white rounded-lg shadow-inner h-64 flex items-center justify-center">
-                                    <canvas id="studentsByYearChart"></canvas>
-                                </div>
-                            </div>
-                            <div>
                                 <h4 class="text-xl font-semibold mb-3">Top 5 Student Placements</h4>
                                 <div class="space-y-2">
                                     ${topStudentPlacements.length > 0 ? topStudentPlacements.map(p => `
@@ -2180,23 +2232,6 @@
                                             <div class="text-xs text-green-600">Rank ${p.rank} / ${p.total}</div>
                                         </div>
                                     `).join('') : '<p class="text-gray-500 text-sm p-2 bg-gray-50 rounded">No solo placements recorded.</p>'}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div>
-                                <h4 class="text-xl font-semibold mb-3">Students (${students.length})</h4>
-                                <input type="text" id="studentSearchInput" placeholder="Search students by name or handle..." class="w-full p-2 border rounded-md mb-2 bg-gray-50">
-                                <div id="studentListContainer" class="space-y-2 max-h-96 overflow-y-auto pr-2 border rounded-lg p-2 bg-white">
-                                    ${students.length > 0 ? students.sort((a,b) => a.handle.localeCompare(b.handle)).map(s => `<div class="p-2 bg-gray-50 rounded text-sm" data-handle="${s.handle}" data-name="${s.fullName || ''}">${createUserLink(s.handle)}</div>`).join('') : '<p class="text-gray-500 text-sm p-2">No students.</p>'}
-                                </div>
-                            </div>
-                            <div>
-                                <h4 class="text-xl font-semibold mb-3">Teams (${allTeams.length})</h4>
-                                <input type="text" id="teamSearchInput" placeholder="Search teams by name or members..." class="w-full p-2 border rounded-md mb-2 bg-gray-50">
-                                <div id="teamListContainer" class="space-y-2 max-h-96 overflow-y-auto pr-2 border rounded-lg p-2 bg-white">
-                                    ${allTeams.length > 0 ? allTeams.sort((a,b) => a.name.localeCompare(b.name)).map(t => `<div class="p-2 ${t.isActive ? 'bg-gray-50' : 'bg-gray-100'} rounded text-sm" data-team-id="${t.id}">${createTeamLink(t.name, t.id)} ${!t.isActive ? '<span class="text-xs text-red-600">(Inactive)</span>' : ''}</div>`).join('') : '<p class="text-gray-500 text-sm p-2">No teams.</p>'}
                                 </div>
                             </div>
                              <div>
@@ -2209,6 +2244,29 @@
                                             <div class="text-xs text-teal-600">Rank ${p.rank} / ${p.total}</div>
                                         </div>
                                     `).join('') : '<p class="text-gray-500 text-sm p-2 bg-gray-50 rounded">No team placements recorded.</p>'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                             <div>
+                                <h4 class="text-xl font-semibold mb-3">Students by Academic Year</h4>
+                                <div class="p-4 bg-white rounded-lg shadow-inner h-64 flex items-center justify-center">
+                                    <canvas id="studentsByYearChart"></canvas>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold mb-3">Students (${students.length})</h4>
+                                <input type="text" id="studentSearchInput" placeholder="Search students..." class="w-full p-2 border rounded-md mb-2 bg-gray-50">
+                                <div id="studentListContainer" class="space-y-2 max-h-96 overflow-y-auto pr-2 border rounded-lg p-2 bg-white">
+                                    ${students.length > 0 ? students.sort((a,b) => a.handle.localeCompare(b.handle)).map(s => `<div class="p-2 bg-gray-50 rounded text-sm" data-handle="${s.handle}" data-name="${s.fullName || ''}">${createUserLink(s.handle)}</div>`).join('') : '<p class="text-gray-500 text-sm p-2">No students.</p>'}
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="text-xl font-semibold mb-3">Teams (${allTeams.length})</h4>
+                                <input type="text" id="teamSearchInput" placeholder="Search teams..." class="w-full p-2 border rounded-md mb-2 bg-gray-50">
+                                <div id="teamListContainer" class="space-y-2 max-h-96 overflow-y-auto pr-2 border rounded-lg p-2 bg-white">
+                                    ${allTeams.length > 0 ? allTeams.sort((a,b) => a.name.localeCompare(b.name)).map(t => `<div class="p-2 ${t.isActive ? 'bg-gray-50' : 'bg-gray-100'} rounded text-sm" data-team-id="${t.id}">${createTeamLink(t.name, t.id)} ${!t.isActive ? '<span class="text-xs text-red-600">(Inactive)</span>' : ''}</div>`).join('') : '<p class="text-gray-500 text-sm p-2">No teams.</p>'}
                                 </div>
                             </div>
                         </div>
@@ -3239,16 +3297,16 @@
                         teams: teamDatabase,
                         competitions: competitionDatabase,
                         universities: universityDatabase,
-                        version: 'v17' // Increment version for new data model
+                        version: 'v18' // Increment version for new data model
                     };
-                    localStorage.setItem('electiToolData_v17', JSON.stringify(dataToSave));
+                    localStorage.setItem('electiToolData_v18', JSON.stringify(dataToSave));
                 } catch (e) {
                     console.error("Could not save to localStorage. Data might be too large.", e);
                 }
             }
 
             function loadDataFromLocalStorage() {
-                const savedData = localStorage.getItem('electiToolData_v17');
+                const savedData = localStorage.getItem('electiToolData_v18');
                 if (savedData) {
                     try {
                         const data = JSON.parse(savedData);
