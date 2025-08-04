@@ -44,21 +44,6 @@
         .sortable-header.sort-asc .sort-icon, .sortable-header.sort-desc .sort-icon {
              opacity: 1;
         }
-        .tab-btn.active {
-            border-color: #3b82f6;
-            color: #3b82f6;
-            background-color: #eff6ff;
-        }
-        .editor-tab-btn.active {
-            background-color: #3b82f6;
-            color: white;
-        }
-        .stat-card {
-            background-color: white;
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-        }
         .dropdown {
             position: relative;
             display: inline-block;
@@ -105,25 +90,15 @@
         input[type="file"] {
             display: none;
         }
-        #detailedUserTable thead tr:nth-child(2) th, .editor-table thead tr:nth-child(2) th {
+        #detailedUserTable thead tr:nth-child(2) th {
             padding: 0.5rem;
         }
-        #detailedUserTable thead input[type="text"], .editor-table thead input[type="text"] {
+        #detailedUserTable thead input[type="text"] {
             width: 100%;
             padding: 4px 8px;
             border-radius: 4px;
             border: 1px solid #d1d5db;
         }
-        .editor-table input, .editor-table textarea, .editor-table select {
-            width: 100%;
-            padding: 4px 8px;
-            border-radius: 4px;
-            border: 1px solid #d1d5db;
-            background-color: #f9fafb;
-        }
-         .editor-table textarea {
-            min-height: 60px;
-         }
          #detailedUserForm input, #detailedUserForm select {
              width: 100%;
              padding: 6px 10px;
@@ -137,14 +112,6 @@
              margin-bottom: 0.25rem;
              display: block;
          }
-        .sub-tab-btn {
-            transition: all 0.2s ease-in-out;
-        }
-         .sub-tab-btn.active {
-            background-color: #e0e7ff;
-            color: #4338ca;
-            font-weight: 600;
-        }
         .placement-entry {
             display: grid;
             grid-template-columns: 1fr;
@@ -154,30 +121,6 @@
             border-radius: 0.5rem;
             border: 1px solid #e5e7eb;
             position: relative;
-        }
-        .placement-fields {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-        }
-        /* Styles for expandable competition list in modal */
-        .competition-item summary {
-            cursor: pointer;
-            padding: 0.5rem;
-            border-radius: 0.25rem;
-            transition: background-color 0.2s;
-        }
-        .competition-item summary:hover {
-            background-color: #eef2ff;
-        }
-        .competition-item[open] summary {
-            font-weight: 600;
-            color: #4338ca;
-        }
-        .participant-list {
-            padding-left: 1.5rem;
-            margin-top: 0.5rem;
-            border-left: 2px solid #e5e7eb;
         }
         /* Styles for clickable links */
         .user-link, .team-link, .competition-link {
@@ -277,19 +220,7 @@
             </div>
         </div>
 
-        <!-- Tab Controls -->
-        <div class="mb-8 border-b border-gray-200">
-            <nav class="flex -mb-px space-x-6" aria-label="Tabs">
-                <button id="tabBtnDatabase" class="tab-btn active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg">
-                    User Database
-                </button>
-                <button id="tabBtnEditors" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-lg text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                    Data Editors
-                </button>
-            </nav>
-        </div>
-
-        <!-- Tab Content -->
+        <!-- Main Content Area -->
         <div id="tabContentDatabase">
             <!-- Form, Stats, and Table will be stacked vertically -->
             
@@ -379,7 +310,7 @@
             </div>
 
             <!-- Statistics Section -->
-            <div class="stat-card mb-8">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
                 <h2 class="text-xl font-bold mb-4">Database Statistics</h2>
                 <div id="statsContainer" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 text-center">
                     <!-- Stats will be dynamically inserted here -->
@@ -437,23 +368,6 @@
                 </div>
             </div>
         </div>
-        
-        <div id="tabContentEditors" class="hidden">
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <div class="border-b border-gray-200 mb-4">
-                    <nav class="flex space-x-1" aria-label="Editor Tabs">
-                        <button data-editor="competitions" class="editor-tab-btn active font-medium px-4 py-2 rounded-t-lg">Competitions</button>
-                        <button data-editor="universities" class="editor-tab-btn font-medium px-4 py-2 rounded-t-lg text-gray-600">Universities</button>
-                        <button data-editor="teams" class="editor-tab-btn font-medium px-4 py-2 rounded-t-lg text-gray-600">Teams</button>
-                    </nav>
-                </div>
-
-                <div id="editorContainer">
-                    <!-- This container will hold the editor sub-tabs and content -->
-                </div>
-            </div>
-        </div>
-
     </div>
 
     <!-- Confirmation Modal -->
@@ -509,30 +423,10 @@
             let charts = {}; // Object to hold all chart instances
             let dbSortState = { key: 'updatedAt', direction: 'desc' };
             let dbFilters = {};
-            let editorSortStates = {
-                competitions: { key: 'name', direction: 'asc' },
-                universities: { key: 'name', direction: 'asc' },
-                teams: { key: 'name', direction: 'asc' }
-            };
-            let editorFilters = {
-                competitions: {},
-                universities: {},
-                teams: {}
-            };
             let confirmCallback = null;
 
             // --- DOM ELEMENT REFERENCES ---
             const appContainer = document.getElementById('app-container');
-            const tabButtons = {
-                database: document.getElementById('tabBtnDatabase'),
-                editors: document.getElementById('tabBtnEditors'),
-            };
-            const tabContents = {
-                database: document.getElementById('tabContentDatabase'),
-                editors: document.getElementById('tabContentEditors'),
-            };
-            const editorContainer = document.getElementById('editorContainer');
-            
             const jsonFileInput = document.getElementById('jsonFileInput');
             const downloadSelectedUsersCsvBtn = document.getElementById('downloadSelectedUsersCsvBtn');
             const downloadAllUsersCsvBtn = document.getElementById('downloadAllUsersCsvBtn');
@@ -603,7 +497,6 @@
                 if (!dateString) return 'N/A';
                 try {
                     const date = new Date(dateString);
-                    // Add a day to the date to handle timezone issues where it might be the last day of the previous month in UTC
                     date.setDate(date.getDate() + 1);
                     const year = date.getUTCFullYear();
                     const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
@@ -627,13 +520,13 @@
                 if (currentMonth < startMonth) {
                     academicYear--;
                 }
-                academicYear++; // Convert to 1-based index
+                academicYear++; 
 
                 if (academicYear === 1) return { year: 1, label: '1st Year' };
                 if (academicYear === 2) return { year: 2, label: '2nd Year' };
                 if (academicYear === 3) return { year: 3, label: '3rd Year' };
                 if (academicYear === 4) return { year: 4, label: '4th Year' };
-                if (academicYear > 4 && academicYear < 10) return { year: 5, label: '5th Year+' }; // Cap at a reasonable number
+                if (academicYear > 4 && academicYear < 10) return { year: 5, label: '5th Year+' };
                 if (academicYear >= 10) return { year: 6, label: 'Graduated' };
                 return { year: 6, label: 'Graduated' };
             }
@@ -646,12 +539,10 @@
                 toast.textContent = message;
                 container.appendChild(toast);
 
-                // Animate in
                 setTimeout(() => {
                     toast.classList.add('show');
                 }, 10);
 
-                // Animate out and remove
                 setTimeout(() => {
                     toast.classList.remove('show');
                     toast.addEventListener('transitionend', () => toast.remove());
@@ -668,6 +559,7 @@
                     confirmationModal.querySelector('.modal-content')?.classList.remove('scale-95'); 
                 }, 10); 
             }
+
             function hideConfirmationModal() { 
                 confirmationModal.querySelector('.modal-overlay')?.classList.add('opacity-0'); 
                 confirmationModal.querySelector('.modal-content')?.classList.add('scale-95'); 
@@ -676,6 +568,7 @@
                     confirmCallback = null; 
                 }, 300); 
             }
+
              function showAiModal() {
                 aiModal.classList.remove('hidden');
                 setTimeout(() => {
@@ -772,7 +665,6 @@
                 `;
                 placementsContainer.appendChild(placementDiv);
 
-                // Attach event listeners to the new elements
                 const teamCheckbox = placementDiv.querySelector('.team-placement-checkbox');
                 const compNameInput = placementDiv.querySelector('.comp-name-input');
                 const teamSelect = placementDiv.querySelector('.team-name-select');
@@ -781,12 +673,10 @@
                 updateTeamSelectForEntry(placementDiv);
                 if (teamId) teamSelect.value = teamId;
 
-
                 placementDiv.querySelector('.remove-placement-btn').addEventListener('click', () => {
                     showConfirmationModal('Remove Placement?', 'Are you sure you want to remove this placement entry?', () => placementDiv.remove());
                 });
 
-                // Add listener for manual date changes
                 compDateInput.addEventListener('change', () => {
                     updateTeamSelectForEntry(placementDiv);
                 });
@@ -812,10 +702,8 @@
                         if (comp.link) compLinkInput.value = comp.link;
                     }
 
-                    // Always update team list when competition might have changed date
                     updateTeamSelectForEntry(placementDiv);
 
-                    // Auto-populate from teammate
                     const isTeamPlacement = teamCheckbox.checked;
                     const selectedTeamId = teamSelect.value;
                     if (!isTeamPlacement || !selectedTeamId || !currentCompName) return;
@@ -838,7 +726,7 @@
                 });
                 
                 teamSelect.addEventListener('change', () => {
-                     compNameInput.dispatchEvent(new Event('input')); // Re-trigger check
+                     compNameInput.dispatchEvent(new Event('input'));
                 });
 
                 if (placement) compNameInput.dispatchEvent(new Event('input'));
@@ -848,7 +736,6 @@
                 e.preventDefault();
                 const saveButton = document.getElementById('saveUserBtn');
 
-                // --- Start of Async Change ---
                 const formData = new FormData(detailedUserForm);
                 const handle = formData.get('handle').trim();
                 if (!handle) { 
@@ -899,7 +786,6 @@
                         universityDatabase.sort();
                     }
 
-                    // Process competitions from placements
                     placementsData.forEach(p => {
                         if (!competitionDatabase[p.name] || competitionDatabase[p.name].total !== p.total || competitionDatabase[p.name].date !== p.date || competitionDatabase[p.name].link !== p.link) {
                            competitionDatabase[p.name] = { total: parseInt(p.total, 10), date: p.date, link: p.link };
@@ -919,40 +805,36 @@
                         joinDate: formData.get('joinDate') || null,
                         universityStartDate: formData.get('universityStartDate') || null,
                         isTrusted: detailedUserForm.querySelector('#isTrustedCheckbox').checked,
-                        placements: placementsData.map(({name, rank, total, teamId}) => ({name, rank, total, teamId})), // Save only necessary fields
+                        placements: placementsData.map(({name, rank, total, teamId}) => ({name, rank, total, teamId})),
                         updatedAt: new Date()
                     };
 
                     saveUserAndUpdateTeams(userToSave);
                     
-                    // Restore button and give feedback
                     saveButton.disabled = false;
                     saveButton.innerHTML = 'Save User';
                     clearDetailedUserForm();
                     renderAll();
                     showToast(`User ${userToSave.handle} saved successfully.`, 'info');
 
-                }, 50); // Small delay to allow UI to update
-                // --- End of Async Change ---
+                }, 50);
             }
 
 
             function saveUserAndUpdateTeams(userToSave) {
                 const existingIndex = userDatabase.findIndex(u => u.id === userToSave.id);
                 if (existingIndex > -1) {
-                    // Replace the existing user object with the updated one
                     userDatabase.splice(existingIndex, 1, userToSave);
                 } else {
                     userDatabase.push(userToSave);
                 }
 
-                // Propagate team placements to other members
                 userToSave.placements.filter(p => p.teamId).forEach(teamPlacement => {
                     const team = teamDatabase.find(t => t.id === teamPlacement.teamId);
                     if (!team) return;
 
                     team.members.forEach(memberHandle => {
-                        if (memberHandle.toLowerCase() === userToSave.id) return; // Don't propagate to self
+                        if (memberHandle.toLowerCase() === userToSave.id) return;
 
                         let member = userDatabase.find(u => u.handle.toLowerCase() === memberHandle.toLowerCase());
                         if (member) {
@@ -982,18 +864,16 @@
             function renderAll() {
                 renderUserDatabaseTable();
                 updateAndRenderStatistics();
-                renderCurrentEditorView();
-                updateAllDatalists();
+                updateDatalists();
             }
             
-            function updateAllDatalists() {
+            function updateDatalists() {
                 updateCompetitionDatalist();
                 document.querySelectorAll('.placement-entry').forEach(updateTeamSelectForEntry);
                 populateUniversityDatalist();
             }
 
             function renderUserDatabaseTable() {
-                // Add academic year to each user object for sorting/filtering
                 const usersWithYear = userDatabase.map(user => ({
                     ...user,
                     academicYear: getAcademicYear(user).label
@@ -1142,38 +1022,6 @@
                 renderAll();
                 showToast(`${addedCount} new universities added.`, 'info');
             }
-
-             function handleTeamUpload(csvText) {
-                const newTeams = parseCsv(csvText);
-                let addedCount = 0;
-                newTeams.forEach(teamRow => {
-                    const name = teamRow['Team Name'];
-                    const university = teamRow['University'];
-                    const members = teamRow['Members'] ? teamRow['Members'].split(',').map(h => h.trim()) : [];
-                    if (name && university) {
-                        const existingTeam = teamDatabase.find(t => t.name.toLowerCase() === name.toLowerCase());
-                        const teamData = {
-                            name, university, members,
-                            isActive: teamRow['Is Active'] ? teamRow['Is Active'].toLowerCase() === 'true' : true,
-                            createdAt: teamRow['Created At'] || new Date().toISOString(),
-                            inactiveAt: teamRow['Inactive At'] || null
-                        };
-
-                        if (existingTeam) {
-                            existingTeam.university = teamData.university;
-                            existingTeam.members = teamData.members;
-                            existingTeam.isActive = teamData.isActive;
-                            existingTeam.inactiveAt = teamData.inactiveAt;
-                        } else {
-                            teamData.id = crypto.randomUUID();
-                            teamDatabase.push(teamData);
-                        }
-                        addedCount++;
-                    }
-                });
-                renderAll();
-                showToast(`${addedCount} teams added or updated.`, 'info');
-            }
             
             function downloadUsersCSV(usersToDownload) {
                 if (usersToDownload.length === 0) { alert("No users selected to download."); return; }
@@ -1227,486 +1075,6 @@
                 downloadFile(jsonString, `electi_backup_${getFormattedDateTimeString()}.json`, 'application/json');
             }
 
-            // --- Editor Rendering ---
-            function renderCurrentEditorView() {
-                const activeTab = document.querySelector('.editor-tab-btn.active')?.dataset.editor;
-                if (!activeTab) return;
-                
-                const editorViews = {
-                    competitions: getCompetitionEditorHTML(),
-                    universities: getUniversityEditorHTML(),
-                    teams: getTeamEditorHTML()
-                };
-                editorContainer.innerHTML = editorViews[activeTab];
-                renderEditorTable(activeTab);
-                attachEditorTableEventListeners(activeTab);
-            }
-
-            function getGenericEditorHTML(type, title, headers) {
-                const typeCaps = capitalize(type);
-                const tableHeaders = headers.map(h => `<th class="p-3 sortable-header" data-sort-key="${h.key}">${h.label} <span class="sort-icon"></span></th>`).join('');
-                const filterHeaders = headers.map(h => `<th>${h.filterable ? `<input type="text" data-filter-key="${h.key}" placeholder="Filter...">` : ''}</th>`).join('');
-
-                return `
-                    <div id="editorContent${typeCaps}" data-editor-type="${type}">
-                        <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-2xl font-bold">${title}</h2>
-                        </div>
-                        <div id="${type}EditorView">
-                             <div class="flex flex-wrap gap-4 items-center mb-4">
-                                <button id="add${typeCaps}RowBtn" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-green-700 transition text-sm">Add New ${typeCaps.slice(0,-1)}</button>
-                                <button id="deleteSelected${typeCaps}Btn" class="bg-red-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-red-700 transition text-sm">Delete Selected</button>
-                                <div class="flex-grow"></div>
-                                <label for="upload${typeCaps}CsvEditor" class="file-input-label bg-blue-600 hover:bg-blue-700 !text-sm !py-2 !px-4">Upload CSV</label>
-                                <input type="file" id="upload${typeCaps}CsvEditor" accept=".csv">
-                                <button id="download${typeCaps}CsvEditor" class="bg-purple-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-purple-700 transition text-sm">Download CSV</button>
-                            </div>
-                            <div class="overflow-x-auto border rounded-lg">
-                                <table id="${type}EditorTable" class="w-full text-sm text-left text-gray-600 editor-table">
-                                    <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
-                                        <tr>
-                                            <th class="p-2 w-10 text-center"><input type="checkbox" class="select-all-editor-checkbox"></th>
-                                            ${tableHeaders}
-                                        </tr>
-                                        <tr>
-                                            <th></th>
-                                            ${filterHeaders}
-                                        </tr>
-                                    </thead>
-                                    <tbody></tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-
-            function getCompetitionEditorHTML() {
-                return getGenericEditorHTML('competitions', 'Competition Editor', [
-                    { label: 'Competition Name', key: 'name', filterable: true },
-                    { label: 'Date (YYYY-MM)', key: 'date', filterable: true },
-                    { label: 'Total Participants', key: 'total', filterable: true },
-                    { label: 'Link', key: 'link', filterable: false },
-                    { label: 'Actions', key: 'actions', filterable: false }
-                ]);
-            }
-
-            function getUniversityEditorHTML() {
-                return getGenericEditorHTML('universities', 'University Editor', [
-                    { label: 'University Name', key: 'name', filterable: true },
-                    { label: 'Actions', key: 'actions', filterable: false }
-                ]);
-            }
-
-            function getTeamEditorHTML() {
-                return getGenericEditorHTML('teams', 'Team Editor', [
-                    { label: 'Team Name', key: 'name', filterable: true },
-                    { label: 'University', key: 'university', filterable: true },
-                    { label: 'Members', key: 'members', filterable: false },
-                    { label: 'Active', key: 'isActive', filterable: false },
-                    { label: 'Created At', key: 'createdAt', filterable: true },
-                    { label: 'Inactive At', key: 'inactiveAt', filterable: true },
-                    { label: 'Actions', key: 'actions', filterable: false }
-                ]);
-            }
-
-            function renderEditorTable(editorType) {
-                const table = document.querySelector(`#${editorType}EditorTable`);
-                if (!table) return;
-                const tableBody = table.querySelector('tbody');
-                if (!tableBody) return;
-                tableBody.innerHTML = '';
-                
-                let data;
-                switch (editorType) {
-                    case 'competitions':
-                        data = Object.entries(competitionDatabase).map(([name, d]) => ({ ...d, name }));
-                        break;
-                    case 'universities':
-                        data = universityDatabase.map(name => ({ name }));
-                        break;
-                    case 'teams':
-                        data = [...teamDatabase];
-                        break;
-                }
-
-                // Apply filters
-                const filters = editorFilters[editorType];
-                const filteredData = data.filter(item => {
-                    return Object.entries(filters).every(([key, value]) => {
-                        let itemValue = item[key];
-                        // Special handling for date filtering
-                        if (key === 'createdAt' || key === 'inactiveAt') {
-                            itemValue = formatMMYYYY(itemValue);
-                        }
-                        return String(itemValue || '').toLowerCase().includes(value.toLowerCase());
-                    });
-                });
-
-                // Apply sorting
-                const { key, direction } = editorSortStates[editorType];
-                filteredData.sort((a, b) => {
-                    const valA = a[key] || '';
-                    const valB = b[key] || '';
-                    if (valA < valB) return direction === 'asc' ? -1 : 1;
-                    if (valA > valB) return direction === 'asc' ? 1 : -1;
-                    return 0;
-                });
-
-                // Render rows
-                filteredData.forEach(item => {
-                    const row = tableBody.insertRow();
-                    switch (editorType) {
-                        case 'competitions':
-                            row.dataset.id = item.name;
-                            row.innerHTML = `
-                                <td class="p-2 text-center"><input type="checkbox" class="editor-select-checkbox" data-id="${item.name}"></td>
-                                <td class="p-2" data-key="name">${createCompetitionLink(item.name)}</td>
-                                <td class="p-2" data-key="date">${item.date || ''}</td>
-                                <td class="p-2" data-key="total">${item.total || ''}</td>
-                                <td class="p-2" data-key="link"><a href="${item.link || '#'}" target="_blank" class="text-blue-600 hover:underline">${item.link ? 'Link' : ''}</a></td>
-                                <td class="p-2 whitespace-nowrap"><button class="edit-btn text-blue-600 hover:underline">Edit</button> <button class="delete-btn text-red-600 hover:underline ml-2">Delete</button></td>`;
-                            break;
-                        case 'universities':
-                            row.dataset.id = item.name;
-                            row.innerHTML = `
-                                <td class="p-2 text-center"><input type="checkbox" class="editor-select-checkbox" data-id="${item.name}"></td>
-                                <td class="p-2" data-key="name">${item.name}</td>
-                                <td class="p-2 whitespace-nowrap"><button class="edit-btn text-blue-600 hover:underline">Edit</button> <button class="delete-btn text-red-600 hover:underline ml-2">Delete</button></td>`;
-                            break;
-                        case 'teams':
-                            row.dataset.id = item.id;
-                            row.innerHTML = `
-                                <td class="p-2 text-center"><input type="checkbox" class="editor-select-checkbox" data-id="${item.id}"></td>
-                                <td class="p-2" data-key="name">${createTeamLink(item.name, item.id)}</td>
-                                <td class="p-2" data-key="university">${item.university}</td>
-                                <td class="p-2" data-key="members">
-                                    <div class="space-y-1">${item.members.map(m => `<div>${createUserLink(m)}</div>`).join('')}</div>
-                                </td>
-                                <td class="p-2" data-key="isActive"><input type="checkbox" ${item.isActive ? 'checked' : ''} disabled></td>
-                                <td class="p-2" data-key="createdAt">${formatMMYYYY(item.createdAt)}</td>
-                                <td class="p-2" data-key="inactiveAt">${formatMMYYYY(item.inactiveAt)}</td>
-                                <td class="p-2 whitespace-nowrap"><button class="edit-btn text-blue-600 hover:underline">Edit</button> <button class="delete-btn text-red-600 hover:underline ml-2">Delete</button></td>`;
-                            break;
-                    }
-                });
-                updateEditorSortIndicators(editorType);
-                updateSelectAllState(table);
-            }
-            
-            function addEditorTableRow(editorType) {
-                const tableBody = document.querySelector(`#${editorType}EditorTable tbody`);
-                if (!tableBody) return;
-                const row = tableBody.insertRow(0);
-                row.dataset.id = `new_${Date.now()}`;
-                let cells = '';
-                switch (editorType) {
-                    case 'competitions':
-                        cells = `<td></td>
-                                 <td><input type="text" data-key="name" placeholder="New Competition"></td>
-                                 <td><input type="month" data-key="date"></td>
-                                 <td><input type="number" data-key="total" placeholder="0"></td>
-                                 <td><input type="url" data-key="link" placeholder="URL"></td>`;
-                        break;
-                    case 'universities':
-                        cells = `<td></td>
-                                 <td><input type="text" data-key="name" placeholder="New University"></td>`;
-                        break;
-                    case 'teams':
-                        const today = new Date();
-                        const year = today.getFullYear();
-                        const month = (today.getMonth() + 1).toString().padStart(2, '0');
-
-                        cells = `<td></td>
-                                 <td><input type="text" data-key="name" placeholder="New Team"></td>
-                                 <td><input type="text" list="university-list" data-key="university" placeholder="University"></td>
-                                 <td><select data-key="members" class="team-members-select" multiple="multiple" style="width: 100%;"></select></td>
-                                 <td><input type="checkbox" data-key="isActive" class="is-active-checkbox" checked></td>
-                                 <td><input type="month" data-key="createdAt" value="${year}-${month}"></td>
-                                 <td><input type="month" data-key="inactiveAt" class="inactive-at-input" disabled></td>
-                                 `;
-                        break;
-                }
-                row.innerHTML = `${cells}<td class="p-2 whitespace-nowrap"><button class="save-btn text-green-600 hover:underline">Save</button> <button class="cancel-btn text-gray-600 hover:underline ml-2">Cancel</button></td>`;
-                
-                if (editorType === 'teams') {
-                    const select = row.querySelector('.team-members-select');
-                    userDatabase.forEach(user => {
-                        $(select).append(new Option(user.handle, user.handle, false, false));
-                    });
-                    $(select).select2({ placeholder: "Select members" });
-
-                    const isActiveCheckbox = row.querySelector('.is-active-checkbox');
-                    const inactiveAtInput = row.querySelector('.inactive-at-input');
-                    isActiveCheckbox.addEventListener('change', (e) => {
-                        inactiveAtInput.disabled = e.target.checked;
-                        if(e.target.checked) {
-                            inactiveAtInput.value = '';
-                        }
-                    });
-                }
-            }
-
-            function handleEditorTableEvents(e, editorType) {
-                const btn = e.target;
-                const row = btn.closest('tr');
-                if (!row) return;
-                const id = row.dataset.id;
-
-                if (btn.classList.contains('edit-btn')) {
-                    const itemData = editorType === 'teams' ? teamDatabase.find(t => t.id === id) : null;
-
-                    row.querySelectorAll('td[data-key]').forEach(td => {
-                        const key = td.dataset.key;
-                        let value = td.textContent.trim();
-                         if (key === 'members') {
-                            const members = Array.from(td.querySelectorAll('.user-link')).map(link => link.dataset.handle);
-                            td.innerHTML = `<select data-key="members" class="team-members-select" multiple="multiple" style="width: 100%;"></select>`;
-                            const select = td.querySelector('.team-members-select');
-                            userDatabase.forEach(user => {
-                                const isSelected = members.includes(user.handle);
-                                $(select).append(new Option(user.handle, user.handle, isSelected, isSelected));
-                            });
-                            $(select).select2({ placeholder: "Select members" }).trigger('change');
-                        } else if (key === 'university') {
-                            td.innerHTML = `<input type="text" list="university-list" data-key="university" value="${value}">`;
-                        } else if (key === 'date') {
-                             td.innerHTML = `<input type="month" data-key="date" value="${value}">`;
-                        } else if (key === 'inactiveAt') {
-                             td.innerHTML = `<input type="month" data-key="inactiveAt" class="inactive-at-input" value="${formatDateForInput(itemData?.inactiveAt)}" ${itemData?.isActive ? 'disabled' : ''}>`;
-                        } else if (key === 'link') {
-                             td.innerHTML = `<input type="url" data-key="link" value="${td.querySelector('a')?.href || ''}">`;
-                        } else if (key === 'isActive') {
-                            const isChecked = td.querySelector('input').checked;
-                            td.innerHTML = `<input type="checkbox" data-key="isActive" class="is-active-checkbox" ${isChecked ? 'checked' : ''}>`;
-                        } else if (key === 'createdAt') {
-                            const team = teamDatabase.find(t => t.id === id);
-                            const dateValue = team ? new Date(team.createdAt) : new Date();
-                            dateValue.setDate(dateValue.getDate() + 1);
-                            const year = dateValue.getUTCFullYear();
-                            const month = (dateValue.getUTCMonth() + 1).toString().padStart(2, '0');
-                            td.innerHTML = `<input type="month" data-key="createdAt" value="${year}-${month}">`;
-                        } else {
-                            td.innerHTML = `<input type="text" data-key="${key}" value="${value}">`;
-                        }
-                    });
-                    btn.closest('td').innerHTML = `<button class="save-btn text-green-600 hover:underline">Save</button> <button class="cancel-btn text-gray-600 hover:underline ml-2">Cancel</button>`;
-                    
-                    if (editorType === 'teams') {
-                        const isActiveCheckbox = row.querySelector('.is-active-checkbox');
-                        const inactiveAtInput = row.querySelector('.inactive-at-input');
-                        isActiveCheckbox.addEventListener('change', (e) => {
-                            inactiveAtInput.disabled = e.target.checked;
-                            if(e.target.checked) {
-                                inactiveAtInput.value = '';
-                            }
-                        });
-                    }
-
-                } else if (btn.classList.contains('cancel-btn')) {
-                    if (id.startsWith('new_')) {
-                        row.remove();
-                    } else {
-                        renderEditorTable(editorType); // Just re-render to cancel edits
-                    }
-                } else if (btn.classList.contains('delete-btn')) {
-                    showConfirmationModal(`Delete ${capitalize(editorType.slice(0, -1))}?`, `Are you sure you want to delete this entry? This cannot be undone.`, () => {
-                        switch (editorType) {
-                            case 'competitions': delete competitionDatabase[id]; break;
-                            case 'universities': universityDatabase = universityDatabase.filter(name => name !== id); break;
-                            case 'teams': teamDatabase = teamDatabase.filter(t => t.id !== id); break;
-                        }
-                        renderAll();
-                    });
-                } else if (btn.classList.contains('save-btn')) {
-                    const data = {};
-                    let newId;
-                    let isValid = true;
-                    
-                    row.querySelectorAll('input[data-key], select[data-key]').forEach(input => {
-                        const key = input.dataset.key;
-                        const value = input.type === 'checkbox' ? input.checked : (input.value || '').trim();
-                         if (key === 'name' && !value) {
-                            isValid = false;
-                            alert("Name cannot be empty.");
-                        }
-                        if (key === 'name') newId = value;
-
-                        if (key === 'members') {
-                            data[key] = $(input).val();
-                        } else {
-                            data[key] = value;
-                        }
-                    });
-
-                    if (!isValid) return;
-
-                    switch (editorType) {
-                        case 'competitions':
-                            if (id !== newId) delete competitionDatabase[id];
-                            competitionDatabase[newId] = { date: data.date, total: parseInt(data.total, 10) || 0, link: data.link };
-                            break;
-                        case 'universities':
-                            if (id.startsWith('new_')) {
-                                if (!universityDatabase.includes(newId)) universityDatabase.push(newId);
-                            } else {
-                                const index = universityDatabase.indexOf(id);
-                                if (index > -1) universityDatabase[index] = newId;
-                            }
-                            universityDatabase.sort();
-                            break;
-                        case 'teams':
-                            const universityName = data.university;
-                            if (universityName && !universityDatabase.includes(universityName)) {
-                                universityDatabase.push(universityName);
-                                universityDatabase.sort();
-                            }
-                            
-                            const createdAtDate = data.createdAt ? new Date(data.createdAt).toISOString() : new Date().toISOString();
-                            let inactiveAtDate = data.inactiveAt ? new Date(data.inactiveAt).toISOString() : null;
-
-                            if (data.isActive) {
-                                inactiveAtDate = null; // Force inactive date to null if team is active
-                            }
-
-                            if (inactiveAtDate && new Date(inactiveAtDate) < new Date(createdAtDate)) {
-                                showToast('Inactive date cannot be before the created date.', 'error');
-                                return;
-                            }
-
-                            const teamIndex = teamDatabase.findIndex(t => t.id === id);
-                            const teamData = {
-                                name: data.name,
-                                university: data.university,
-                                members: data.members || [],
-                                isActive: data.isActive,
-                                createdAt: createdAtDate,
-                                inactiveAt: inactiveAtDate
-                            };
-
-                            if (teamIndex > -1) {
-                                teamDatabase[teamIndex] = { ...teamDatabase[teamIndex], ...teamData };
-                            } else {
-                                teamData.id = crypto.randomUUID();
-                                teamDatabase.push(teamData);
-                            }
-                            break;
-                    }
-                    renderAll();
-                }
-            }
-
-            function downloadEditorCSV(editorType) {
-                let csvContent = "data:text/csv;charset=utf-8,";
-                let rows = [];
-                switch (editorType) {
-                    case 'competitions':
-                        rows.push(['Competition Name', 'Date (YYYY-MM)', 'Total Participants', 'Link']);
-                        Object.entries(competitionDatabase).forEach(([name, data]) => {
-                            rows.push([name, data.date, data.total, data.link]);
-                        });
-                        break;
-                    case 'universities':
-                        rows.push(['University Name']);
-                        universityDatabase.forEach(name => rows.push([name]));
-                        break;
-                    case 'teams':
-                        rows.push(['Team Name', 'University', 'Members', 'Is Active', 'Created At', 'Inactive At']);
-                        teamDatabase.forEach(team => {
-                            rows.push([`"${team.name}"`, `"${team.university}"`, `"${team.members.join(',')}"`, team.isActive, new Date(team.createdAt).toISOString(), team.inactiveAt ? new Date(team.inactiveAt).toISOString() : '']);
-                        });
-                        break;
-                }
-                const csvString = rows.map(e => e.map(cell => typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell).join(",")).join("\n");
-                downloadFile(csvString, `${editorType}_export_${getFormattedDateTimeString()}.csv`, 'text/csv;charset=utf-8;')
-            }
-
-            function handleDeleteSelected(editorType) {
-                const table = document.getElementById(`${editorType}EditorTable`);
-                const selectedCheckboxes = table.querySelectorAll('.editor-select-checkbox:checked');
-                if (selectedCheckboxes.length === 0) {
-                    showToast('No items selected to delete.', 'error');
-                    return;
-                }
-
-                const idsToDelete = Array.from(selectedCheckboxes).map(cb => cb.dataset.id);
-
-                showConfirmationModal(`Delete ${selectedCheckboxes.length} items?`, 'This action is permanent and cannot be undone.', () => {
-                    let deletedCount = 0;
-                    switch (editorType) {
-                        case 'competitions':
-                            idsToDelete.forEach(id => { if(competitionDatabase[id]) { delete competitionDatabase[id]; deletedCount++; } });
-                            break;
-                        case 'universities':
-                            const initialLengthUni = universityDatabase.length;
-                            universityDatabase = universityDatabase.filter(name => !idsToDelete.includes(name));
-                            deletedCount = initialLengthUni - universityDatabase.length;
-                            break;
-                        case 'teams':
-                            const initialLengthTeam = teamDatabase.length;
-                            teamDatabase = teamDatabase.filter(t => !idsToDelete.includes(t.id));
-                            deletedCount = initialLengthTeam - teamDatabase.length;
-                            break;
-                    }
-                    showToast(`${deletedCount} items deleted.`, 'info');
-                    renderAll();
-                });
-            }
-
-            function attachEditorTableEventListeners(editorType) {
-                const editorContentDiv = document.querySelector(`[data-editor-type="${editorType}"]`);
-                if(!editorContentDiv) return;
-
-                editorContentDiv.addEventListener('click', e => {
-                    const targetId = e.target.id;
-                    const editorTable = editorContentDiv.querySelector('.editor-table');
-
-                    if (targetId === `add${capitalize(editorType)}RowBtn`) {
-                        addEditorTableRow(editorType);
-                    } else if (targetId === `deleteSelected${capitalize(editorType)}Btn`) {
-                        handleDeleteSelected(editorType);
-                    } else if (targetId === `download${capitalize(editorType)}CsvEditor`) {
-                        downloadEditorCSV(editorType);
-                    } else if (e.target.closest('.sortable-header')) {
-                        const header = e.target.closest('.sortable-header');
-                        const key = header.dataset.sortKey;
-                        let direction = 'desc';
-                        if (editorSortStates[editorType].key === key) {
-                            direction = editorSortStates[editorType].direction === 'desc' ? 'asc' : 'desc';
-                        }
-                        editorSortStates[editorType] = { key, direction };
-                        renderEditorTable(editorType);
-                    } else if (e.target.matches('.save-btn, .cancel-btn, .edit-btn, .delete-btn')) {
-                        handleEditorTableEvents(e, editorType);
-                    }
-                });
-                
-                editorContentDiv.addEventListener('change', e => {
-                    const target = e.target;
-                    const editorTable = editorContentDiv.querySelector('.editor-table');
-                    if (target.matches('.select-all-editor-checkbox')) {
-                        editorTable.querySelectorAll('tbody .editor-select-checkbox').forEach(cb => {
-                            cb.checked = target.checked;
-                        });
-                    } else if(target.matches('.editor-select-checkbox')) {
-                        updateSelectAllState(editorTable);
-                    } else if (target.id === `upload${capitalize(editorType)}CsvEditor`) {
-                         const handlers = { competitions: handleCompetitionUpload, universities: handleUniversityUpload, teams: handleTeamUpload };
-                         handleFileUpload(target.files[0], handlers[editorType]); 
-                         target.value = ''; // Reset file input
-                    }
-                });
-
-                editorContentDiv.addEventListener('keyup', e => {
-                    if (e.target.matches('input[data-filter-key]')) {
-                        editorFilters[editorType][e.target.dataset.filterKey] = e.target.value;
-                        renderEditorTable(editorType);
-                    }
-                });
-            }
-
-            function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-
             // --- Datalist Updaters ---
             function updateCompetitionDatalist() {
                 competitionDataList.innerHTML = '';
@@ -1724,7 +1092,7 @@
                 const currentVal = select.value;
                 const currentUserHandle = handleField.value.toLowerCase();
                 const contestDateInput = placementEntryDiv.querySelector('.comp-date-input');
-                const contestDateStr = contestDateInput.value; // YYYY-MM
+                const contestDateStr = contestDateInput.value;
 
                 if (!currentUserHandle) {
                     select.innerHTML = '<option value="">Enter user handle first</option>';
@@ -1737,21 +1105,19 @@
                     select.disabled = true;
                     return;
                 }
-
-                // Use the last day of the month for accurate comparison
+                
                 const contestDate = new Date(contestDateStr);
                 contestDate.setMonth(contestDate.getMonth() + 1, 0); 
-                contestDate.setHours(23, 59, 59, 999); // Set to end of the day to be inclusive
+                contestDate.setHours(23, 59, 59, 999);
 
                 const userTeams = teamDatabase.filter(t => {
                     const isMember = t.members.map(m => m.toLowerCase()).includes(currentUserHandle);
                     if (!isMember) return false;
 
                     const teamCreatedAt = new Date(t.createdAt);
-                    if (teamCreatedAt > contestDate) return false; // Team created after contest
+                    if (teamCreatedAt > contestDate) return false;
 
                     const teamInactiveAt = t.inactiveAt ? new Date(t.inactiveAt) : null;
-                    // If team is inactive, the inactive date must be AFTER the contest date
                     if (teamInactiveAt && teamInactiveAt < contestDate) {
                         return false;
                     }
@@ -1834,16 +1200,21 @@
                     plugins: { 
                         legend: { position: 'top' }, 
                         title: { display: true, text: '' },
+                        // This plugin is used to display labels on the chart itself.
+                        // By setting display to false, we hide them as requested.
                         datalabels: {
-                            display: false, // This will hide the labels on the chart slices
+                            display: false,
                         },
+                        // This configures the tooltips that appear on hover.
                         tooltip: {
                             callbacks: {
+                                // This function formats the text inside the tooltip.
                                 label: function(context) {
                                     const label = context.label || '';
                                     const value = context.raw;
                                     const sum = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
                                     const percentage = sum > 0 ? ((value / sum) * 100).toFixed(1) + '%' : '0%';
+                                    // It returns a string with the label, the raw number, and the calculated percentage.
                                     return `${label}: ${value} (${percentage})`;
                                 }
                             }
@@ -1913,7 +1284,6 @@
             }
             
             function updateDbSortIndicators() { detailedUserTable.querySelectorAll('th.sortable-header').forEach(th => { th.classList.remove('sort-asc', 'sort-desc'); if (th.dataset.sortKey === dbSortState.key) th.classList.add(`sort-${dbSortState.direction}`); th.querySelector('.sort-icon').textContent = dbSortState.direction === 'asc' ? '▲' : '▼'; }); }
-            function updateEditorSortIndicators(editorType) { const table = document.getElementById(`${editorType}EditorTable`); if (!table) return; table.querySelectorAll('th.sortable-header').forEach(th => { th.classList.remove('sort-asc', 'sort-desc'); if (th.dataset.sortKey === editorSortStates[editorType].key) th.classList.add(`sort-${editorSortStates[editorType].direction}`); th.querySelector('.sort-icon').textContent = editorSortStates[editorType].direction === 'asc' ? '▲' : '▼'; }); }
             
             function getFormattedDateTimeString() { const now = new Date(); const pad = (num) => num.toString().padStart(2, '0'); return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`; }
             
@@ -1928,7 +1298,7 @@
 
                 const teamPlacements = userDatabase
                     .flatMap(u => u.placements.filter(p => p.teamId === team.id))
-                    .reduce((acc, p) => { // Deduplicate
+                    .reduce((acc, p) => {
                         if (!acc.some(ap => ap.name === p.name)) acc.push(p);
                         return acc;
                     }, [])
@@ -2177,7 +1547,6 @@
 
                 const insights = await callGeminiApi(prompt);
                 
-                // A simple markdown to HTML converter
                 const formattedInsights = insights
                     .replace(/### (.*)/g, '<h3 class="text-xl font-semibold text-fuchsia-700 mt-4 mb-2">$1</h3>')
                     .replace(/## (.*)/g, '<h2 class="text-2xl font-bold text-fuchsia-800 mb-3">$1</h2>')
@@ -2201,32 +1570,6 @@
                     showTeamDetailsModal(teamLink.dataset.teamId);
                 }
             });
-
-            Object.values(tabButtons).forEach(button => {
-                button.addEventListener('click', () => {
-                    Object.values(tabButtons).forEach(btn => btn.classList.remove('active', 'text-blue-600', 'border-blue-600'));
-                    button.classList.add('active', 'text-blue-600', 'border-blue-600');
-                    Object.values(tabContents).forEach(content => content.classList.add('hidden'));
-                    const contentId = button.id.replace('tabBtn', 'tabContent');
-                    document.getElementById(contentId).classList.remove('hidden');
-                });
-            });
-
-            editorContainer.addEventListener('click', e => {
-                if(e.target.matches('.editor-tab-btn')){
-                     editorContainer.querySelectorAll('.editor-tab-btn').forEach(btn => btn.classList.remove('active'));
-                     e.target.classList.add('active');
-                     renderCurrentEditorView();
-                }
-            });
-            document.querySelector('#tabContentEditors .flex.space-x-1').addEventListener('click', e => {
-                if(e.target.matches('.editor-tab-btn')){
-                    document.querySelectorAll('#tabContentEditors .editor-tab-btn').forEach(btn => btn.classList.remove('active'));
-                    e.target.classList.add('active');
-                    renderCurrentEditorView();
-                }
-            });
-
 
             downloadAllUsersCsvBtn.addEventListener('click', () => downloadUsersCSV(userDatabase));
             downloadSelectedUsersCsvBtn.addEventListener('click', () => {
@@ -2302,10 +1645,10 @@
                     detailedUserForm.querySelector('[name="acmLevel"]').value = user.acmLevel;
                     detailedUserForm.querySelector('[name="joinDate"]').value = formatDateForInput(user.joinDate);
                     detailedUserForm.querySelector('[name="universityStartDate"]').value = formatDateForInput(user.universityStartDate);
-                    detailedUserForm.querySelector('#isTrustedCheckbox').checked = user.isTrusted !== false; // Default to true if undefined
+                    detailedUserForm.querySelector('#isTrustedCheckbox').checked = user.isTrusted !== false;
                     placementsContainer.innerHTML = '';
                     user.placements.forEach(p => addPlacementInput(p));
-                    handleField.dispatchEvent(new Event('input')); // Manually trigger to populate team dropdowns
+                    handleField.dispatchEvent(new Event('input'));
                     detailedUserForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 } else if (target.classList.contains('details-db-user-btn')) {
                     showUserDetailsModal(user.handle);
@@ -2367,16 +1710,16 @@
                         teams: teamDatabase,
                         competitions: competitionDatabase,
                         universities: universityDatabase,
-                        version: 'v18' // Increment version for new data model
+                        version: 'v18-simplified'
                     };
-                    localStorage.setItem('electiToolData_v18', JSON.stringify(dataToSave));
+                    localStorage.setItem('electiToolData_v18_simplified', JSON.stringify(dataToSave));
                 } catch (e) {
                     console.error("Could not save to localStorage. Data might be too large.", e);
                 }
             }
 
             function loadDataFromLocalStorage() {
-                const savedData = localStorage.getItem('electiToolData_v18');
+                const savedData = localStorage.getItem('electiToolData_v18_simplified');
                 if (savedData) {
                     try {
                         const data = JSON.parse(savedData);
@@ -2391,18 +1734,10 @@
                 }
             }
 
-            // Automatically save on changes
             window.addEventListener('beforeunload', saveDataToLocalStorage);
 
-            // Initial setup
             function initializeApp() {
                 loadDataFromLocalStorage();
-                updateDbSortIndicators();
-                // Set the default active tab
-                Object.values(tabButtons).forEach(btn => btn.classList.remove('active'));
-                Object.values(tabContents).forEach(content => content.classList.add('hidden'));
-                document.getElementById('tabBtnDatabase').classList.add('active');
-                document.getElementById('tabContentDatabase').classList.remove('hidden');
                 renderAll();
             }
 
