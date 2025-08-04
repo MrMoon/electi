@@ -12,12 +12,21 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+        .file-input-label {
+            cursor: pointer;
+            display: inline-block;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+        input[type="file"] {
+            display: none;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800 flex items-center justify-center min-h-screen p-4">
 
-    <div class="w-full max-w-4xl">
-        <header class="text-center mb-10">
+    <div class="w-full max-w-7xl">
+        <header class="text-center mb-12">
             <div class="flex justify-center items-center gap-4 mb-2">
                 <img src="https://i.ibb.co/JNyxxBv/logo.png" alt="Operation Electi Logo" class="h-20 w-20" onerror="this.onerror=null; this.src='https://placehold.co/80x80/e0e0e0/333?text=Logo';">
                 <h1 class="text-6xl font-bold text-gray-900">Operation Electi</h1>
@@ -25,30 +34,157 @@
             <p class="mt-2 text-xl text-gray-600">Your central hub for competitive programming analytics and tools.</p>
         </header>
 
-        <main class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <main class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
             <!-- Card 1: Readiness Calculator -->
             <div class="bg-white rounded-xl shadow-lg p-8 flex flex-col hover:shadow-2xl transition-shadow duration-300">
                 <h2 class="text-2xl font-bold text-gray-800 mb-3">Contest Readiness Calculator</h2>
                 <p class="text-gray-600 flex-grow mb-6">
-                    Analyze your Codeforces performance to determine your readiness for Div. 2 contests and Luna rounds. This tool provides a detailed breakdown of your recent activity and calculates a readiness score based on your problem-solving patterns.
+                    Analyze Codeforces performance to determine readiness for Div. 2 contests and Luna rounds.
                 </p>
                 <a href="readiness.html" class="text-center bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-indigo-700 transition-colors duration-300">
                     Open Calculator
                 </a>
             </div>
 
-            <!-- Card 2: Analytics Dashboard -->
+            <!-- Card 2: User Management -->
             <div class="bg-white rounded-xl shadow-lg p-8 flex flex-col hover:shadow-2xl transition-shadow duration-300">
-                <h2 class="text-2xl font-bold text-gray-800 mb-3">Analytics & User Management</h2>
+                <h2 class="text-2xl font-bold text-gray-800 mb-3">User Management</h2>
                 <p class="text-gray-600 flex-grow mb-6">
-                    A comprehensive dashboard to manage user data, track placements, and analyze performance across universities, teams, and competitions. Features data editors, visualizations, and AI-powered insights to understand community trends.
+                    Manage the user database. Add, edit, and view detailed user profiles, including placements and scores.
                 </p>
-                <a href="data.html" class="text-center bg-teal-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-teal-700 transition-colors duration-300">
+                <a href="data.html" class="text-center bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors duration-300">
+                    Manage Users
+                </a>
+            </div>
+
+            <!-- Card 3: Data Editor -->
+            <div class="bg-white rounded-xl shadow-lg p-8 flex flex-col hover:shadow-2xl transition-shadow duration-300">
+                <h2 class="text-2xl font-bold text-gray-800 mb-3">Data Editor</h2>
+                <p class="text-gray-600 flex-grow mb-6">
+                    Edit and manage core datasets. This includes adding or modifying competitions, universities, and teams.
+                </p>
+                <a href="editor.html" class="text-center bg-sky-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-sky-700 transition-colors duration-300">
+                    Open Editor
+                </a>
+            </div>
+
+            <!-- Card 4: Analytics Dashboard -->
+            <div class="bg-white rounded-xl shadow-lg p-8 flex flex-col hover:shadow-2xl transition-shadow duration-300">
+                <h2 class="text-2xl font-bold text-gray-800 mb-3">Analytics Dashboard</h2>
+                <p class="text-gray-600 flex-grow mb-6">
+                   Explore insightful visualizations and analyze performance across universities, teams, and competitions.
+                </p>
+                <a href="analytics.html" class="text-center bg-teal-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-teal-700 transition-colors duration-300">
                     Open Dashboard
                 </a>
             </div>
+
+            <!-- Card 5: Data Management -->
+            <div class="bg-white rounded-xl shadow-lg p-8 flex flex-col hover:shadow-2xl transition-shadow duration-300">
+                <h2 class="text-2xl font-bold text-gray-800 mb-3">Data Management</h2>
+                <p class="text-gray-600 flex-grow mb-6">
+                   Import and export your entire dataset. Use this to backup your data or load a previous state.
+                </p>
+                <div class="flex flex-col space-y-3">
+                    <label for="jsonFileInput" class="file-input-label bg-green-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-green-700">
+                        Import Data (JSON)
+                    </label>
+                    <input type="file" id="jsonFileInput" accept=".json">
+                    <button id="exportDataBtn" class="text-center bg-purple-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors duration-300">
+                        Export Data (JSON)
+                    </button>
+                </div>
+            </div>
         </main>
+        
+        <!-- Toast Notification -->
+        <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white py-2 px-4 rounded-lg shadow-lg hidden transition-opacity duration-300">
+            <span id="toast-message"></span>
+        </div>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const jsonFileInput = document.getElementById('jsonFileInput');
+            const exportDataBtn = document.getElementById('exportDataBtn');
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+            let toastTimeout;
+
+            // --- Function to show a toast notification ---
+            function showToast(message) {
+                if (toastTimeout) {
+                    clearTimeout(toastTimeout);
+                }
+                toastMessage.textContent = message;
+                toast.classList.remove('hidden');
+                toast.classList.add('opacity-100');
+                toastTimeout = setTimeout(() => {
+                    toast.classList.remove('opacity-100');
+                    setTimeout(() => toast.classList.add('hidden'), 300);
+                }, 3000);
+            }
+
+            // --- Event listener for file import ---
+            jsonFileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (!file) {
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        // Basic validation to ensure the file is likely correct
+                        if (data.users && data.teams && data.competitions && data.universities) {
+                            localStorage.setItem('electiToolData_v18', e.target.result);
+                            showToast('Data imported successfully!');
+                        } else {
+                            showToast('Error: Invalid JSON file format.');
+                        }
+                    } catch (error) {
+                        console.error("Error parsing JSON file:", error);
+                        showToast('Error: Failed to read or parse the file.');
+                    }
+                };
+                reader.readAsText(file);
+                
+                // Reset file input to allow re-uploading the same file
+                jsonFileInput.value = '';
+            });
+
+            // --- Event listener for data export ---
+            exportDataBtn.addEventListener('click', () => {
+                const data = localStorage.getItem('electiToolData_v18');
+                if (!data) {
+                    showToast('No data in local storage to export.');
+                    return;
+                }
+
+                try {
+                    // Prettify the JSON for readability
+                    const parsedData = JSON.parse(data);
+                    const jsonString = JSON.stringify(parsedData, null, 2);
+                    const blob = new Blob([jsonString], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    const date = new Date().toISOString().slice(0, 10);
+                    link.download = `electi_backup_${date}.json`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+                    showToast('Data exported successfully!');
+                } catch (error) {
+                    console.error("Error exporting data:", error);
+                    showToast('Error: Could not export data.');
+                }
+            });
+        });
+    </script>
 
 </body>
 </html>
+
