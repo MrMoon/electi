@@ -227,6 +227,7 @@
             // --- DOM ELEMENT REFERENCES ---
             const appContainer = document.getElementById('app-container');
             const editorContainer = document.getElementById('editorContainer');
+            const tabContentEditors = document.getElementById('tabContentEditors');
             
             const jsonFileInput = document.getElementById('jsonFileInput');
             const downloadDbFullBackupBtn = document.getElementById('downloadDbFullBackupBtn');
@@ -1032,9 +1033,10 @@
                 }
             });
 
-            editorContainer.addEventListener('click', e => {
+            // CORRECTED: Event listener for tabs
+            tabContentEditors.addEventListener('click', e => {
                 if(e.target.matches('.editor-tab-btn')){
-                     editorContainer.querySelectorAll('.editor-tab-btn').forEach(btn => {
+                     document.querySelectorAll('.editor-tab-btn').forEach(btn => {
                         btn.classList.remove('active', 'bg-blue-600', 'text-white');
                         btn.classList.add('text-gray-600');
                      });
