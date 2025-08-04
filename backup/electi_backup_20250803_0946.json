@@ -1,0 +1,551 @@
+{
+  "users": [
+    {
+      "id": "samsoom",
+      "handle": "samsoom",
+      "fullName": "Sami Almajali",
+      "linkedin": "https://www.linkedin.com/in/sami-almajali-791402278/",
+      "university": "PSUT",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 192.98,
+      "acmLevel": -1,
+      "joinDate": "2018-08",
+      "isTrusted": true,
+      "placements": [
+        {
+          "name": "AmmanCPC 2026",
+          "rank": 1,
+          "total": 66,
+          "teamId": "d5d67655-1904-4514-b788-e3178f87b0e6"
+        },
+        {
+          "name": "PSUT Marathon 2025",
+          "rank": 1,
+          "total": 40,
+          "teamId": "f4eebac6-bad0-4221-b4c4-7a3e2541aa26"
+        }
+      ],
+      "updatedAt": "2025-08-03T06:41:32.507Z"
+    },
+    {
+      "id": "barakat.",
+      "handle": "Barakat.",
+      "fullName": "Abdullah Barakat",
+      "linkedin": "https://www.linkedin.com/in/abdullah-kais-barakat/",
+      "university": "PSUT",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 172.88,
+      "acmLevel": -1,
+      "joinDate": "2024-01",
+      "isTrusted": true,
+      "placements": [
+        {
+          "name": "JCPC 2025",
+          "rank": 9,
+          "total": 115,
+          "teamId": "8b5f8f4e-3249-4bb1-948f-60435883816e"
+        },
+        {
+          "name": "AmmanCPC 2026",
+          "rank": 1,
+          "total": 66,
+          "teamId": "d5d67655-1904-4514-b788-e3178f87b0e6"
+        },
+        {
+          "name": "PSUT Marathon 2024",
+          "rank": 1,
+          "total": 29,
+          "teamId": "9315158a-f000-4fde-9a2e-d9d49d105c23"
+        },
+        {
+          "name": "PSUT Marathon 2025",
+          "rank": 1,
+          "total": 40,
+          "teamId": "f4eebac6-bad0-4221-b4c4-7a3e2541aa26"
+        },
+        {
+          "name": "Ramadan Coding Tournament 2025",
+          "rank": 16,
+          "total": 23,
+          "teamId": null
+        }
+      ],
+      "updatedAt": "2025-08-03T06:41:32.506Z"
+    },
+    {
+      "id": "hanagasumii",
+      "handle": "Hanagasumii",
+      "fullName": "Abdul-Aziz Ammourah",
+      "linkedin": "https://www.linkedin.com/in/abdulaziz0522/",
+      "university": "PSUT",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 104.02,
+      "acmLevel": 10,
+      "joinDate": "2024-02",
+      "isTrusted": true,
+      "placements": [
+        {
+          "name": "JCPC 2025",
+          "rank": 9,
+          "total": 115,
+          "teamId": "8b5f8f4e-3249-4bb1-948f-60435883816e"
+        },
+        {
+          "name": "AmmanCPC 2026",
+          "rank": 1,
+          "total": 66,
+          "teamId": "d5d67655-1904-4514-b788-e3178f87b0e6"
+        }
+      ],
+      "updatedAt": "2025-08-03T06:41:32.507Z"
+    },
+    {
+      "id": "ayoooy",
+      "handle": "ayoooy",
+      "fullName": "Aya Tell",
+      "linkedin": "https://www.linkedin.com/in/aya-tell-996aa5230/",
+      "university": "PSUT",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 131.54,
+      "acmLevel": 1,
+      "joinDate": "2023-07",
+      "isTrusted": true,
+      "placements": [
+        {
+          "name": "JCPC 2025",
+          "rank": 9,
+          "total": 115,
+          "teamId": "8b5f8f4e-3249-4bb1-948f-60435883816e"
+        }
+      ],
+      "updatedAt": "2025-08-03T06:41:32.507Z"
+    },
+    {
+      "id": "omarmajdi",
+      "handle": "OmarMajdi",
+      "fullName": "Omar Majdi",
+      "linkedin": "https://www.linkedin.com/in/omar-majdi-/",
+      "university": "PSUT",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 129.81,
+      "acmLevel": 10,
+      "joinDate": "2024-04",
+      "isTrusted": true,
+      "placements": [],
+      "updatedAt": "2025-08-02T18:42:16.243Z"
+    },
+    {
+      "id": "shaaker",
+      "handle": "Shaaker",
+      "fullName": "Malik Haj Asad",
+      "linkedin": "https://www.linkedin.com/in/malik-haj-asad/",
+      "university": "PSUT",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 110.64,
+      "acmLevel": 1,
+      "joinDate": "2024-02",
+      "isTrusted": true,
+      "placements": [],
+      "updatedAt": "2025-08-02T18:42:10.759Z"
+    },
+    {
+      "id": "ghaith_zakaria",
+      "handle": "Ghaith_Zakaria",
+      "fullName": "Ghaith Zakaria",
+      "linkedin": "https://www.linkedin.com/in/ghaith-zakaria-aa0432207/",
+      "university": "PSUT",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 137.07,
+      "acmLevel": 10,
+      "joinDate": "2024-03",
+      "isTrusted": true,
+      "placements": [
+        {
+          "name": "AmmanCPC 2026",
+          "rank": 7,
+          "total": 66,
+          "teamId": "73903010-a51a-405b-93b9-dbd4b60c53e3"
+        },
+        {
+          "name": "PSUT Marathon 2025",
+          "rank": 2,
+          "total": 40,
+          "teamId": "73903010-a51a-405b-93b9-dbd4b60c53e3"
+        },
+        {
+          "name": "JCPC 2025",
+          "rank": 16,
+          "total": 115,
+          "teamId": "73903010-a51a-405b-93b9-dbd4b60c53e3"
+        }
+      ],
+      "updatedAt": "2025-08-03T06:43:15.523Z"
+    },
+    {
+      "id": "0xmar",
+      "handle": "0xmar",
+      "fullName": "Omar Jabban",
+      "linkedin": "https://www.linkedin.com/in/0xmarjabban/",
+      "university": "PSUT",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 108.59,
+      "acmLevel": 1,
+      "joinDate": "2024-02",
+      "isTrusted": true,
+      "placements": [
+        {
+          "name": "AmmanCPC 2026",
+          "rank": 7,
+          "total": 66,
+          "teamId": "73903010-a51a-405b-93b9-dbd4b60c53e3"
+        },
+        {
+          "name": "PSUT Marathon 2025",
+          "rank": 2,
+          "total": 40,
+          "teamId": "73903010-a51a-405b-93b9-dbd4b60c53e3"
+        },
+        {
+          "name": "JCPC 2025",
+          "rank": 16,
+          "total": 115,
+          "teamId": "73903010-a51a-405b-93b9-dbd4b60c53e3"
+        }
+      ],
+      "updatedAt": "2025-08-03T06:43:15.523Z"
+    },
+    {
+      "id": "kha20221005",
+      "handle": "kha20221005",
+      "fullName": "Khaled AbuQutish",
+      "linkedin": "https://www.linkedin.com/in/khaled-abu-qutish-74b364289/",
+      "university": "PSUT",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 0,
+      "acmLevel": 0,
+      "joinDate": "2024-01",
+      "isTrusted": true,
+      "placements": [],
+      "updatedAt": "2025-08-02T18:47:55.333Z"
+    },
+    {
+      "id": "yousefabukhass",
+      "handle": "yousefAbukhass",
+      "fullName": "Yousef Abukhass",
+      "linkedin": "https://www.linkedin.com/in/yousef-abukhass-28b606336/",
+      "university": "PSUT",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 61.45,
+      "acmLevel": 1,
+      "joinDate": "2024-11",
+      "isTrusted": true,
+      "placements": [],
+      "updatedAt": "2025-08-02T18:48:48.600Z"
+    },
+    {
+      "id": "tardi",
+      "handle": "Tardi",
+      "fullName": "Omar Tardi",
+      "linkedin": "https://www.linkedin.com/in/omar-tardi-a7ba13318/",
+      "university": "PSUT",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 74.27,
+      "acmLevel": 10,
+      "joinDate": "2024-02",
+      "isTrusted": true,
+      "placements": [],
+      "updatedAt": "2025-08-02T18:50:18.373Z"
+    },
+    {
+      "id": "hammoudehib",
+      "handle": "hammoudehib",
+      "fullName": "Ibrahim Hammoudeh",
+      "linkedin": "",
+      "university": "PSUT",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 56.4,
+      "acmLevel": 1,
+      "joinDate": "2024-08",
+      "isTrusted": true,
+      "placements": [],
+      "updatedAt": "2025-08-02T18:57:38.330Z"
+    },
+    {
+      "id": "laith7127",
+      "handle": "laith7127",
+      "fullName": "Laith Al Arda",
+      "linkedin": "",
+      "university": "PSUT",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 56.23,
+      "acmLevel": 1,
+      "joinDate": "2025-01",
+      "isTrusted": true,
+      "placements": [],
+      "updatedAt": "2025-08-02T18:59:12.383Z"
+    },
+    {
+      "id": "batata",
+      "handle": "Batata",
+      "fullName": "Essam Khader",
+      "linkedin": "https://www.linkedin.com/in/essam-khader-b88474278/",
+      "university": "PSUT",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 148.06,
+      "acmLevel": 10,
+      "joinDate": "2024-02",
+      "isTrusted": true,
+      "placements": [
+        {
+          "name": "AmmanCPC 2026",
+          "rank": 7,
+          "total": 66,
+          "teamId": "73903010-a51a-405b-93b9-dbd4b60c53e3"
+        },
+        {
+          "name": "PSUT Marathon 2025",
+          "rank": 2,
+          "total": 40,
+          "teamId": "73903010-a51a-405b-93b9-dbd4b60c53e3"
+        },
+        {
+          "name": "JCPC 2025",
+          "rank": 16,
+          "total": 115,
+          "teamId": "73903010-a51a-405b-93b9-dbd4b60c53e3"
+        }
+      ],
+      "updatedAt": "2025-08-03T06:43:15.523Z"
+    },
+    {
+      "id": "the_seal",
+      "handle": "the_seal",
+      "fullName": "Emad Abbadi",
+      "linkedin": "https://www.linkedin.com/in/emad-alabbadi-530a20288/",
+      "university": "HTU",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 146.02,
+      "acmLevel": 1,
+      "joinDate": "2024-11",
+      "isTrusted": true,
+      "placements": [
+        {
+          "name": "PSUT Marathon 2025",
+          "rank": 6,
+          "total": 40,
+          "teamId": "57a0417a-da5c-4f78-83be-f50a38721a2d"
+        },
+        {
+          "name": "AmmanCPC 2026",
+          "rank": 4,
+          "total": 66,
+          "teamId": "57a0417a-da5c-4f78-83be-f50a38721a2d"
+        },
+        {
+          "name": "Ramadan Coding Tournament 2025",
+          "rank": 4,
+          "total": 23,
+          "teamId": null
+        }
+      ],
+      "updatedAt": "2025-08-02T23:40:25.991Z"
+    },
+    {
+      "id": "lazlooz",
+      "handle": "LazLooz",
+      "fullName": "Ahmad Al Saqqa",
+      "linkedin": "https://www.linkedin.com/in/ahmad-al-saqqa-581901283/",
+      "university": "HTU",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 136.78,
+      "acmLevel": 10,
+      "joinDate": "2021-06",
+      "isTrusted": true,
+      "placements": [
+        {
+          "name": "AmmanCPC 2026",
+          "rank": 4,
+          "total": 66,
+          "teamId": "57a0417a-da5c-4f78-83be-f50a38721a2d"
+        },
+        {
+          "name": "PSUT Marathon 2025",
+          "rank": 6,
+          "total": 40,
+          "teamId": "57a0417a-da5c-4f78-83be-f50a38721a2d"
+        }
+      ],
+      "updatedAt": "2025-08-02T23:44:26.230Z"
+    },
+    {
+      "id": "--hmzabanna--",
+      "handle": "--hmzabanna--",
+      "fullName": "Hamza Albanna",
+      "linkedin": "https://www.linkedin.com/in/hamza-a-albanna-3a4737200/",
+      "university": "HTU",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 138.42,
+      "acmLevel": 1,
+      "joinDate": "2024-11",
+      "isTrusted": true,
+      "placements": [
+        {
+          "name": "AmmanCPC 2026",
+          "rank": 4,
+          "total": 66,
+          "teamId": "57a0417a-da5c-4f78-83be-f50a38721a2d"
+        },
+        {
+          "name": "PSUT Marathon 2025",
+          "rank": 6,
+          "total": 40,
+          "teamId": "57a0417a-da5c-4f78-83be-f50a38721a2d"
+        }
+      ],
+      "updatedAt": "2025-08-02T23:45:58.834Z"
+    },
+    {
+      "id": "mhna.",
+      "handle": "mhna.",
+      "fullName": "Mohannad Alhmoud",
+      "linkedin": "https://www.linkedin.com/in/mh30/",
+      "university": "PSUT",
+      "profilePicUrl": "",
+      "lunaNovaScore": 0,
+      "lunaHardScore": 0,
+      "acmLevel": 0,
+      "joinDate": "2022-08",
+      "isTrusted": true,
+      "placements": [
+        {
+          "name": "PSUT Marathon 2024",
+          "rank": 1,
+          "total": 29,
+          "teamId": "9315158a-f000-4fde-9a2e-d9d49d105c23"
+        }
+      ],
+      "updatedAt": "2025-08-03T06:41:32.507Z"
+    }
+  ],
+  "teams": [
+    {
+      "name": "AAA",
+      "university": "PSUT",
+      "members": [
+        "samsoom",
+        "Barakat.",
+        "Hanagasumii"
+      ],
+      "isActive": true,
+      "createdAt": "2025-05-01T00:00:00.000Z",
+      "id": "d5d67655-1904-4514-b788-e3178f87b0e6"
+    },
+    {
+      "name": "GEO",
+      "university": "PSUT",
+      "members": [
+        "Ghaith_Zakaria",
+        "0xmar",
+        "Batata"
+      ],
+      "isActive": true,
+      "createdAt": "2024-05-01T00:00:00.000Z",
+      "id": "73903010-a51a-405b-93b9-dbd4b60c53e3"
+    },
+    {
+      "name": "AAA (2024)",
+      "university": "PSUT",
+      "members": [
+        "Barakat.",
+        "Hanagasumii",
+        "ayoooy"
+      ],
+      "isActive": false,
+      "createdAt": "2024-06-01T00:00:00.000Z",
+      "id": "8b5f8f4e-3249-4bb1-948f-60435883816e"
+    },
+    {
+      "name": "ya baba telephone",
+      "university": "PSUT",
+      "members": [
+        "samsoom",
+        "Barakat."
+      ],
+      "isActive": false,
+      "createdAt": "2025-04-01T00:00:00.000Z",
+      "id": "f4eebac6-bad0-4221-b4c4-7a3e2541aa26"
+    },
+    {
+      "name": "The seals",
+      "university": "HTU",
+      "members": [
+        "the_seal",
+        "LazLooz",
+        "--hmzabanna--"
+      ],
+      "isActive": true,
+      "createdAt": "2024-11-01T00:00:00.000Z",
+      "id": "36347b9c-70ff-4a24-889a-cee2a8e48b2d"
+    },
+    {
+      "name": "ya baba telephone (2024)",
+      "university": "PSUT",
+      "members": [
+        "Barakat.",
+        "mhna."
+      ],
+      "isActive": false,
+      "createdAt": "2024-05-01T00:00:00.000Z",
+      "id": "9315158a-f000-4fde-9a2e-d9d49d105c23"
+    }
+  ],
+  "competitions": {
+    "PSUT Marathon 2025": {
+      "total": 40,
+      "date": "2025-05",
+      "link": "https://codeforces.com/group/ppRciMeJFg/contest/609144/standings"
+    },
+    "AmmanCPC 2026": {
+      "total": 66,
+      "date": "2025-06",
+      "link": "https://icpc.global/regionals/finder/AmmanCPC-2026/standings"
+    },
+    "Ramadan Coding Tournament 2025": {
+      "total": 23,
+      "date": "2025-03",
+      "link": "https://codeforces.com/group/ppRciMeJFg/contest/598137/standings"
+    },
+    "JCPC 2025": {
+      "total": 115,
+      "date": "2024-11",
+      "link": "https://icpc.global/regionals/finder/JCPC-2025/standings"
+    },
+    "PSUT Marathon 2024": {
+      "date": "2024-05",
+      "total": 29,
+      "link": "https://codeforces.com/group/ppRciMeJFg/contest/477806/standings/groupmates/true"
+    }
+  },
+  "universities": [
+    "HTU",
+    "PSUT"
+  ],
+  "createdAt": "2025-08-03T06:46:00.885Z"
+}
