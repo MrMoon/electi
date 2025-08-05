@@ -1162,7 +1162,7 @@
                 universityInput.value = selectedValue;
             }
 
-            // --- STATISTICS LOGIC ---
+            // --- STATISTICS LOGIC (REFACTORED) ---
             function updateAndRenderStatistics() {
                 const totalUsers = userDatabase.length;
                 const totalUniversities = universityDatabase.length;
@@ -1195,31 +1195,28 @@
                     return;
                 }
                 
-                const pieChartOptions = { 
-                    responsive: true, 
-                    plugins: { 
-                        legend: { position: 'top' }, 
-                        title: { display: true, text: '' },
-                        // This plugin is used to display labels on the chart itself.
-                        // By setting display to false, we hide them as requested.
-                        datalabels: {
-                            display: false,
-                        },
-                        // This configures the tooltips that appear on hover.
-                        tooltip: {
-                            callbacks: {
-                                // This function formats the text inside the tooltip.
-                                label: function(context) {
-                                    const label = context.label || '';
-                                    const value = context.raw;
-                                    const sum = context.chart.data.datasets[0].data.reduce((a, b) => a + b, 0);
-                                    const percentage = sum > 0 ? ((value / sum) * 100).toFixed(1) + '%' : '0%';
-                                    // It returns a string with the label, the raw number, and the calculated percentage.
-                                    return `${label}: ${value} (${percentage})`;
-                                }
-                            }
-                        }
-                    } 
+                // Define a shared callback function for tooltips to show percentages.
+                const tooltipLabelCallback = (context) => {
+                    const label = context.label || '';
+                    const value = context.raw;
+                    
+                    // Ensure the dataset and its data exist before processing
+                    if (!context.chart.data.datasets || context.chart.data.datasets.length === 0) {
+                        return `${label}: ${value}`;
+                    }
+                    const dataset = context.chart.data.datasets[0];
+                    if (!dataset.data || dataset.data.length === 0) {
+                         return `${label}: ${value}`;
+                    }
+
+                    const sum = dataset.data.reduce((a, b) => a + b, 0);
+                    
+                    if (sum === 0) {
+                        return `${label}: ${value} (0%)`;
+                    }
+                    
+                    const percentage = ((value / sum) * 100).toFixed(1) + '%';
+                    return `${label}: ${value} (${percentage})`;
                 };
 
                 // ACM Level Chart
@@ -1228,16 +1225,23 @@
                 userDatabase.forEach(u => { if (acmLevels.hasOwnProperty(u.acmLevel)) acmLevels[u.acmLevel]++; });
                 const acmData = { labels: ['None', 'Codeability', 'Level 0', 'Level 1', 'Level 2'], datasets: [{ data: [acmLevels['0'], acmLevels['-1'], acmLevels['10'], acmLevels['1'], acmLevels['2']], backgroundColor: ['#6b7280', '#a1a1aa', '#10b981', '#f59e0b', '#ef4444'], }] };
                 
-                const acmOptions = JSON.parse(JSON.stringify(pieChartOptions));
-                acmOptions.plugins.title.text = 'ACM Level Breakdown';
-                acmOptions.onClick = (event, elements) => {
-                    if (elements.length > 0) {
-                        const chart = charts['acmLevelChart'];
-                        const index = elements[0].index;
-                        const label = chart.data.labels[index];
-                        const levelKey = Object.keys(levelMap).find(key => levelMap[key] === label);
-                        const users = userDatabase.filter(u => String(u.acmLevel) === levelKey);
-                        showListInModal(`Users in ACM Level: ${label}`, users.map(u => createUserLink(u.handle)));
+                const acmOptions = {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'ACM Level Breakdown' },
+                        datalabels: { display: false },
+                        tooltip: { callbacks: { label: tooltipLabelCallback } }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const chart = charts['acmLevelChart'];
+                            const index = elements[0].index;
+                            const label = chart.data.labels[index];
+                            const levelKey = Object.keys(levelMap).find(key => levelMap[key] === label);
+                            const users = userDatabase.filter(u => String(u.acmLevel) === levelKey);
+                            showListInModal(`Users in ACM Level: ${label}`, users.map(u => createUserLink(u.handle)));
+                        }
                     }
                 };
                 renderChart('acmLevelChart', 'pie', acmData, acmOptions);
@@ -1251,15 +1255,22 @@
                 const yearLabels = Object.keys(yearCounts).filter(k => yearCounts[k] > 0);
                 const yearData = { labels: yearLabels, datasets: [{ data: yearLabels.map(l => yearCounts[l]), backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#6b7280', '#a1a1aa'], }] };
                 
-                const yearOptions = JSON.parse(JSON.stringify(pieChartOptions));
-                yearOptions.plugins.title.text = 'Students by Academic Year';
-                yearOptions.onClick = (event, elements) => {
-                    if (elements.length > 0) {
-                        const chart = charts['studentYearChart'];
-                        const index = elements[0].index;
-                        const yearLabel = chart.data.labels[index];
-                        const filteredStudents = userDatabase.filter(s => getAcademicYear(s).label === yearLabel);
-                        showListInModal(`Students in: ${yearLabel}`, filteredStudents.map(u => createUserLink(u.handle)));
+                const yearOptions = {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Students by Academic Year' },
+                        datalabels: { display: false },
+                        tooltip: { callbacks: { label: tooltipLabelCallback } }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const chart = charts['studentYearChart'];
+                            const index = elements[0].index;
+                            const yearLabel = chart.data.labels[index];
+                            const filteredStudents = userDatabase.filter(s => getAcademicYear(s).label === yearLabel);
+                            showListInModal(`Students in: ${yearLabel}`, filteredStudents.map(u => createUserLink(u.handle)));
+                        }
                     }
                 };
                 renderChart('studentYearChart', 'pie', yearData, yearOptions);
@@ -1269,15 +1280,22 @@
                 const sortedCompCounts = Object.entries(compCounts).sort(([,a],[,b]) => b-a).slice(0, 10);
                 const compData = { labels: sortedCompCounts.map(([name]) => name), datasets: [{ label: 'Participants', data: sortedCompCounts.map(([,count]) => count), backgroundColor: ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#6b7280', '#ec4899', '#6366f1', '#f97316', '#06b6d4'], }] };
                 
-                const compOptions = JSON.parse(JSON.stringify(pieChartOptions));
-                compOptions.plugins.title.text = 'Top 10 Competitions by Participants';
-                compOptions.onClick = (event, elements) => {
-                    if (elements.length > 0) {
-                        const chart = charts['competitionChart'];
-                        const index = elements[0].index;
-                        const compName = chart.data.labels[index];
-                        const users = userDatabase.filter(u => u.placements.some(p => p.name === compName));
-                        showListInModal(`Participants in: ${compName}`, users.map(u => createUserLink(u.handle)));
+                const compOptions = {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Top 10 Competitions by Participants' },
+                        datalabels: { display: false },
+                        tooltip: { callbacks: { label: tooltipLabelCallback } }
+                    },
+                    onClick: (event, elements) => {
+                        if (elements.length > 0) {
+                            const chart = charts['competitionChart'];
+                            const index = elements[0].index;
+                            const compName = chart.data.labels[index];
+                            const users = userDatabase.filter(u => u.placements.some(p => p.name === compName));
+                            showListInModal(`Participants in: ${compName}`, users.map(u => createUserLink(u.handle)));
+                        }
                     }
                 };
                 renderChart('competitionChart', 'doughnut', compData, compOptions);
