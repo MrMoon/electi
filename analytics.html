@@ -73,22 +73,42 @@
             opacity: 1;
             transform: translateX(0);
         }
+        .file-input-label {
+            cursor: pointer;
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            color: white;
+            background-color: #4f46e5;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        .file-input-label:hover {
+            background-color: #4338ca;
+        }
+        input[type="file"] {
+            display: none;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800">
 
     <div id="app-container" class="container mx-auto p-4 sm:p-6 lg:p-8">
-        <header class="text-center mb-4">
-            <h1 class="text-5xl font-bold text-gray-900">Advanced Analytics</h1>
+        <header class="mb-6">
+            <div class="flex justify-between items-center gap-4 mb-2">
+                 <div class="flex items-center gap-4">
+                    <img src="https://i.ibb.co/JNyxxBv/logo.png" alt="Operation Electi Logo" class="h-16 w-16" onerror="this.onerror=null; this.src='https://placehold.co/64x64/e0e0e0/333?text=Logo';">
+                    <h1 class="text-5xl font-bold text-gray-900">Advanced Analytics</h1>
+                </div>
+                <a href="index.html" class="file-input-label bg-gray-600 hover:bg-gray-700 text-sm !px-6 !py-3">Home</a>
+            </div>
         </header>
 
         <!-- Data Import Section -->
         <div class="bg-white rounded-lg shadow-md p-4 mb-6 flex items-center justify-center gap-4">
             <p class="text-gray-700 font-medium">Have a backup file?</p>
-            <input type="file" id="importFileInput" class="hidden" accept=".json">
-            <button id="importDataBtn" class="bg-indigo-600 text-white font-semibold py-2 px-4 rounded-md hover:bg-indigo-700 transition-colors">
-                Import from JSON
-            </button>
+            <label for="importFileInput" class="file-input-label bg-indigo-600 hover:bg-indigo-700">Import from JSON</label>
+            <input type="file" id="importFileInput" accept=".json">
         </div>
 
 
@@ -107,6 +127,25 @@
                     <!-- Advanced analytics content will be rendered here -->
                 </div>
             </div>
+        </div>
+    </div>
+    
+    <!-- Password Modal -->
+    <div id="passwordModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-sm p-6 relative transform scale-95">
+            <h3 id="passwordModalTitle" class="text-lg font-bold mb-4">Enter Password</h3>
+            <form id="passwordForm">
+                <div class="space-y-4">
+                    <div>
+                        <label for="passwordField" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="passwordField" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button type="button" id="passwordCancelBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                    <button type="submit" id="passwordOkBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">OK</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -131,6 +170,7 @@
             let competitionDatabase = {};
             let universityDatabase = [];
             let charts = {}; // Object to hold all chart instances
+            let passwordCallback = null;
 
             // --- DOM ELEMENT REFERENCES ---
             const appContainer = document.getElementById('app-container');
@@ -139,9 +179,78 @@
             const detailsModal = document.getElementById('detailsModal');
             const modalContentContainer = document.getElementById('modalContentContainer');
             const closeModalBtn = document.getElementById('closeModalBtn');
-            const importDataBtn = document.getElementById('importDataBtn');
             const importFileInput = document.getElementById('importFileInput');
+            const passwordModal = document.getElementById('passwordModal');
+            const passwordModalTitle = document.getElementById('passwordModalTitle');
+            const passwordForm = document.getElementById('passwordForm');
+            const passwordField = document.getElementById('passwordField');
+            const passwordCancelBtn = document.getElementById('passwordCancelBtn');
 
+            // --- CRYPTOGRAPHY ---
+            const textEncoder = new TextEncoder();
+            const textDecoder = new TextDecoder();
+
+            function arrayBufferToBase64(buffer) {
+                let binary = '';
+                const bytes = new Uint8Array(buffer);
+                const len = bytes.byteLength;
+                for (let i = 0; i < len; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                return window.btoa(binary);
+            }
+
+            function base64ToArrayBuffer(base64) {
+                const binary_string = window.atob(base64);
+                const len = binary_string.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binary_string.charCodeAt(i);
+                }
+                return bytes.buffer;
+            }
+
+            async function getEncryptionKey(password, salt) {
+                const keyMaterial = await window.crypto.subtle.importKey(
+                    "raw",
+                    textEncoder.encode(password),
+                    { name: "PBKDF2" },
+                    false,
+                    ["deriveKey"]
+                );
+                return window.crypto.subtle.deriveKey(
+                    {
+                        name: "PBKDF2",
+                        salt: salt,
+                        iterations: 100000,
+                        hash: "SHA-256",
+                    },
+                    keyMaterial,
+                    { name: "AES-GCM", length: 256 },
+                    true,
+                    ["encrypt", "decrypt"]
+                );
+            }
+
+            async function decryptData(encryptedPayload, password) {
+                try {
+                    const salt = base64ToArrayBuffer(encryptedPayload.salt);
+                    const iv = base64ToArrayBuffer(encryptedPayload.iv);
+                    const data = base64ToArrayBuffer(encryptedPayload.data);
+                    const key = await getEncryptionKey(password, salt);
+
+                    const decryptedContent = await window.crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: iv },
+                        key,
+                        data
+                    );
+
+                    return textDecoder.decode(decryptedContent);
+                } catch (error) {
+                    console.error("Decryption failed:", error);
+                    return null;
+                }
+            }
 
             // --- CHART HELPERS ---
             function destroyChart(chartId) {
@@ -218,6 +327,27 @@
                     toast.classList.remove('show');
                     toast.addEventListener('transitionend', () => toast.remove());
                 }, duration);
+            }
+
+            function showPasswordModal(title, onConfirm) {
+                passwordModalTitle.textContent = title;
+                passwordForm.reset();
+                passwordCallback = onConfirm;
+                passwordModal.classList.remove('hidden');
+                setTimeout(() => {
+                    passwordModal.querySelector('.modal-overlay')?.classList.remove('opacity-0');
+                    passwordModal.querySelector('.modal-content')?.classList.remove('scale-95');
+                    passwordField.focus();
+                }, 10);
+            }
+
+            function hidePasswordModal() {
+                passwordModal.querySelector('.modal-overlay')?.classList.add('opacity-0');
+                passwordModal.querySelector('.modal-content')?.classList.add('scale-95');
+                setTimeout(() => {
+                    passwordModal.classList.add('hidden');
+                    passwordCallback = null;
+                }, 300);
             }
             
             // --- ADVANCED ANALYTICS ---
@@ -1335,43 +1465,68 @@
                 }
             });
 
-            // --- DATA IMPORT ---
-            importDataBtn.addEventListener('click', () => {
-                importFileInput.click();
-            });
-
-            importFileInput.addEventListener('change', (event) => {
-                const file = event.target.files[0];
-                if (!file) {
-                    return;
+            passwordForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const password = passwordField.value;
+                if (passwordCallback) {
+                    passwordCallback(password);
                 }
+                hidePasswordModal();
+            });
+            passwordCancelBtn.addEventListener('click', hidePasswordModal);
 
+            // --- DATA IMPORT ---
+            function loadJsonFile(file) {
+                if (!file) { showToast('Please select a JSON backup file.', 'error'); return; }
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = (e) => {
+                    const fileContent = e.target.result;
                     try {
-                        const data = JSON.parse(e.target.result);
-                        // A simple validation to check if the data has the expected structure
-                        if (data.users && data.teams && data.competitions && data.universities) {
-                            localStorage.setItem('electiToolData_v18', JSON.stringify(data));
-                            showToast('Data imported successfully!', 'info');
-                            initializeApp(); // Re-initialize the app with the new data
+                        const data = JSON.parse(fileContent);
+                        if (data.salt && data.iv && data.data) { // Encrypted file
+                            showPasswordModal('Enter Decryption Password', async (password) => {
+                                const decryptedJson = await decryptData(data, password);
+                                if (!decryptedJson) {
+                                    showToast('Decryption failed. Incorrect password or corrupt file.', 'error');
+                                    return;
+                                }
+                                try {
+                                    const decryptedData = JSON.parse(decryptedJson);
+                                    loadDataIntoApp(decryptedData, file.name);
+                                } catch (err) {
+                                    showToast('Failed to parse decrypted data. The file might be corrupt.', 'error');
+                                }
+                            });
+                        } else if (data.users && data.competitions) { // Plain JSON
+                            loadDataIntoApp(data, file.name);
                         } else {
-                            showToast('Invalid JSON file format.', 'error');
+                            throw new Error("Invalid backup file format.");
                         }
                     } catch (error) {
-                        console.error("Error parsing JSON file:", error);
-                        showToast('Failed to read or parse the file.', 'error');
+                        showToast(`Error reading file: ${error.message}`, 'error');
                     }
                 };
                 reader.readAsText(file);
-                
-                // Reset file input to allow re-uploading the same file
-                importFileInput.value = '';
+            }
+
+            function loadDataIntoApp(data, fileName) {
+                if (!data.users || !data.competitions || !data.universities || !data.teams) {
+                    showToast("Invalid backup file format.", 'error');
+                    return;
+                }
+                localStorage.setItem('electiToolData_v18_simplified', JSON.stringify(data));
+                showToast(`Successfully imported data from ${fileName}.`, 'info');
+                initializeApp();
+            }
+
+            importFileInput.addEventListener('change', (event) => {
+                loadJsonFile(event.target.files[0]);
+                event.target.value = '';
             });
 
             // --- LOCAL STORAGE PERSISTENCE ---
             function loadDataFromLocalStorage() {
-                const savedData = localStorage.getItem('electiToolData_v18');
+                const savedData = localStorage.getItem('electiToolData_v18_simplified');
                 if (savedData) {
                     try {
                         const data = JSON.parse(savedData);
@@ -1384,7 +1539,6 @@
                         userDatabase = []; teamDatabase = []; competitionDatabase = {}; universityDatabase = [];
                     }
                 } else {
-                    // Provide some default data if local storage is empty, so the page isn't blank.
                     showToast("No local data found. Import a JSON backup file to get started.", "info", 5000);
                 }
             }
