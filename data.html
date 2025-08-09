@@ -370,6 +370,29 @@
         </div>
     </div>
 
+    <!-- Password Modal -->
+    <div id="passwordModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-sm p-6 relative transform scale-95">
+            <h3 id="passwordModalTitle" class="text-lg font-bold mb-4">Enter Password</h3>
+            <form id="passwordForm">
+                <div class="space-y-4">
+                    <div>
+                        <label for="passwordField" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="passwordField" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
+                    </div>
+                    <div id="confirmPasswordContainer" class="hidden">
+                        <label for="confirmPasswordField" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                        <input type="password" id="confirmPasswordField" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button type="button" id="passwordCancelBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                    <button type="submit" id="passwordOkBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">OK</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Confirmation Modal -->
     <div id="confirmationModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
         <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative transform scale-95">
@@ -424,6 +447,7 @@
             let dbSortState = { key: 'updatedAt', direction: 'desc' };
             let dbFilters = {};
             let confirmCallback = null;
+            let passwordCallback = null;
 
             // --- DOM ELEMENT REFERENCES ---
             const appContainer = document.getElementById('app-container');
@@ -454,6 +478,14 @@
             const confirmationModalMessage = document.getElementById('confirmationModalMessage');
             const confirmCancelBtn = document.getElementById('confirmCancelBtn');
             const confirmOkBtn = document.getElementById('confirmOkBtn');
+            const passwordModal = document.getElementById('passwordModal');
+            const passwordModalTitle = document.getElementById('passwordModalTitle');
+            const passwordForm = document.getElementById('passwordForm');
+            const passwordField = document.getElementById('passwordField');
+            const confirmPasswordContainer = document.getElementById('confirmPasswordContainer');
+            const confirmPasswordField = document.getElementById('confirmPasswordField');
+            const passwordCancelBtn = document.getElementById('passwordCancelBtn');
+            const passwordOkBtn = document.getElementById('passwordOkBtn');
             const uploadUsersCsvInput = document.getElementById('uploadUsersCsv');
             const uploadCompetitionsCsvInput = document.getElementById('uploadCompetitionsCsv');
             const uploadUniversitiesCsvInput = document.getElementById('uploadUniversitiesCsv');
@@ -464,6 +496,97 @@
             const aiModal = document.getElementById('aiModal');
             const aiInsightContent = document.getElementById('aiInsightContent');
             const closeAiModalBtn = document.getElementById('closeAiModalBtn');
+
+            // --- CRYPTOGRAPHY ---
+            const textEncoder = new TextEncoder();
+            const textDecoder = new TextDecoder();
+
+            function arrayBufferToBase64(buffer) {
+                let binary = '';
+                const bytes = new Uint8Array(buffer);
+                const len = bytes.byteLength;
+                for (let i = 0; i < len; i++) {
+                    binary += String.fromCharCode(bytes[i]);
+                }
+                return window.btoa(binary);
+            }
+
+            function base64ToArrayBuffer(base64) {
+                const binary_string = window.atob(base64);
+                const len = binary_string.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binary_string.charCodeAt(i);
+                }
+                return bytes.buffer;
+            }
+
+            async function getEncryptionKey(password, salt) {
+                const keyMaterial = await window.crypto.subtle.importKey(
+                    "raw",
+                    textEncoder.encode(password),
+                    { name: "PBKDF2" },
+                    false,
+                    ["deriveKey"]
+                );
+                return window.crypto.subtle.deriveKey(
+                    {
+                        name: "PBKDF2",
+                        salt: salt,
+                        iterations: 100000,
+                        hash: "SHA-256",
+                    },
+                    keyMaterial,
+                    { name: "AES-GCM", length: 256 },
+                    true,
+                    ["encrypt", "decrypt"]
+                );
+            }
+
+            async function encryptData(data, password) {
+                try {
+                    const salt = window.crypto.getRandomValues(new Uint8Array(16));
+                    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                    const key = await getEncryptionKey(password, salt);
+                    
+                    const encryptedContent = await window.crypto.subtle.encrypt(
+                        { name: "AES-GCM", iv: iv },
+                        key,
+                        textEncoder.encode(data)
+                    );
+
+                    return {
+                        salt: arrayBufferToBase64(salt),
+                        iv: arrayBufferToBase64(iv),
+                        data: arrayBufferToBase64(encryptedContent)
+                    };
+                } catch (error) {
+                    console.error("Encryption failed:", error);
+                    showToast("Encryption failed. See console for details.", "error");
+                    return null;
+                }
+            }
+
+            async function decryptData(encryptedPayload, password) {
+                try {
+                    const salt = base64ToArrayBuffer(encryptedPayload.salt);
+                    const iv = base64ToArrayBuffer(encryptedPayload.iv);
+                    const data = base64ToArrayBuffer(encryptedPayload.data);
+                    const key = await getEncryptionKey(password, salt);
+
+                    const decryptedContent = await window.crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: iv },
+                        key,
+                        data
+                    );
+
+                    return textDecoder.decode(decryptedContent);
+                } catch (error) {
+                    console.error("Decryption failed:", error);
+                    // This often happens with a wrong password
+                    return null;
+                }
+            }
 
             // --- CHART HELPERS ---
             function destroyChart(chartId) {
@@ -569,6 +692,29 @@
                 }, 300); 
             }
 
+            function showPasswordModal(title, showConfirm, onConfirm) {
+                passwordModalTitle.textContent = title;
+                passwordForm.reset();
+                confirmPasswordContainer.style.display = showConfirm ? 'block' : 'none';
+                confirmPasswordField.required = showConfirm;
+                passwordCallback = onConfirm;
+                passwordModal.classList.remove('hidden');
+                setTimeout(() => {
+                    passwordModal.querySelector('.modal-overlay')?.classList.remove('opacity-0');
+                    passwordModal.querySelector('.modal-content')?.classList.remove('scale-95');
+                    passwordField.focus();
+                }, 10);
+            }
+
+            function hidePasswordModal() {
+                passwordModal.querySelector('.modal-overlay')?.classList.add('opacity-0');
+                passwordModal.querySelector('.modal-content')?.classList.add('scale-95');
+                setTimeout(() => {
+                    passwordModal.classList.add('hidden');
+                    passwordCallback = null;
+                }, 300);
+            }
+
              function showAiModal() {
                 aiModal.classList.remove('hidden');
                 setTimeout(() => {
@@ -586,28 +732,53 @@
             }
 
             // --- UI and Helper Functions ---
-            function loadJsonFile(file) { 
-                if (!file) { showToast('Please select a JSON backup file.', 'error'); return; } 
-                const reader = new FileReader(); 
-                reader.onload = (e) => { 
-                    try { 
-                        const data = JSON.parse(e.target.result);
-                        if (!data.users || !data.competitions || !data.universities || !data.teams) {
-                            throw new Error("Invalid backup file format. Must contain 'users', 'competitions', 'universities', and 'teams' keys.");
+            function loadJsonFile(file) {
+                if (!file) { showToast('Please select a JSON backup file.', 'error'); return; }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const fileContent = e.target.result;
+                    try {
+                        const data = JSON.parse(fileContent);
+                        // Check if it's an unencrypted or encrypted backup
+                        if (data.salt && data.iv && data.data) { // It's an encrypted file
+                            showPasswordModal('Enter Decryption Password', false, async (password) => {
+                                const decryptedJson = await decryptData(data, password);
+                                if (!decryptedJson) {
+                                    showToast('Decryption failed. Incorrect password or corrupt file.', 'error');
+                                    return;
+                                }
+                                try {
+                                    const decryptedData = JSON.parse(decryptedJson);
+                                    loadDataIntoApp(decryptedData, file.name);
+                                } catch (err) {
+                                    showToast('Failed to parse decrypted data. The file might be corrupt.', 'error');
+                                }
+                            });
+                        } else if (data.users && data.competitions) { // It's a plain JSON backup
+                            loadDataIntoApp(data, file.name);
+                        } else {
+                            throw new Error("Invalid backup file format.");
                         }
-                        showConfirmationModal('Overwrite Data?', 'Loading this backup will overwrite all current data. Are you sure?', () => {
-                            userDatabase = data.users.map(u => ({...u, updatedAt: new Date(u.updatedAt) })) || [];
-                            competitionDatabase = data.competitions || {};
-                            universityDatabase = data.universities || [];
-                            teamDatabase = data.teams || [];
-                            renderAll();
-                            showToast(`Successfully loaded backup from ${new Date(data.createdAt).toLocaleString()}.`, 'info');
-                        });
-                    } catch (error) { 
-                        showToast(`Error parsing JSON: ${error.message}`, 'error'); 
-                    } 
-                }; 
-                reader.readAsText(file); 
+                    } catch (error) {
+                        showToast(`Error reading file: ${error.message}`, 'error');
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            function loadDataIntoApp(data, fileName) {
+                if (!data.users || !data.competitions || !data.universities || !data.teams) {
+                    showToast("Invalid backup file format. Must contain 'users', 'competitions', 'universities', and 'teams' keys.", 'error');
+                    return;
+                }
+                showConfirmationModal('Overwrite Data?', 'Loading this backup will overwrite all current data. Are you sure?', () => {
+                    userDatabase = data.users.map(u => ({...u, updatedAt: new Date(u.updatedAt) })) || [];
+                    competitionDatabase = data.competitions || {};
+                    universityDatabase = data.universities || [];
+                    teamDatabase = data.teams || [];
+                    renderAll();
+                    showToast(`Successfully loaded backup from ${fileName}.`, 'info');
+                });
             }
             
             // --- Database Tab Logic ---
@@ -1024,7 +1195,7 @@
             }
             
             function downloadUsersCSV(usersToDownload) {
-                if (usersToDownload.length === 0) { alert("No users selected to download."); return; }
+                if (usersToDownload.length === 0) { showToast("No users selected to download.", 'error'); return; }
                 const headers = ['handle', 'fullName', 'linkedin', 'university', 'profilePicUrl', 'lunaNovaScore', 'lunaHardScore', 'acmLevel', 'joinDate', 'universityStartDate', 'isTrusted', 'placements_json'];
                 const rows = usersToDownload.map(user => {
                     const placementsStr = `"${JSON.stringify(user.placements).replace(/"/g, '""')}"`;
@@ -1039,7 +1210,7 @@
             }
 
             function downloadReadinessModelCSV() {
-                if (userDatabase.length === 0) { alert("No users in the database to download."); return; }
+                if (userDatabase.length === 0) { showToast("No users in the database to download.", 'error'); return; }
                 const headers = ['handle', 'luna_nova', 'luna_hard', 'placements', 'is_trusted'];
                 const rows = userDatabase.map(user => {
                     const placementsStr = `"${user.placements.map(p => {
@@ -1062,17 +1233,26 @@
             
             function downloadDbFullBackup() {
                 if (userDatabase.length === 0 && Object.keys(competitionDatabase).length === 0 && universityDatabase.length === 0) {
-                    alert("No data to back up."); return;
+                    showToast("No data to back up.", 'error'); return;
                 }
-                const backupData = {
-                    users: userDatabase,
-                    teams: teamDatabase,
-                    competitions: competitionDatabase,
-                    universities: universityDatabase,
-                    createdAt: new Date().toISOString()
-                };
-                const jsonString = JSON.stringify(backupData, null, 2);
-                downloadFile(jsonString, `electi_backup_${getFormattedDateTimeString()}.json`, 'application/json');
+
+                showPasswordModal('Create Backup Password', true, async (password) => {
+                    const backupData = {
+                        users: userDatabase,
+                        teams: teamDatabase,
+                        competitions: competitionDatabase,
+                        universities: universityDatabase,
+                        createdAt: new Date().toISOString()
+                    };
+                    const jsonString = JSON.stringify(backupData, null, 2);
+                    
+                    const encryptedPayload = await encryptData(jsonString, password);
+                    if (encryptedPayload) {
+                        const encryptedJsonString = JSON.stringify(encryptedPayload, null, 2);
+                        downloadFile(encryptedJsonString, `electi_backup_encrypted_${getFormattedDateTimeString()}.json`, 'application/json');
+                        showToast("Encrypted backup downloaded successfully.", "info");
+                    }
+                });
             }
 
             // --- Datalist Updaters ---
@@ -1310,7 +1490,7 @@
             function showTeamDetailsModal(teamId) {
                 const team = teamDatabase.find(t => t.id === teamId);
                 if (!team) {
-                    alert('Team not found.');
+                    showToast('Team not found.', 'error');
                     return;
                 }
 
@@ -1353,7 +1533,7 @@
             function showUserDetailsModal(handle) {
                 const dbData = userDatabase.find(d => d.id === handle.toLowerCase());
 
-                if (!dbData) { alert('Could not find data for this user.'); return; }
+                if (!dbData) { showToast('Could not find data for this user.', 'error'); return; }
                 
                 let content = '';
                 const profilePicUrl = dbData?.profilePicUrl || `https://placehold.co/128x128/e0e0e0/333?text=${handle.charAt(0)}`;
@@ -1696,6 +1876,21 @@
 
             confirmCancelBtn.addEventListener('click', hideConfirmationModal);
             confirmOkBtn.addEventListener('click', () => { if (confirmCallback) confirmCallback(); hideConfirmationModal(); });
+            
+            passwordForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const password = passwordField.value;
+                if (confirmPasswordField.required && password !== confirmPasswordField.value) {
+                    showToast("Passwords do not match.", "error");
+                    return;
+                }
+                if (passwordCallback) {
+                    passwordCallback(password);
+                }
+                hidePasswordModal();
+            });
+            passwordCancelBtn.addEventListener('click', hidePasswordModal);
+
             jsonFileInput.addEventListener('change', (e) => { loadJsonFile(e.target.files[0]); e.target.value = ''; });
             uploadUsersCsvInput.addEventListener('change', (e) => { handleFileUpload(e.target.files[0], handleUserUpload); e.target.value = ''; });
             uploadCompetitionsCsvInput.addEventListener('change', (e) => { handleFileUpload(e.target.files[0], handleCompetitionUpload); e.target.value = ''; });
