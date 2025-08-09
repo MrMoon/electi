@@ -1422,9 +1422,10 @@
                         teams: teamDatabase,
                         competitions: competitionDatabase,
                         universities: universityDatabase,
-                        version: 'v20' // Incremented version
+                        version: 'v18-simplified' // Match the data.html version
                     };
-                    localStorage.setItem('electiToolData_v20', JSON.stringify(dataToSave));
+                    // Use the same key as data.html to ensure data is shared
+                    localStorage.setItem('electiToolData_v18_simplified', JSON.stringify(dataToSave));
                 } catch (e) {
                     console.error("Could not save to localStorage. Data might be too large.", e);
                     showToast("Error: Could not save data. It might be too large for your browser's local storage.", "error", 5000);
@@ -1432,7 +1433,8 @@
             }
 
             function loadDataFromLocalStorage() {
-                const savedData = localStorage.getItem('electiToolData_v20');
+                // Use the same key as data.html to ensure data is shared
+                const savedData = localStorage.getItem('electiToolData_v18_simplified');
                 if (savedData) {
                     try {
                         const data = JSON.parse(savedData);
