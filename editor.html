@@ -282,9 +282,24 @@
             const passwordCancelBtn = document.getElementById('passwordCancelBtn');
             const passwordOkBtn = document.getElementById('passwordOkBtn');
 
-            // --- CRYPTOGRAPHY ---
+            // --- CRYPTOGRAPHY & HASHING ---
             const textEncoder = new TextEncoder();
             const textDecoder = new TextDecoder();
+
+            async function digestMessage(message) {
+                const data = textEncoder.encode(message);
+                const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+                const hashArray = Array.from(new Uint8Array(hashBuffer));
+                const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+                return hashHex;
+            }
+
+            async function getTeamHash(members) {
+                if (!members || members.length === 0) return null;
+                const sortedHandles = [...members].sort();
+                const concatenated = sortedHandles.join(',');
+                return await digestMessage(concatenated);
+            }
 
             function arrayBufferToBase64(buffer) {
                 let binary = '';
@@ -610,36 +625,43 @@
                 showToast(`${addedCount} new universities added.`, 'info');
             }
 
-            function handleTeamUpload(csvText) {
+            async function handleTeamUpload(csvText) {
                 const newTeams = parseCsv(csvText);
                 let addedCount = 0;
-                newTeams.forEach(teamRow => {
+                let skippedCount = 0;
+
+                for (const teamRow of newTeams) {
                     const name = teamRow['Team Name'];
                     const university = teamRow['University'];
                     const members = teamRow['Members'] ? teamRow['Members'].split(',').map(h => h.trim()) : [];
-                    if (name && university) {
-                        const existingTeam = teamDatabase.find(t => t.name.toLowerCase() === name.toLowerCase());
+                    if (name && university && members.length > 0) {
+                        const teamHash = await getTeamHash(members);
+                        const existingTeamByHash = teamDatabase.find(t => t.teamHash === teamHash);
+                        
+                        if (existingTeamByHash) {
+                            skippedCount++;
+                            continue;
+                        }
+
+                        const existingTeamByName = teamDatabase.find(t => t.name.toLowerCase() === name.toLowerCase());
                         const teamData = {
-                            name, university, members,
+                            name, university, members, teamHash,
                             isActive: teamRow['Is Active'] ? teamRow['Is Active'].toLowerCase() === 'true' : true,
                             createdAt: teamRow['Created At'] || new Date().toISOString(),
                             inactiveAt: teamRow['Inactive At'] || null
                         };
 
-                        if (existingTeam) {
-                            existingTeam.university = teamData.university;
-                            existingTeam.members = teamData.members;
-                            existingTeam.isActive = teamData.isActive;
-                            existingTeam.inactiveAt = teamData.inactiveAt;
+                        if (existingTeamByName) {
+                            Object.assign(existingTeamByName, teamData);
                         } else {
                             teamData.id = crypto.randomUUID();
                             teamDatabase.push(teamData);
                         }
                         addedCount++;
                     }
-                });
+                }
                 renderAll();
-                showToast(`${addedCount} teams added or updated.`, 'info');
+                showToast(`${addedCount} teams added or updated. ${skippedCount} skipped as duplicates.`, 'info');
             }
 
             function handleUserUpload(csvText) {
@@ -1015,7 +1037,7 @@
 
                     if (!isValid) return;
 
-                    const performSave = () => {
+                    const performSave = async () => {
                         switch (editorType) {
                             case 'competitions':
                                 if (id !== newId) delete competitionDatabase[id];
@@ -1031,6 +1053,15 @@
                                 universityDatabase.sort();
                                 break;
                             case 'teams':
+                                const teamHash = await getTeamHash(data.members);
+                                const isNewTeam = id.startsWith('new_');
+                                const existingTeamByHash = teamDatabase.find(t => t.teamHash === teamHash && t.id !== id);
+
+                                if (existingTeamByHash) {
+                                    showToast('Error: A team with these exact members already exists.', 'error');
+                                    return;
+                                }
+
                                 const universityName = data.university;
                                 if (universityName && !universityDatabase.includes(universityName)) {
                                     universityDatabase.push(universityName);
@@ -1050,7 +1081,8 @@
                                 const teamIndex = teamDatabase.findIndex(t => t.id === id);
                                 const teamData = {
                                     name: data.name, university: data.university, members: data.members || [],
-                                    isActive: data.isActive, createdAt: createdAtDate, inactiveAt: inactiveAtDate
+                                    isActive: data.isActive, createdAt: createdAtDate, inactiveAt: inactiveAtDate,
+                                    teamHash: teamHash
                                 };
 
                                 if (teamIndex > -1) {
@@ -1390,9 +1422,9 @@
                         teams: teamDatabase,
                         competitions: competitionDatabase,
                         universities: universityDatabase,
-                        version: 'v19' // Incremented version
+                        version: 'v20' // Incremented version
                     };
-                    localStorage.setItem('electiToolData_v19', JSON.stringify(dataToSave));
+                    localStorage.setItem('electiToolData_v20', JSON.stringify(dataToSave));
                 } catch (e) {
                     console.error("Could not save to localStorage. Data might be too large.", e);
                     showToast("Error: Could not save data. It might be too large for your browser's local storage.", "error", 5000);
@@ -1400,7 +1432,7 @@
             }
 
             function loadDataFromLocalStorage() {
-                const savedData = localStorage.getItem('electiToolData_v19');
+                const savedData = localStorage.getItem('electiToolData_v20');
                 if (savedData) {
                     try {
                         const data = JSON.parse(savedData);
@@ -1417,8 +1449,14 @@
 
             window.addEventListener('beforeunload', saveDataToLocalStorage);
 
-            function initializeApp() {
+            async function initializeApp() {
                 loadDataFromLocalStorage();
+                // Ensure all existing teams have a hash
+                for(const team of teamDatabase) {
+                    if (!team.teamHash) {
+                        team.teamHash = await getTeamHash(team.members);
+                    }
+                }
                 renderAll();
             }
 
