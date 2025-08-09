@@ -173,6 +173,10 @@
         .select2-container .select2-selection--multiple {
             min-height: 38px;
         }
+        #pagination-controls button:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800">
@@ -369,6 +373,9 @@
                         </tbody>
                     </table>
                 </div>
+                <div id="pagination-controls" class="flex justify-between items-center p-4 border-t border-gray-200">
+                    <!-- Pagination controls will be rendered here -->
+                </div>
             </div>
         </div>
     </div>
@@ -451,6 +458,8 @@
             let dbFilters = {};
             let confirmCallback = null;
             let passwordCallback = null;
+            let currentPage = 1;
+            const rowsPerPage = 15;
 
             // --- DOM ELEMENT REFERENCES ---
             const appContainer = document.getElementById('app-container');
@@ -471,6 +480,7 @@
             const detailedUserTable = document.getElementById('detailedUserTable');
             const detailedUserTableBody = document.getElementById('detailedUserTableBody');
             const databaseUserCount = document.getElementById('databaseUserCount');
+            const paginationControls = document.getElementById('pagination-controls');
             
             const statsContainer = document.getElementById('statsContainer');
             const detailsModal = document.getElementById('detailsModal');
@@ -1105,16 +1115,27 @@
                     return 0;
                 });
 
+                const totalRows = filteredUsers.length;
+                const totalPages = Math.ceil(totalRows / rowsPerPage);
+                if (currentPage > totalPages && totalPages > 0) {
+                    currentPage = totalPages;
+                }
+
+                const startIndex = (currentPage - 1) * rowsPerPage;
+                const endIndex = startIndex + rowsPerPage;
+                const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
                 detailedUserTableBody.innerHTML = '';
                 databaseUserCount.textContent = filteredUsers.length;
 
-                if (filteredUsers.length === 0) {
+                if (paginatedUsers.length === 0) {
                     detailedUserTableBody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-gray-500">No matching users found.</td></tr>`;
+                    renderPaginationControls(0, 0);
                     updateSelectAllState(detailedUserTable);
                     return;
                 }
 
-                filteredUsers.forEach(user => {
+                paginatedUsers.forEach(user => {
                     const row = document.createElement('tr');
                     row.className = 'border-b hover:bg-gray-50';
                     row.dataset.id = user.id;
@@ -1137,6 +1158,42 @@
                 });
                 updateDbSortIndicators();
                 updateSelectAllState(detailedUserTable);
+                renderPaginationControls(totalPages, totalRows);
+            }
+
+            function renderPaginationControls(totalPages, totalRows) {
+                if (totalPages <= 1) {
+                    paginationControls.innerHTML = '';
+                    return;
+                }
+
+                const startIndex = (currentPage - 1) * rowsPerPage + 1;
+                const endIndex = Math.min(currentPage * rowsPerPage, totalRows);
+
+                paginationControls.innerHTML = `
+                    <div>
+                        <p class="text-sm text-gray-700">
+                            Showing
+                            <span class="font-medium">${startIndex}</span>
+                            to
+                            <span class="font-medium">${endIndex}</span>
+                            of
+                            <span class="font-medium">${totalRows}</span>
+                            results
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="prevPageBtn" class="px-3 py-1 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50" ${currentPage === 1 ? 'disabled' : ''}>
+                            Previous
+                        </button>
+                        <span class="text-sm text-gray-700">
+                            Page <span class="font-medium">${currentPage}</span> of <span class="font-medium">${totalPages}</span>
+                        </span>
+                        <button id="nextPageBtn" class="px-3 py-1 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50" ${currentPage === totalPages ? 'disabled' : ''}>
+                            Next
+                        </button>
+                    </div>
+                `;
             }
             
             // --- CSV and Backup/Restore ---
@@ -1272,7 +1329,7 @@
             
             function downloadDbFullBackup() {
                 if (userDatabase.length === 0 && Object.keys(competitionDatabase).length === 0 && universityDatabase.length === 0) {
-                    showToast("No data to back up.", 'error'); return;
+                    showToast("No data to back up.", "error"); return;
                 }
 
                 showPasswordModal('Create Backup Password', true, async (password) => {
@@ -1808,6 +1865,20 @@
                 }
             });
 
+            paginationControls.addEventListener('click', e => {
+                if (e.target.id === 'prevPageBtn') {
+                    if (currentPage > 1) {
+                        currentPage--;
+                        renderUserDatabaseTable();
+                    }
+                }
+                if (e.target.id === 'nextPageBtn') {
+                    // This logic is safe because renderUserDatabaseTable disables the button correctly.
+                    currentPage++;
+                    renderUserDatabaseTable();
+                }
+            });
+
             downloadAllUsersCsvBtn.addEventListener('click', () => downloadUsersCSV(userDatabase));
             downloadSelectedUsersCsvBtn.addEventListener('click', () => {
                 const selectedIds = Array.from(document.querySelectorAll('.user-select-checkbox:checked')).map(cb => cb.dataset.id);
@@ -1838,11 +1909,13 @@
                     direction = dbSortState.direction === 'desc' ? 'asc' : 'desc';
                 }
                 dbSortState = { key, direction };
+                currentPage = 1;
                 renderUserDatabaseTable();
             });
             detailedUserTable.querySelector('thead').addEventListener('keyup', e => {
                 if(e.target.matches('input[data-filter-key]')) {
                     dbFilters[e.target.dataset.filterKey] = e.target.value;
+                    currentPage = 1;
                     renderUserDatabaseTable();
                 }
             });
