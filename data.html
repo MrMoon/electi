@@ -909,89 +909,125 @@
             function handleDetailedUserFormSubmit(e) {
                 e.preventDefault();
                 const saveButton = document.getElementById('saveUserBtn');
-
                 const formData = new FormData(detailedUserForm);
                 const handle = formData.get('handle').trim();
-                if (!handle) { 
-                    showToast("Handle is required.", 'error'); 
-                    return; 
+                const fullName = formData.get('fullName').trim();
+                const isEditing = document.getElementById('handleField').readOnly;
+
+                if (!handle) {
+                    showToast("Handle is required.", 'error');
+                    return;
                 }
 
-                const placementsData = [];
-                let placementError = false;
-                document.querySelectorAll('.placement-entry').forEach(entry => {
-                    if (placementError) return;
-                    const name = entry.querySelector('.comp-name-input').value.trim();
-                    const date = entry.querySelector('.comp-date-input').value;
-                    const link = entry.querySelector('.comp-link-input').value.trim();
-                    const rankStr = entry.querySelector('.comp-rank-input').value;
-                    const totalStr = entry.querySelector('.comp-total-input').value;
-                    const isTeamPlacement = entry.querySelector('.team-placement-checkbox').checked;
-                    const teamId = entry.querySelector('.team-name-select').value;
-
-                    if (!name || !rankStr || !totalStr || !date || !link) {
-                        showToast('Competition Name, Date, Link, Rank, and Total fields are required for all placements.', 'error');
-                        placementError = true; return;
+                // --- MODIFICATION START ---
+                // 1. Check for existing handle when ADDING a new user
+                if (!isEditing) {
+                    const handleExists = userDatabase.some(u => u.id === handle.toLowerCase());
+                    if (handleExists) {
+                        showToast(`Error: A user with the handle "${handle}" already exists.`, 'error');
+                        return; // Stop execution
                     }
-                    if(isTeamPlacement && !teamId) {
-                        showToast(`A team must be selected for a team placement in "${name}".`, 'error');
-                        placementError = true; return;
-                    }
+                }
 
-                    const rank = parseInt(rankStr, 10);
-                    const total = parseInt(totalStr, 10);
-                    if (rank > total) {
-                         showToast(`Placement error for "${name}": Rank (${rank}) cannot be greater than Total (${total}).`, 'error');
-                         placementError = true; return;
-                    }
+                // This function contains the actual saving logic.
+                // It will be called either directly or after the user confirms the duplicate name warning.
+                const proceedWithSave = () => {
+                    const placementsData = [];
+                    let placementError = false;
+                    document.querySelectorAll('.placement-entry').forEach(entry => {
+                        if (placementError) return;
+                        const name = entry.querySelector('.comp-name-input').value.trim();
+                        const date = entry.querySelector('.comp-date-input').value;
+                        const link = entry.querySelector('.comp-link-input').value.trim();
+                        const rankStr = entry.querySelector('.comp-rank-input').value;
+                        const totalStr = entry.querySelector('.comp-total-input').value;
+                        const isTeamPlacement = entry.querySelector('.team-placement-checkbox').checked;
+                        const teamId = entry.querySelector('.team-name-select').value;
 
-                    placementsData.push({ name, rank, total, teamId: isTeamPlacement ? teamId : null, date, link });
-                });
-
-                if (placementError) return;
-                
-                saveButton.disabled = true;
-                saveButton.innerHTML = `<div class="flex justify-center items-center gap-2"><div class="spinner w-4 h-4 border-2 rounded-full"></div>Saving...</div>`;
-                
-                setTimeout(() => {
-                    const universityName = formData.get('university').trim();
-                    if (universityName && !universityDatabase.includes(universityName)) {
-                        universityDatabase.push(universityName);
-                        universityDatabase.sort();
-                    }
-
-                    placementsData.forEach(p => {
-                        if (!competitionDatabase[p.name] || competitionDatabase[p.name].total !== p.total || competitionDatabase[p.name].date !== p.date || competitionDatabase[p.name].link !== p.link) {
-                           competitionDatabase[p.name] = { total: parseInt(p.total, 10), date: p.date, link: p.link };
+                        if (!name || !rankStr || !totalStr || !date || !link) {
+                            showToast('Competition Name, Date, Link, Rank, and Total fields are required for all placements.', 'error');
+                            placementError = true; return;
                         }
+                        if(isTeamPlacement && !teamId) {
+                            showToast(`A team must be selected for a team placement in "${name}".`, 'error');
+                            placementError = true; return;
+                        }
+
+                        const rank = parseInt(rankStr, 10);
+                        const total = parseInt(totalStr, 10);
+                        if (rank > total) {
+                             showToast(`Placement error for "${name}": Rank (${rank}) cannot be greater than Total (${total}).`, 'error');
+                             placementError = true; return;
+                        }
+
+                        placementsData.push({ name, rank, total, teamId: isTeamPlacement ? teamId : null, date, link });
                     });
 
-                    const userToSave = {
-                        id: handle.toLowerCase(),
-                        handle: handle,
-                        fullName: formData.get('fullName').trim(),
-                        linkedin: formData.get('linkedin').trim(),
-                        university: universityName,
-                        profilePicUrl: formData.get('profilePicUrl').trim(),
-                        lunaNovaScore: parseFloat(formData.get('lunaNovaScore')) || 0,
-                        lunaHardScore: parseFloat(formData.get('lunaHardScore')) || 0,
-                        acmLevel: parseInt(formData.get('acmLevel'), 10),
-                        joinDate: formData.get('joinDate') || null,
-                        universityStartDate: formData.get('universityStartDate') || null,
-                        isTrusted: detailedUserForm.querySelector('#isTrustedCheckbox').checked,
-                        placements: placementsData.map(({name, rank, total, teamId}) => ({name, rank, total, teamId})),
-                        updatedAt: new Date()
-                    };
-
-                    saveUserAndUpdateTeams(userToSave);
+                    if (placementError) return;
                     
-                    saveButton.disabled = false;
-                    saveButton.innerHTML = 'Save User';
-                    clearDetailedUserForm();
-                    renderAll();
-                    showToast(`User ${userToSave.handle} saved successfully.`, 'info');
+                    saveButton.disabled = true;
+                    saveButton.innerHTML = `<div class="flex justify-center items-center gap-2"><div class="spinner w-4 h-4 border-2 rounded-full"></div>Saving...</div>`;
+                    
+                    setTimeout(() => {
+                        const universityName = formData.get('university').trim();
+                        if (universityName && !universityDatabase.includes(universityName)) {
+                            universityDatabase.push(universityName);
+                            universityDatabase.sort();
+                        }
 
-                }, 50);
+                        placementsData.forEach(p => {
+                            if (!competitionDatabase[p.name] || competitionDatabase[p.name].total !== p.total || competitionDatabase[p.name].date !== p.date || competitionDatabase[p.name].link !== p.link) {
+                               competitionDatabase[p.name] = { total: parseInt(p.total, 10), date: p.date, link: p.link };
+                            }
+                        });
+
+                        const userToSave = {
+                            id: handle.toLowerCase(),
+                            handle: handle,
+                            fullName: fullName,
+                            linkedin: formData.get('linkedin').trim(),
+                            university: universityName,
+                            profilePicUrl: formData.get('profilePicUrl').trim(),
+                            lunaNovaScore: parseFloat(formData.get('lunaNovaScore')) || 0,
+                            lunaHardScore: parseFloat(formData.get('lunaHardScore')) || 0,
+                            acmLevel: parseInt(formData.get('acmLevel'), 10),
+                            joinDate: formData.get('joinDate') || null,
+                            universityStartDate: formData.get('universityStartDate') || null,
+                            isTrusted: detailedUserForm.querySelector('#isTrustedCheckbox').checked,
+                            placements: placementsData.map(({name, rank, total, teamId}) => ({name, rank, total, teamId})),
+                            updatedAt: new Date()
+                        };
+
+                        saveUserAndUpdateTeams(userToSave);
+                        
+                        saveButton.disabled = false;
+                        saveButton.innerHTML = 'Save User';
+                        clearDetailedUserForm();
+                        renderAll();
+                        showToast(`User ${userToSave.handle} saved successfully.`, 'info');
+
+                    }, 50);
+                };
+
+                // 2. Check for duplicate name
+                if (fullName) { // Only check if a name is provided
+                    const existingUserWithSameName = userDatabase.find(
+                        u => u.fullName && u.fullName.toLowerCase() === fullName.toLowerCase() && u.id !== handle.toLowerCase()
+                    );
+
+                    if (existingUserWithSameName) {
+                        showConfirmationModal(
+                            'Duplicate Name Warning',
+                            `Another user ('${existingUserWithSameName.handle}') already has the name "${fullName}". Are you sure you want to save?`,
+                            proceedWithSave // The confirmation callback
+                        );
+                    } else {
+                        proceedWithSave(); // No duplicate name, save directly
+                    }
+                } else {
+                    proceedWithSave(); // No name provided, save directly
+                }
+                // --- MODIFICATION END ---
             }
 
 
