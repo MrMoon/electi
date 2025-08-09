@@ -21,6 +21,39 @@
         input[type="file"] {
             display: none;
         }
+        .modal-overlay {
+            transition: opacity 0.3s ease;
+        }
+        .modal-content {
+            transition: transform 0.3s ease;
+        }
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: flex-end;
+        }
+        .toast-notification {
+            background-color: #2d3748;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            opacity: 0;
+            transform: translateX(20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            position: relative;
+        }
+        .toast-notification.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .toast-notification.info { background-color: #2b6cb0; }
+        .toast-notification.error { background-color: #c53030; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800 flex items-center justify-center min-h-screen p-4">
@@ -97,91 +130,324 @@
             </div>
         </main>
         
-        <!-- Toast Notification -->
-        <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white py-2 px-4 rounded-lg shadow-lg hidden transition-opacity duration-300">
-            <span id="toast-message"></span>
+        <!-- Toast Notification Container -->
+        <div id="toast-container"></div>
+    </div>
+
+    <!-- Password Modal -->
+    <div id="passwordModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-sm p-6 relative transform scale-95">
+            <h3 id="passwordModalTitle" class="text-lg font-bold mb-4">Enter Password</h3>
+            <form id="passwordForm">
+                <div class="space-y-4">
+                    <div>
+                        <label for="passwordField" class="block text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="passwordField" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
+                    </div>
+                    <div id="confirmPasswordContainer" class="hidden">
+                        <label for="confirmPasswordField" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                        <input type="password" id="confirmPasswordField" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+                <div class="flex justify-end gap-4 mt-6">
+                    <button type="button" id="passwordCancelBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                    <button type="submit" id="passwordOkBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700">OK</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative transform scale-95">
+            <h3 id="confirmationModalTitle" class="text-lg font-bold mb-4">Confirm Action</h3>
+            <p id="confirmationModalMessage" class="text-gray-700 mb-6">Are you sure?</p>
+            <div class="flex justify-end gap-4">
+                <button id="confirmCancelBtn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">Cancel</button>
+                <button id="confirmOkBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">Confirm</button>
+            </div>
         </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // --- DOM ELEMENT REFERENCES ---
             const jsonFileInput = document.getElementById('jsonFileInput');
             const exportDataBtn = document.getElementById('exportDataBtn');
-            const toast = document.getElementById('toast');
-            const toastMessage = document.getElementById('toast-message');
-            let toastTimeout;
+            const confirmationModal = document.getElementById('confirmationModal');
+            const confirmationModalTitle = document.getElementById('confirmationModalTitle');
+            const confirmationModalMessage = document.getElementById('confirmationModalMessage');
+            const confirmCancelBtn = document.getElementById('confirmCancelBtn');
+            const confirmOkBtn = document.getElementById('confirmOkBtn');
+            const passwordModal = document.getElementById('passwordModal');
+            const passwordModalTitle = document.getElementById('passwordModalTitle');
+            const passwordForm = document.getElementById('passwordForm');
+            const passwordField = document.getElementById('passwordField');
+            const confirmPasswordContainer = document.getElementById('confirmPasswordContainer');
+            const confirmPasswordField = document.getElementById('confirmPasswordField');
+            const passwordCancelBtn = document.getElementById('passwordCancelBtn');
+            const passwordOkBtn = document.getElementById('passwordOkBtn');
 
-            // --- Function to show a toast notification ---
-            function showToast(message) {
-                if (toastTimeout) {
-                    clearTimeout(toastTimeout);
+            // --- STATE VARIABLES ---
+            let confirmCallback = null;
+            let passwordCallback = null;
+            const LOCAL_STORAGE_KEY = 'electiToolData_v18';
+
+            // --- CRYPTOGRAPHY ---
+            const textEncoder = new TextEncoder();
+            const textDecoder = new TextDecoder();
+
+            function arrayBufferToBase64(buffer) {
+                let binary = '';
+                const bytes = new Uint8Array(buffer);
+                const len = bytes.byteLength;
+                for (let i = 0; i < len; i++) {
+                    binary += String.fromCharCode(bytes[i]);
                 }
-                toastMessage.textContent = message;
-                toast.classList.remove('hidden');
-                toast.classList.add('opacity-100');
-                toastTimeout = setTimeout(() => {
-                    toast.classList.remove('opacity-100');
-                    setTimeout(() => toast.classList.add('hidden'), 300);
-                }, 3000);
+                return window.btoa(binary);
+            }
+
+            function base64ToArrayBuffer(base64) {
+                const binary_string = window.atob(base64);
+                const len = binary_string.length;
+                const bytes = new Uint8Array(len);
+                for (let i = 0; i < len; i++) {
+                    bytes[i] = binary_string.charCodeAt(i);
+                }
+                return bytes.buffer;
+            }
+
+            async function getEncryptionKey(password, salt) {
+                const keyMaterial = await window.crypto.subtle.importKey(
+                    "raw",
+                    textEncoder.encode(password),
+                    { name: "PBKDF2" },
+                    false,
+                    ["deriveKey"]
+                );
+                return window.crypto.subtle.deriveKey(
+                    {
+                        name: "PBKDF2",
+                        salt: salt,
+                        iterations: 100000,
+                        hash: "SHA-256",
+                    },
+                    keyMaterial,
+                    { name: "AES-GCM", length: 256 },
+                    true,
+                    ["encrypt", "decrypt"]
+                );
+            }
+
+            async function encryptData(data, password) {
+                try {
+                    const salt = window.crypto.getRandomValues(new Uint8Array(16));
+                    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                    const key = await getEncryptionKey(password, salt);
+                    
+                    const encryptedContent = await window.crypto.subtle.encrypt(
+                        { name: "AES-GCM", iv: iv },
+                        key,
+                        textEncoder.encode(data)
+                    );
+
+                    return {
+                        salt: arrayBufferToBase64(salt),
+                        iv: arrayBufferToBase64(iv),
+                        data: arrayBufferToBase64(encryptedContent)
+                    };
+                } catch (error) {
+                    console.error("Encryption failed:", error);
+                    showToast("Encryption failed. See console for details.", "error");
+                    return null;
+                }
+            }
+
+            async function decryptData(encryptedPayload, password) {
+                try {
+                    const salt = base64ToArrayBuffer(encryptedPayload.salt);
+                    const iv = base64ToArrayBuffer(encryptedPayload.iv);
+                    const data = base64ToArrayBuffer(encryptedPayload.data);
+                    const key = await getEncryptionKey(password, salt);
+
+                    const decryptedContent = await window.crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: iv },
+                        key,
+                        data
+                    );
+
+                    return textDecoder.decode(decryptedContent);
+                } catch (error) {
+                    console.error("Decryption failed:", error);
+                    return null;
+                }
+            }
+
+            // --- NOTIFICATION & MODAL ---
+            function showToast(message, type = 'info', duration = 3000) {
+                const container = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast-notification ${type}`;
+                toast.textContent = message;
+                container.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.classList.add('show');
+                }, 10);
+
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    toast.addEventListener('transitionend', () => toast.remove());
+                }, duration);
+            }
+
+            function showConfirmationModal(title, message, onConfirm) { 
+                confirmationModalTitle.textContent = title; 
+                confirmationModalMessage.textContent = message; 
+                confirmCallback = onConfirm; 
+                confirmationModal.classList.remove('hidden'); 
+                setTimeout(() => { 
+                    confirmationModal.querySelector('.modal-overlay')?.classList.remove('opacity-0'); 
+                    confirmationModal.querySelector('.modal-content')?.classList.remove('scale-95'); 
+                }, 10); 
+            }
+
+            function hideConfirmationModal() { 
+                confirmationModal.querySelector('.modal-overlay')?.classList.add('opacity-0'); 
+                confirmationModal.querySelector('.modal-content')?.classList.add('scale-95'); 
+                setTimeout(() => { 
+                    confirmationModal.classList.add('hidden'); 
+                    confirmCallback = null; 
+                }, 300); 
+            }
+
+            function showPasswordModal(title, showConfirm, onConfirm) {
+                passwordModalTitle.textContent = title;
+                passwordForm.reset();
+                confirmPasswordContainer.style.display = showConfirm ? 'block' : 'none';
+                confirmPasswordField.required = showConfirm;
+                passwordCallback = onConfirm;
+                passwordModal.classList.remove('hidden');
+                setTimeout(() => {
+                    passwordModal.querySelector('.modal-overlay')?.classList.remove('opacity-0');
+                    passwordModal.querySelector('.modal-content')?.classList.remove('scale-95');
+                    passwordField.focus();
+                }, 10);
+            }
+
+            function hidePasswordModal() {
+                passwordModal.querySelector('.modal-overlay')?.classList.add('opacity-0');
+                passwordModal.querySelector('.modal-content')?.classList.add('scale-95');
+                setTimeout(() => {
+                    passwordModal.classList.add('hidden');
+                    passwordCallback = null;
+                }, 300);
+            }
+
+            // --- HELPER FUNCTIONS ---
+            function getFormattedDateTimeString() { 
+                const now = new Date(); 
+                const pad = (num) => num.toString().padStart(2, '0'); 
+                return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}`; 
+            }
+
+            function downloadFile(content, fileName, mimeType) { 
+                const blob = new Blob([content], { type: mimeType }); 
+                const link = document.createElement('a'); 
+                link.href = URL.createObjectURL(blob); 
+                link.download = fileName; 
+                document.body.appendChild(link); 
+                link.click(); 
+                document.body.removeChild(link); 
+            }
+
+            // --- CORE LOGIC ---
+            function loadDataIntoStorage(jsonData, fileName) {
+                try {
+                    const data = JSON.parse(jsonData);
+                    if (data.users && data.teams && data.competitions && data.universities) {
+                        showConfirmationModal('Overwrite Local Data?', `This will overwrite all existing data in your browser's storage. Are you sure you want to continue?`, () => {
+                            localStorage.setItem(LOCAL_STORAGE_KEY, jsonData);
+                            showToast(`Data from ${fileName} imported successfully!`, 'info');
+                        });
+                    } else {
+                        showToast('Error: Invalid JSON file format.', 'error');
+                    }
+                } catch (error) {
+                    console.error("Error parsing JSON data:", error);
+                    showToast('Error: Failed to read or parse the data.', 'error');
+                }
             }
 
             // --- Event listener for file import ---
             jsonFileInput.addEventListener('change', (event) => {
                 const file = event.target.files[0];
-                if (!file) {
-                    return;
-                }
+                if (!file) return;
 
                 const reader = new FileReader();
                 reader.onload = function(e) {
+                    const fileContent = e.target.result;
                     try {
-                        const data = JSON.parse(e.target.result);
-                        // Basic validation to ensure the file is likely correct
-                        if (data.users && data.teams && data.competitions && data.universities) {
-                            localStorage.setItem('electiToolData_v18', e.target.result);
-                            showToast('Data imported successfully!');
-                        } else {
-                            showToast('Error: Invalid JSON file format.');
+                        const data = JSON.parse(fileContent);
+                        // Check if it's an encrypted backup
+                        if (data.salt && data.iv && data.data) {
+                            showPasswordModal('Enter Decryption Password', false, async (password) => {
+                                const decryptedJson = await decryptData(data, password);
+                                if (!decryptedJson) {
+                                    showToast('Decryption failed. Incorrect password or corrupt file.', 'error');
+                                    return;
+                                }
+                                loadDataIntoStorage(decryptedJson, file.name);
+                            });
+                        } else { // Assume it's a plain JSON backup
+                            loadDataIntoStorage(fileContent, file.name);
                         }
                     } catch (error) {
-                        console.error("Error parsing JSON file:", error);
-                        showToast('Error: Failed to read or parse the file.');
+                        console.error("Error reading file:", error);
+                        showToast('Error: Could not read the file. It might not be valid JSON.', 'error');
                     }
                 };
                 reader.readAsText(file);
-                
-                // Reset file input to allow re-uploading the same file
-                jsonFileInput.value = '';
+                jsonFileInput.value = ''; // Reset for re-upload
             });
 
             // --- Event listener for data export ---
             exportDataBtn.addEventListener('click', () => {
-                const data = localStorage.getItem('electiToolData_v18');
+                const data = localStorage.getItem(LOCAL_STORAGE_KEY);
                 if (!data) {
-                    showToast('No data in local storage to export.');
+                    showToast('No data in local storage to export.', 'error');
                     return;
                 }
 
-                try {
-                    // Prettify the JSON for readability
-                    const parsedData = JSON.parse(data);
-                    const jsonString = JSON.stringify(parsedData, null, 2);
-                    const blob = new Blob([jsonString], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    const date = new Date().toISOString().slice(0, 10);
-                    link.download = `electi_backup_${date}.json`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                    showToast('Data exported successfully!');
-                } catch (error) {
-                    console.error("Error exporting data:", error);
-                    showToast('Error: Could not export data.');
-                }
+                showPasswordModal('Create Backup Password', true, async (password) => {
+                    const encryptedPayload = await encryptData(data, password);
+                    if (encryptedPayload) {
+                        const encryptedJsonString = JSON.stringify(encryptedPayload, null, 2);
+                        downloadFile(encryptedJsonString, `electi_backup_encrypted_${getFormattedDateTimeString()}.json`, 'application/json');
+                        showToast("Encrypted backup downloaded successfully.", "info");
+                    }
+                });
             });
+
+            // --- Modal event listeners ---
+            confirmCancelBtn.addEventListener('click', hideConfirmationModal);
+            confirmOkBtn.addEventListener('click', () => { 
+                if (confirmCallback) confirmCallback(); 
+                hideConfirmationModal(); 
+            });
+            passwordForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const password = passwordField.value;
+                if (confirmPasswordField.required && password !== confirmPasswordField.value) {
+                    showToast("Passwords do not match.", "error");
+                    return;
+                }
+                if (passwordCallback) {
+                    passwordCallback(password);
+                }
+                hidePasswordModal();
+            });
+            passwordCancelBtn.addEventListener('click', hidePasswordModal);
         });
     </script>
 
