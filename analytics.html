@@ -1514,7 +1514,7 @@
                     showToast("Invalid backup file format.", 'error');
                     return;
                 }
-                localStorage.setItem('electiToolData_v18_simplified', JSON.stringify(data));
+                localStorage.setItem('operationelecti', JSON.stringify(data));
                 showToast(`Successfully imported data from ${fileName}.`, 'info');
                 initializeApp();
             }
@@ -1526,7 +1526,7 @@
 
             // --- LOCAL STORAGE PERSISTENCE ---
             function loadDataFromLocalStorage() {
-                const savedData = localStorage.getItem('electiToolData_v18_simplified');
+                const savedData = localStorage.getItem('operationelecti');
                 if (savedData) {
                     try {
                         const data = JSON.parse(savedData);

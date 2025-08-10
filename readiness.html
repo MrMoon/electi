@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Operation Electi - Readiness Model v15</title>
+    <title>Operation Electi - Readiness Model</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -365,11 +365,11 @@
 
             /**
              * Loads users from localStorage on page load.
-             * It prioritizes loading from the main JSON database ('electiToolData_v18')
+             * It prioritizes loading from the main JSON database ('operationelecti')
              * and falls back to its own saved list ('readinessToolUsers_v15').
              */
             function loadUsersFromStorage() {
-                const mainDataKey = 'electiToolData_v18';
+                const mainDataKey = 'operationelecti';
                 const readinessDataKey = 'readinessToolUsers_v15';
                 
                 // Priority 1: Check for main JSON database from other tools

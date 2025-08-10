@@ -2100,16 +2100,15 @@
                         teams: teamDatabase,
                         competitions: competitionDatabase,
                         universities: universityDatabase,
-                        version: 'v19-validation' // Updated version
                     };
-                    localStorage.setItem('electiToolData_v19_validation', JSON.stringify(dataToSave));
+                    localStorage.setItem('operationelecti', JSON.stringify(dataToSave));
                 } catch (e) {
                     console.error("Could not save to localStorage. Data might be too large.", e);
                 }
             }
 
             function loadDataFromLocalStorage() {
-                const savedData = localStorage.getItem('electiToolData_v19_validation');
+                const savedData = localStorage.getItem('operationelecti');
                 if (savedData) {
                     try {
                         const data = JSON.parse(savedData);

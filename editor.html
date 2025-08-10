@@ -83,7 +83,7 @@
          .editor-table textarea {
             min-height: 60px;
          }
-        .team-link, .competition-link {
+        .team-link, .competition-link, .user-link {
             font-weight: 500;
             color: #4f46e5;
             cursor: pointer;
@@ -92,7 +92,7 @@
             border: none;
             padding: 0;
         }
-        .team-link:hover, .competition-link:hover {
+        .team-link:hover, .competition-link:hover, .user-link:hover {
             text-decoration: underline;
         }
         
@@ -216,7 +216,7 @@
         </div>
     </div>
 
-    <!-- Details Modal (for Teams) -->
+    <!-- Details Modal (for Teams and Users) -->
     <div id="detailsModal" class="modal-overlay fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
         <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 relative transform scale-95">
             <button id="closeModalBtn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800">
@@ -670,8 +670,7 @@
                 let skippedCount = 0;
                 newUsers.forEach(userRow => {
                     const handle = userRow['Handle'];
-                    const name = userRow['Name'];
-                    if (handle && name) {
+                    if (handle) {
                         const existingUser = userDatabase.find(u => u.handle.toLowerCase() === handle.toLowerCase());
                         if (existingUser) {
                             skippedCount++;
@@ -679,7 +678,6 @@
                         }
                         userDatabase.push({
                             handle,
-                            name,
                             university: userRow['University'] || '',
                             isTrusted: userRow['Is Trusted'] ? userRow['Is Trusted'].toLowerCase() === 'true' : true,
                             placements: [], // Placements are not imported via this CSV
@@ -779,7 +777,6 @@
             function getUserEditorHTML() {
                 return getGenericEditorHTML('users', 'User Editor', [
                     { label: 'Handle', key: 'handle', filterable: true },
-                    { label: 'Name', key: 'name', filterable: true },
                     { label: 'University', key: 'university', filterable: true },
                     { label: 'Trusted', key: 'isTrusted', filterable: false },
                     { label: 'Last Updated', key: 'updatedAt', filterable: true },
@@ -869,8 +866,7 @@
                             id = item.handle;
                             row.innerHTML = `
                                 <td class="p-2 text-center"><input type="checkbox" class="editor-select-checkbox" data-id="${id}"></td>
-                                <td class="p-2" data-key="handle">${item.handle}</td>
-                                <td class="p-2" data-key="name">${item.name}</td>
+                                <td class="p-2" data-key="handle">${createUserLink(item.handle)}</td>
                                 <td class="p-2" data-key="university">${item.university || ''}</td>
                                 <td class="p-2" data-key="isTrusted"><input type="checkbox" ${item.isTrusted ? 'checked' : ''} disabled></td>
                                 <td class="p-2" data-key="updatedAt">${formatMMYYYY(item.updatedAt)}</td>
@@ -913,7 +909,6 @@
                     case 'users':
                         cells = `<td></td>
                                  <td><input type="text" data-key="handle" placeholder="user_handle"></td>
-                                 <td><input type="text" data-key="name" placeholder="Full Name"></td>
                                  <td><input type="text" list="university-list" data-key="university" placeholder="University"></td>
                                  <td><input type="checkbox" data-key="isTrusted" checked></td>
                                  <td><input type="month" data-key="updatedAt" value="${toYYYYMM(new Date())}" disabled></td>`;
@@ -1105,7 +1100,7 @@
                                 }
                                 
                                 const userData = {
-                                    handle: data.handle, name: data.name, university: data.university,
+                                    handle: data.handle, university: data.university,
                                     isTrusted: data.isTrusted, updatedAt: new Date().toISOString()
                                 };
 
@@ -1119,21 +1114,7 @@
                         }
                         renderAll();
                     };
-
-                    if (editorType === 'users') {
-                        const nameExists = userDatabase.some(u => u.name.toLowerCase() === data.name.toLowerCase() && u.handle.toLowerCase() !== data.handle.toLowerCase());
-                        if (nameExists) {
-                             showConfirmationModal(
-                                'Duplicate Name Warning', 
-                                `A user with the name "${data.name}" already exists. Are you sure you want to continue?`,
-                                performSave // The actual save logic is the callback
-                            );
-                        } else {
-                            performSave(); // No duplicate name, save directly
-                        }
-                    } else {
-                        performSave(); // For other types, save directly
-                    }
+                    performSave();
                 }
             }
 
@@ -1161,9 +1142,9 @@
                         fileNameSuffix = 'teams';
                         break;
                     case 'users':
-                        rows.push(['Handle', 'Name', 'University', 'Is Trusted']);
+                        rows.push(['Handle', 'University', 'Is Trusted']);
                         userDatabase.forEach(user => {
-                           rows.push([user.handle, user.name, user.university, user.isTrusted]);
+                           rows.push([user.handle, user.university, user.isTrusted]);
                         });
                         fileNameSuffix = 'users';
                         break;
@@ -1292,6 +1273,43 @@
             
             function downloadFile(content, fileName, mimeType) { const blob = new Blob([content], { type: mimeType }); const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = fileName; document.body.appendChild(link); link.click(); document.body.removeChild(link); }
             
+            function showUserDetailsModal(handle) {
+                const user = userDatabase.find(u => u.handle === handle);
+                if (!user) {
+                    showToast('User not found.', 'error');
+                    return;
+                }
+
+                const userPlacements = (user.placements || [])
+                    .sort((a, b) => (competitionDatabase[b.name]?.date || '').localeCompare(competitionDatabase[a.name]?.date || ''));
+
+                const teamNames = userPlacements.map(p => {
+                    const team = teamDatabase.find(t => t.id === p.teamId);
+                    return team ? team.name : 'Unknown Team';
+                });
+
+                let content = `
+                    <h2 class="text-3xl font-bold text-indigo-800 mb-2">${user.handle}</h2>
+                    <p class="text-lg text-gray-600 mb-1">${user.university || 'No university specified'}</p>
+                    <p class="text-sm text-gray-500">Trusted User: ${user.isTrusted ? 'Yes' : 'No'} | Last Updated: ${formatMonthYear(user.updatedAt)}</p>
+                    <hr class="my-4">
+                    <div>
+                        <h3 class="text-xl font-semibold mb-3">Competitions (${userPlacements.length})</h3>
+                        <div class="space-y-2 max-h-80 overflow-y-auto pr-2">
+                            ${userPlacements.length > 0 ? userPlacements.map((p, index) => `
+                                <div class="p-3 bg-gray-50 rounded-lg text-sm">
+                                    <div class="font-bold text-base">${createCompetitionLink(p.name)}</div>
+                                    <div class="text-gray-700">Team: ${createTeamLink(teamNames[index], p.teamId)}</div>
+                                    <div class="text-gray-600 mt-1">Rank: <span class="font-semibold">${p.rank}</span> / ${p.total}</div>
+                                </div>
+                            `).join('') : '<p class="text-gray-500 text-sm">No competitions recorded for this user.</p>'}
+                        </div>
+                    </div>
+                `;
+                modalContentContainer.innerHTML = content;
+                detailsModal.classList.remove('hidden');
+            }
+
             function showTeamDetailsModal(teamId) {
                 const team = teamDatabase.find(t => t.id === teamId);
                 if (!team) {
@@ -1340,8 +1358,8 @@
             }
 
             function createUserLink(handle) {
-                // In the editor, we don't need a link, just the text.
-                return handle || 'N/A';
+                if (!handle) return 'N/A';
+                return `<button class="user-link" data-handle="${handle}">${handle}</button>`;
             }
 
             function createTeamLink(teamName, teamId) {
@@ -1371,9 +1389,14 @@
             // --- EVENT LISTENERS ---
             appContainer.addEventListener('click', (e) => {
                 const teamLink = e.target.closest('.team-link');
+                const userLink = e.target.closest('.user-link');
+                
                 if (teamLink) {
                     e.preventDefault();
                     showTeamDetailsModal(teamLink.dataset.teamId);
+                } else if (userLink) {
+                    e.preventDefault();
+                    showUserDetailsModal(userLink.dataset.handle);
                 }
             });
 
@@ -1422,10 +1445,9 @@
                         teams: teamDatabase,
                         competitions: competitionDatabase,
                         universities: universityDatabase,
-                        version: 'v18-simplified' // Match the data.html version
+                        version: 'v18-simplified'
                     };
-                    // Use the same key as data.html to ensure data is shared
-                    localStorage.setItem('electiToolData_v18_simplified', JSON.stringify(dataToSave));
+                    localStorage.setItem('operationelecti', JSON.stringify(dataToSave));
                 } catch (e) {
                     console.error("Could not save to localStorage. Data might be too large.", e);
                     showToast("Error: Could not save data. It might be too large for your browser's local storage.", "error", 5000);
@@ -1433,12 +1455,16 @@
             }
 
             function loadDataFromLocalStorage() {
-                // Use the same key as data.html to ensure data is shared
-                const savedData = localStorage.getItem('electiToolData_v18_simplified');
+                const savedData = localStorage.getItem('operationelecti');
                 if (savedData) {
                     try {
                         const data = JSON.parse(savedData);
-                        userDatabase = data.users.map(u => ({...u, isTrusted: u.isTrusted !== false, updatedAt: new Date(u.updatedAt) })) || [];
+                        const loadedUsers = data.users || [];
+                        userDatabase = loadedUsers.map(u => ({
+                            ...u,
+                            isTrusted: u.isTrusted !== false,
+                            updatedAt: new Date(u.updatedAt)
+                        }));
                         teamDatabase = data.teams || [];
                         competitionDatabase = data.competitions || {};
                         universityDatabase = data.universities || [];
