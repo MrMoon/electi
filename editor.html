@@ -133,6 +133,29 @@
         .select2-container .select2-selection--multiple {
             min-height: 38px;
         }
+        
+        /* Pagination Styles */
+        .pagination-btn {
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid #d1d5db;
+            background-color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .pagination-btn:hover:not([disabled]) {
+            background-color: #f3f4f6;
+        }
+        .pagination-btn[disabled] {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .pagination-btn.active {
+            background-color: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-gray-50 to-blue-50 text-gray-800">
@@ -250,6 +273,13 @@
                 universities: {},
                 teams: {},
                 users: {}
+            };
+            // --- PAGINATION STATE ---
+            let editorPagination = {
+                competitions: { currentPage: 1, rowsPerPage: 10 },
+                universities: { currentPage: 1, rowsPerPage: 10 },
+                teams: { currentPage: 1, rowsPerPage: 10 },
+                users: { currentPage: 1, rowsPerPage: 10 }
             };
             let confirmCallback = null;
             let passwordCallback = null;
@@ -740,6 +770,7 @@
                                     <tbody></tbody>
                                 </table>
                             </div>
+                            <div id="${type}Pagination" class="flex justify-between items-center mt-4 text-sm"></div>
                         </div>
                     </div>
                 `;
@@ -826,8 +857,16 @@
                     if (valA > valB) return direction === 'asc' ? 1 : -1;
                     return 0;
                 });
+                
+                // --- PAGINATION LOGIC ---
+                const { currentPage, rowsPerPage } = editorPagination[editorType];
+                const totalRows = filteredData.length;
+                const totalPages = Math.ceil(totalRows / rowsPerPage);
+                const startIndex = (currentPage - 1) * rowsPerPage;
+                const endIndex = startIndex + rowsPerPage;
+                const paginatedData = filteredData.slice(startIndex, endIndex);
 
-                filteredData.forEach(item => {
+                paginatedData.forEach(item => {
                     const row = tableBody.insertRow();
                     let id;
                     switch (editorType) {
@@ -877,6 +916,39 @@
                 });
                 updateEditorSortIndicators(editorType);
                 updateSelectAllState(table);
+                renderPaginationControls(editorType, totalRows);
+            }
+
+            function renderPaginationControls(editorType, totalRows) {
+                const paginationContainer = document.getElementById(`${editorType}Pagination`);
+                if (!paginationContainer) return;
+
+                const { currentPage, rowsPerPage } = editorPagination[editorType];
+                const totalPages = Math.ceil(totalRows / rowsPerPage);
+                
+                if (totalPages <= 1) {
+                    paginationContainer.innerHTML = '';
+                    return;
+                }
+
+                const startRow = (currentPage - 1) * rowsPerPage + 1;
+                const endRow = Math.min(currentPage * rowsPerPage, totalRows);
+
+                let pageButtons = '';
+                for (let i = 1; i <= totalPages; i++) {
+                    pageButtons += `<button class="pagination-btn page-number ${i === currentPage ? 'active' : ''}" data-page="${i}">${i}</button>`;
+                }
+
+                paginationContainer.innerHTML = `
+                    <div class="text-gray-600">
+                        Showing ${startRow} to ${endRow} of ${totalRows} entries
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button class="pagination-btn prev-page" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+                        <div class="flex items-center gap-1">${pageButtons}</div>
+                        <button class="pagination-btn next-page" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+                    </div>
+                `;
             }
             
             function addEditorTableRow(editorType) {
@@ -1195,7 +1267,8 @@
                 if(!editorContentDiv) return;
 
                 editorContentDiv.addEventListener('click', e => {
-                    const targetId = e.target.id;
+                    const target = e.target;
+                    const targetId = target.id;
                     
                     if (targetId === `add${capitalize(editorType)}RowBtn`) {
                         addEditorTableRow(editorType);
@@ -1203,17 +1276,30 @@
                         handleDeleteSelected(editorType);
                     } else if (targetId === `download${capitalize(editorType)}CsvEditor`) {
                         downloadEditorCSV(editorType);
-                    } else if (e.target.closest('.sortable-header')) {
-                        const header = e.target.closest('.sortable-header');
+                    } else if (target.closest('.sortable-header')) {
+                        const header = target.closest('.sortable-header');
                         const key = header.dataset.sortKey;
                         let direction = 'desc';
                         if (editorSortStates[editorType].key === key) {
                             direction = editorSortStates[editorType].direction === 'desc' ? 'asc' : 'desc';
                         }
                         editorSortStates[editorType] = { key, direction };
+                        editorPagination[editorType].currentPage = 1; // Reset to first page on sort
                         renderEditorTable(editorType);
-                    } else if (e.target.matches('.save-btn, .cancel-btn, .edit-btn, .delete-btn')) {
+                    } else if (target.matches('.save-btn, .cancel-btn, .edit-btn, .delete-btn')) {
                         handleEditorTableEvents(e, editorType);
+                    } else if (target.matches('.pagination-btn')) {
+                        const { currentPage } = editorPagination[editorType];
+                        let newPage = currentPage;
+                        if (target.classList.contains('prev-page')) {
+                            newPage = currentPage - 1;
+                        } else if (target.classList.contains('next-page')) {
+                            newPage = currentPage + 1;
+                        } else if (target.classList.contains('page-number')) {
+                            newPage = parseInt(target.dataset.page, 10);
+                        }
+                        editorPagination[editorType].currentPage = newPage;
+                        renderEditorTable(editorType);
                     }
                 });
                 
@@ -1236,6 +1322,7 @@
                 editorContentDiv.addEventListener('keyup', e => {
                     if (e.target.matches('input[data-filter-key]')) {
                         editorFilters[editorType][e.target.dataset.filterKey] = e.target.value;
+                        editorPagination[editorType].currentPage = 1; // Reset to first page on filter
                         renderEditorTable(editorType);
                     }
                 });
