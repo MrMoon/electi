@@ -461,14 +461,21 @@
             const profilePicUrl = user.profilePicUrl || `https://placehold.co/128x128/e0e0e0/333?text=${handle.charAt(0)}`;
             const levelMap = { '0': 'None', '-1': 'Codeability', '10': 'Level 0', '1': 'Level 1', '2': 'Level 2'};
             const trustedBadge = user.isTrusted ? '' : '<span class="ml-2 text-xs font-bold uppercase bg-red-100 text-red-700 px-2 py-1 rounded-full">Untrusted</span>';
-            
+            const activeBadge = (user.isActive !== false) ? '<span class="ml-2 text-xs font-bold uppercase bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>' : '<span class="ml-2 text-xs font-bold uppercase bg-gray-100 text-gray-700 px-2 py-1 rounded-full">Inactive</span>';
+
             let content = `
                 <div class="flex flex-col md:flex-row gap-6 items-start">
                     <img src="${profilePicUrl}" alt="Profile Picture" class="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-md">
                     <div class="flex-grow">
-                        <h2 class="text-3xl font-bold mb-1 flex items-center">${user.handle} ${trustedBadge}</h2>
+                        <h2 class="text-3xl font-bold mb-1 flex items-center">${user.handle} ${activeBadge} ${trustedBadge}</h2>
                         <p class="text-lg text-gray-600 mb-2">${user.fullName || ''}</p>
-                        <a href="https://codeforces.com/profile/${user.handle}" target="_blank" class="text-blue-600 hover:underline text-sm">View on Codeforces</a>
+                        <a href="https://codeforces.com/profile/${user.handle}" target="_blank" class="text-blue-600 hover:underline text-sm" title="View Codeforces Profile">
+                            View on Codeforces
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                                <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                            </svg>
+                        </a>
                     </div>
                 </div>
                 <hr class="my-6">
