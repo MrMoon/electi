@@ -897,7 +897,6 @@
                     const teamContainer = placementDiv.querySelector('.team-selection-container');
                     const teamCheckboxContainer = placementDiv.querySelector('.team-placement-checkbox-container');
 
-                    // --- MODIFICATION START: Competition Type UI Logic ---
                     if (comp && comp.type) {
                         if (comp.type === 'solo') {
                             teamCheckboxContainer.classList.add('hidden');
@@ -916,7 +915,6 @@
                         teamCheckboxContainer.classList.remove('hidden');
                         teamCheckbox.disabled = false;
                     }
-                    // --- MODIFICATION END ---
                     
                     if (comp) {
                         if (comp.date) compDateInput.value = comp.date;
@@ -980,10 +978,9 @@
                     const placementsData = [];
                     let placementError = false;
                     
-                    // --- MODIFICATION START: Placement Validation ---
-                    const existingPlacements = isEditing ? userDatabase.find(u => u.id === handle.toLowerCase())?.placements || [] : [];
-                    const allPlacementsSet = new Set(existingPlacements.map(p => `${p.name.toLowerCase()}|${p.rank}`));
-                    // --- MODIFICATION END ---
+                    // --- FIX START: Placement validation now checks for duplicates within the current submission ---
+                    const allPlacementsSet = new Set();
+                    // --- FIX END ---
 
                     document.querySelectorAll('.placement-entry').forEach(entry => {
                         if (placementError) return;
@@ -1011,7 +1008,7 @@
                              placementError = true; return;
                         }
                         
-                        // --- MODIFICATION START: Placement Validation Check ---
+                        // --- FIX START: Placement validation check ---
                         const placementKey = `${name.toLowerCase()}|${rank}`;
                         if (allPlacementsSet.has(placementKey)) {
                             showToast(`Error: Duplicate placement for "${name}" with rank ${rank}. A user cannot have the same rank in the same competition twice.`, 'error');
@@ -1019,7 +1016,7 @@
                             return;
                         }
                         allPlacementsSet.add(placementKey);
-                        // --- MODIFICATION END ---
+                        // --- FIX END ---
 
                         placementsData.push({ name, rank, total, teamId: isTeamPlacement ? teamId : null, date, link });
                     });
@@ -1036,7 +1033,6 @@
                             universityDatabase.sort();
                         }
                         
-                        // --- MODIFICATION START: Infer Competition Type ---
                         placementsData.forEach(p => {
                             const isTeam = !!p.teamId;
                             const existingComp = competitionDatabase[p.name];
@@ -1059,7 +1055,6 @@
                                 existingComp.link = p.link;
                             }
                         });
-                        // --- MODIFICATION END ---
 
                         const userToSave = {
                             id: handle.toLowerCase(),
@@ -1355,9 +1350,7 @@
                             link: comp['Link'] || '', 
                             total: parseInt(comp['Total Participants'], 10) || 0,
                             date: comp['Date (YYYY-MM)'] || null,
-                            // --- MODIFICATION START: Handle Type in CSV ---
-                            type: comp['Type']?.toLowerCase() || 'unknown' // Accepts 'solo', 'team', or defaults to 'unknown'
-                            // --- MODIFICATION END ---
+                            type: comp['Type']?.toLowerCase() || 'unknown'
                         };
                         addedCount++;
                     }
@@ -1472,25 +1465,19 @@
                     return;
                 }
                 
-                // --- MODIFICATION START: Robust Date Parsing for Team Eligibility ---
-                // Parse the YYYY-MM string as UTC to avoid timezone issues.
                 const contestMonthStart = new Date(contestDateStr + '-01T00:00:00Z');
                 const contestDate = new Date(contestMonthStart);
-                // Set to the last moment of the last day of the contest month
                 contestDate.setUTCMonth(contestDate.getUTCMonth() + 1, 0); 
                 contestDate.setUTCHours(23, 59, 59, 999);
-                // --- MODIFICATION END ---
 
                 const userTeams = teamDatabase.filter(t => {
                     const isMember = t.members.map(m => m.toLowerCase()).includes(currentUserHandle);
                     if (!isMember) return false;
 
                     const teamCreatedAt = new Date(t.createdAt);
-                    // Team must be created before the end of the contest month
                     if (teamCreatedAt > contestDate) return false;
 
                     const teamInactiveAt = t.inactiveAt ? new Date(t.inactiveAt) : null;
-                    // If team is inactive, it must have become inactive *after* the contest started
                     if (teamInactiveAt && teamInactiveAt < contestMonthStart) {
                         return false;
                     }
@@ -1568,12 +1555,10 @@
                     return;
                 }
                 
-                // Define a shared callback function for tooltips to show percentages.
                 const tooltipLabelCallback = (context) => {
                     const label = context.label || '';
                     const value = context.raw;
                     
-                    // Ensure the dataset and its data exist before processing
                     if (!context.chart.data.datasets || context.chart.data.datasets.length === 0) {
                         return `${label}: ${value}`;
                     }
