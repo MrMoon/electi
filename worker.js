@@ -39,6 +39,7 @@ function preprocessData(data) {
         return {
             ...u,
             isTrusted: u.isTrusted !== false,
+            isActive: u.isActive !== false,
             updatedAt: new Date(u.updatedAt),
             academicYear: academicYearInfo.year,
             academicYearLabel: academicYearInfo.label,
@@ -114,9 +115,8 @@ function getUniversityAnalytics(uniName) {
     const allTeams = teamDatabase.filter(t => t.university === uniName);
     const activeTeams = allTeams.filter(t => t.isActive);
 
-    // Add user handle to each placement for easy access later
     const allPlacements = students.flatMap(student =>
-        student.placements.map(p => ({ ...p, handle: student.handle }))
+        student.placements.map(p => ({ ...p, handle: student.handle, fullName: student.fullName }))
     );
 
     const topTeamPlacements = Object.values(allPlacements
@@ -134,13 +134,11 @@ function getUniversityAnalytics(uniName) {
         .sort((a, b) => a.percentile - b.percentile)
         .slice(0, 5);
 
-    // Now topStudentPlacements will have the 'handle' property
     const topStudentPlacements = allPlacements
         .filter(p => !p.teamId)
         .sort((a, b) => a.percentile - b.percentile)
         .slice(0, 5);
 
-    // Growth chart data
     const studentsWithJoinDate = students.filter(u => u.joinDate);
     const growthData = { labels: [], dataPoints: [] };
     if (studentsWithJoinDate.length > 0) {
@@ -166,7 +164,6 @@ function getUniversityAnalytics(uniName) {
         }
     }
 
-    // Active teams chart data
     const activeTeamsData = { labels: [], dataPoints: [] };
     const teamsWithDates = allTeams.filter(t => t.createdAt);
     if (teamsWithDates.length > 0) {
@@ -185,7 +182,6 @@ function getUniversityAnalytics(uniName) {
         });
     }
 
-    // Students by year chart data
     const yearCounts = { '1st Year': 0, '2nd Year': 0, '3rd Year': 0, '4th Year': 0, '5th Year+': 0, 'Graduated': 0, 'Unknown': 0 };
     students.forEach(s => {
         const yearLabel = s.academicYearLabel || 'Unknown';
@@ -200,6 +196,28 @@ function getUniversityAnalytics(uniName) {
         data: Object.values(yearCounts).filter(v => v > 0)
     };
 
+    const acmLevelMap = { '0': 'None', '-1': 'Codeability', '10': 'Level 0', '1': 'Level 1', '2': 'Level 2'};
+    const acmLevelCounts = { 'None': 0, 'Codeability': 0, 'Level 0': 0, 'Level 1': 0, 'Level 2': 0 };
+    students.forEach(s => {
+        const levelLabel = acmLevelMap[s.acmLevel] || 'None';
+        acmLevelCounts[levelLabel]++;
+    });
+    const acmLevelDistribution = {
+        labels: Object.keys(acmLevelCounts).filter(k => acmLevelCounts[k] > 0),
+        data: Object.values(acmLevelCounts).filter(v => v > 0)
+    };
+
+    const averagePlacementPercentile = allPlacements.length > 0
+        ? allPlacements.reduce((sum, p) => sum + p.percentile, 0) / allPlacements.length
+        : null;
+
+    const competitionCounts = allPlacements.reduce((acc, p) => {
+        acc[p.name] = (acc[p.name] || 0) + 1;
+        return acc;
+    }, {});
+    const topCompetitions = Object.entries(competitionCounts)
+        .sort(([,a],[,b]) => b-a)
+        .slice(0, 5);
 
     return {
         uniName,
@@ -210,7 +228,10 @@ function getUniversityAnalytics(uniName) {
         topStudentPlacements,
         growthData,
         activeTeamsData,
-        studentsByYearData
+        studentsByYearData,
+        acmLevelDistribution,
+        averagePlacementPercentile,
+        topCompetitions
     };
 }
 
@@ -305,9 +326,15 @@ function getGlobalAnalytics() {
             individualScores[u.handle] = topPlacements;
         }
     });
-    const topIndividuals = Object.entries(individualScores).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const topIndividuals = Object.entries(individualScores)
+        .map(([handle, count]) => {
+            const user = userDatabase.find(u => u.handle === handle);
+            return [handle, count, user ? user.fullName : ''];
+        })
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
 
-    // Active teams growth chart data
+
     const activeTeamsGrowth = { labels: [], dataPoints: [] };
     if (teamDatabase.length > 0) {
         const dates = teamDatabase.flatMap(t => [t.createdAt, t.inactiveAt]).filter(Boolean);
@@ -326,7 +353,6 @@ function getGlobalAnalytics() {
         }
     }
 
-    // Distribution chart data
     const userUniCounts = universityDatabase.reduce((acc, uni) => {
         acc[uni] = userDatabase.filter(u => u.university === uni).length;
         return acc;
@@ -392,10 +418,19 @@ self.onmessage = function(e) {
                 break;
             case 'GET_USER_DETAILS':
                 const userHandle = payload.toLowerCase();
-                result = {
-                    user: userDatabase.find(u => u.handle.toLowerCase() === userHandle),
-                    teams: teamDatabase.filter(t => t.members.map(m => m.toLowerCase()).includes(userHandle))
-                };
+                const user = userDatabase.find(u => u.handle.toLowerCase() === userHandle);
+                if (user) {
+                    result = {
+                        user: user,
+                        teams: teamDatabase.filter(t => t.members.map(m => m.toLowerCase()).includes(userHandle)),
+                        placements: user.placements.map(p => {
+                             const team = p.teamId ? teamDatabase.find(t => t.id === p.teamId) : null;
+                             return {...p, teamName: team ? team.name : null};
+                        }).sort((a,b) => (competitionDatabase[b.name]?.date || '0000-00').localeCompare(competitionDatabase[a.name]?.date || '0000-00'))
+                    };
+                } else {
+                    result = null;
+                }
                 break;
             case 'GET_TEAM_DETAILS':
                  const team = teamDatabase.find(t => t.id === payload);
@@ -415,7 +450,6 @@ self.onmessage = function(e) {
             default:
                 throw new Error(`Unknown message type: ${type}`);
         }
-        // Post message back to the main thread
         self.postMessage({ type: `${type}_SUCCESS`, payload: result, requestId });
 
     } catch (error) {
