@@ -114,7 +114,10 @@ function getUniversityAnalytics(uniName) {
     const allTeams = teamDatabase.filter(t => t.university === uniName);
     const activeTeams = allTeams.filter(t => t.isActive);
 
-    const allPlacements = students.flatMap(s => s.placements);
+    // Add user handle to each placement for easy access later
+    const allPlacements = students.flatMap(student =>
+        student.placements.map(p => ({ ...p, handle: student.handle }))
+    );
 
     const topTeamPlacements = Object.values(allPlacements
         .filter(p => p.teamId)
@@ -131,6 +134,7 @@ function getUniversityAnalytics(uniName) {
         .sort((a, b) => a.percentile - b.percentile)
         .slice(0, 5);
 
+    // Now topStudentPlacements will have the 'handle' property
     const topStudentPlacements = allPlacements
         .filter(p => !p.teamId)
         .sort((a, b) => a.percentile - b.percentile)
@@ -387,10 +391,11 @@ self.onmessage = function(e) {
                 result = getGlobalAnalytics();
                 break;
             case 'GET_USER_DETAILS':
+                const userHandle = payload.toLowerCase();
                 result = {
-                    user: userDatabase.find(u => u.id === payload.toLowerCase()),
-                    teams: teamDatabase.filter(t => t.members.map(m => m.toLowerCase()).includes(payload.toLowerCase()))
-                }
+                    user: userDatabase.find(u => u.handle.toLowerCase() === userHandle),
+                    teams: teamDatabase.filter(t => t.members.map(m => m.toLowerCase()).includes(userHandle))
+                };
                 break;
             case 'GET_TEAM_DETAILS':
                  const team = teamDatabase.find(t => t.id === payload);
