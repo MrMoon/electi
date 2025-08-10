@@ -626,7 +626,7 @@
             function formatMonthYear(dateString) {
                 if (!dateString) return 'N/A';
                 const date = new Date(dateString);
-                return date.toLocaleString('default', { month: 'short', year: 'numeric' });
+                return date.toLocaleString('default', { timeZone: 'UTC', month: 'short', year: 'numeric' });
             }
             
             function formatMMYYYY(dateString) {
@@ -815,7 +815,7 @@
                         </div>
 
                         <div class="sm:col-span-2">
-                            <label class="flex items-center gap-2 mb-2 cursor-pointer">
+                            <label class="team-placement-checkbox-container flex items-center gap-2 mb-2 cursor-pointer">
                                 <input type="checkbox" class="team-placement-checkbox h-4 w-4 rounded border-gray-400" ${teamId ? 'checked' : ''}>
                                 <span class="text-sm font-medium">Team Placement</span>
                             </label>
@@ -879,7 +879,31 @@
                     const compTotalInput = placementDiv.querySelector('.comp-total-input');
                     const compLinkInput = placementDiv.querySelector('.comp-link-input');
                     const compRankInput = placementDiv.querySelector('.comp-rank-input');
+                    const teamCheckbox = placementDiv.querySelector('.team-placement-checkbox');
+                    const teamContainer = placementDiv.querySelector('.team-selection-container');
+                    const teamCheckboxContainer = placementDiv.querySelector('.team-placement-checkbox-container');
 
+                    // --- MODIFICATION START: Competition Type UI Logic ---
+                    if (comp && comp.type) {
+                        if (comp.type === 'solo') {
+                            teamCheckboxContainer.classList.add('hidden');
+                            teamCheckbox.checked = false;
+                            teamContainer.classList.add('hidden');
+                        } else if (comp.type === 'team') {
+                            teamCheckboxContainer.classList.remove('hidden');
+                            teamCheckbox.checked = true;
+                            teamCheckbox.disabled = true; // Don't let user uncheck a team competition
+                            teamContainer.classList.remove('hidden');
+                        } else { // 'unknown' or other
+                            teamCheckboxContainer.classList.remove('hidden');
+                            teamCheckbox.disabled = false;
+                        }
+                    } else { // New or unknown competition
+                        teamCheckboxContainer.classList.remove('hidden');
+                        teamCheckbox.disabled = false;
+                    }
+                    // --- MODIFICATION END ---
+                    
                     if (comp) {
                         if (comp.date) compDateInput.value = comp.date;
                         if (comp.total) compTotalInput.value = comp.total;
@@ -929,8 +953,7 @@
                     return;
                 }
 
-                // --- MODIFICATION START ---
-                // 1. Check for existing handle when ADDING a new user
+                // Check for existing handle when ADDING a new user
                 if (!isEditing) {
                     const handleExists = userDatabase.some(u => u.id === handle.toLowerCase());
                     if (handleExists) {
@@ -939,11 +962,15 @@
                     }
                 }
 
-                // This function contains the actual saving logic.
-                // It will be called either directly or after the user confirms the duplicate name warning.
                 const proceedWithSave = () => {
                     const placementsData = [];
                     let placementError = false;
+                    
+                    // --- MODIFICATION START: Placement Validation ---
+                    const existingPlacements = isEditing ? userDatabase.find(u => u.id === handle.toLowerCase())?.placements || [] : [];
+                    const allPlacementsSet = new Set(existingPlacements.map(p => `${p.name.toLowerCase()}|${p.rank}`));
+                    // --- MODIFICATION END ---
+
                     document.querySelectorAll('.placement-entry').forEach(entry => {
                         if (placementError) return;
                         const name = entry.querySelector('.comp-name-input').value.trim();
@@ -969,6 +996,16 @@
                              showToast(`Placement error for "${name}": Rank (${rank}) cannot be greater than Total (${total}).`, 'error');
                              placementError = true; return;
                         }
+                        
+                        // --- MODIFICATION START: Placement Validation Check ---
+                        const placementKey = `${name.toLowerCase()}|${rank}`;
+                        if (allPlacementsSet.has(placementKey)) {
+                            showToast(`Error: Duplicate placement for "${name}" with rank ${rank}. A user cannot have the same rank in the same competition twice.`, 'error');
+                            placementError = true;
+                            return;
+                        }
+                        allPlacementsSet.add(placementKey);
+                        // --- MODIFICATION END ---
 
                         placementsData.push({ name, rank, total, teamId: isTeamPlacement ? teamId : null, date, link });
                     });
@@ -984,12 +1021,31 @@
                             universityDatabase.push(universityName);
                             universityDatabase.sort();
                         }
-
+                        
+                        // --- MODIFICATION START: Infer Competition Type ---
                         placementsData.forEach(p => {
-                            if (!competitionDatabase[p.name] || competitionDatabase[p.name].total !== p.total || competitionDatabase[p.name].date !== p.date || competitionDatabase[p.name].link !== p.link) {
-                               competitionDatabase[p.name] = { total: parseInt(p.total, 10), date: p.date, link: p.link };
+                            const isTeam = !!p.teamId;
+                            const existingComp = competitionDatabase[p.name];
+
+                            if (!existingComp) {
+                                competitionDatabase[p.name] = {
+                                    total: parseInt(p.total, 10),
+                                    date: p.date,
+                                    link: p.link,
+                                    type: isTeam ? 'team' : 'solo' // Infer type for new comps
+                                };
+                            } else {
+                                // Only update type if it was previously unknown
+                                if (!existingComp.type || existingComp.type === 'unknown') {
+                                    existingComp.type = isTeam ? 'team' : 'solo';
+                                }
+                                // Also update other data if it changed
+                                existingComp.total = parseInt(p.total, 10);
+                                existingComp.date = p.date;
+                                existingComp.link = p.link;
                             }
                         });
+                        // --- MODIFICATION END ---
 
                         const userToSave = {
                             id: handle.toLowerCase(),
@@ -1019,7 +1075,7 @@
                     }, 50);
                 };
 
-                // 2. Check for duplicate name
+                // Check for duplicate name
                 if (fullName) { // Only check if a name is provided
                     const existingUserWithSameName = userDatabase.find(
                         u => u.fullName && u.fullName.toLowerCase() === fullName.toLowerCase() && u.id !== handle.toLowerCase()
@@ -1037,7 +1093,6 @@
                 } else {
                     proceedWithSave(); // No name provided, save directly
                 }
-                // --- MODIFICATION END ---
             }
 
 
@@ -1267,7 +1322,10 @@
                         competitionDatabase[name] = { 
                             link: comp['Link'] || '', 
                             total: parseInt(comp['Total Participants'], 10) || 0,
-                            date: comp['Date (YYYY-MM)'] || null
+                            date: comp['Date (YYYY-MM)'] || null,
+                            // --- MODIFICATION START: Handle Type in CSV ---
+                            type: comp['Type']?.toLowerCase() || 'unknown' // Accepts 'solo', 'team', or defaults to 'unknown'
+                            // --- MODIFICATION END ---
                         };
                         addedCount++;
                     }
@@ -1382,19 +1440,26 @@
                     return;
                 }
                 
-                const contestDate = new Date(contestDateStr);
-                contestDate.setMonth(contestDate.getMonth() + 1, 0); 
-                contestDate.setHours(23, 59, 59, 999);
+                // --- MODIFICATION START: Robust Date Parsing for Team Eligibility ---
+                // Parse the YYYY-MM string as UTC to avoid timezone issues.
+                const contestMonthStart = new Date(contestDateStr + '-01T00:00:00Z');
+                const contestDate = new Date(contestMonthStart);
+                // Set to the last moment of the last day of the contest month
+                contestDate.setUTCMonth(contestDate.getUTCMonth() + 1, 0); 
+                contestDate.setUTCHours(23, 59, 59, 999);
+                // --- MODIFICATION END ---
 
                 const userTeams = teamDatabase.filter(t => {
                     const isMember = t.members.map(m => m.toLowerCase()).includes(currentUserHandle);
                     if (!isMember) return false;
 
                     const teamCreatedAt = new Date(t.createdAt);
+                    // Team must be created before the end of the contest month
                     if (teamCreatedAt > contestDate) return false;
 
                     const teamInactiveAt = t.inactiveAt ? new Date(t.inactiveAt) : null;
-                    if (teamInactiveAt && teamInactiveAt < contestDate) {
+                    // If team is inactive, it must have become inactive *after* the contest started
+                    if (teamInactiveAt && teamInactiveAt < contestMonthStart) {
                         return false;
                     }
 
@@ -2035,16 +2100,16 @@
                         teams: teamDatabase,
                         competitions: competitionDatabase,
                         universities: universityDatabase,
-                        version: 'v18-simplified'
+                        version: 'v19-validation' // Updated version
                     };
-                    localStorage.setItem('electiToolData_v18_simplified', JSON.stringify(dataToSave));
+                    localStorage.setItem('electiToolData_v19_validation', JSON.stringify(dataToSave));
                 } catch (e) {
                     console.error("Could not save to localStorage. Data might be too large.", e);
                 }
             }
 
             function loadDataFromLocalStorage() {
-                const savedData = localStorage.getItem('electiToolData_v18_simplified');
+                const savedData = localStorage.getItem('electiToolData_v19_validation');
                 if (savedData) {
                     try {
                         const data = JSON.parse(savedData);
