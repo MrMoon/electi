@@ -346,6 +346,16 @@
                         </div>
                     </div>
                 </div>
+                <!-- Search and Filter Controls -->
+                <div class="p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center gap-4">
+                    <div class="flex-grow">
+                        <input type="search" id="globalSearchInput" placeholder="Search by handle, name, university..." class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="filterUntrustedCheckbox" class="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500">
+                        <label for="filterUntrustedCheckbox" class="ml-2 block text-sm font-medium text-gray-700">Show only untrusted</label>
+                    </div>
+                </div>
                 <div class="overflow-x-auto">
                     <table id="detailedUserTable" class="w-full text-sm text-left text-gray-600">
                         <thead class="bg-gray-100 text-xs text-gray-700 uppercase">
@@ -456,6 +466,8 @@
             let charts = {}; // Object to hold all chart instances
             let dbSortState = { key: 'updatedAt', direction: 'desc' };
             let dbFilters = {};
+            let globalSearchTerm = ''; // New state for global search
+            let showOnlyUntrusted = false; // New state for untrusted filter
             let confirmCallback = null;
             let passwordCallback = null;
             let currentPage = 1;
@@ -481,6 +493,8 @@
             const detailedUserTableBody = document.getElementById('detailedUserTableBody');
             const databaseUserCount = document.getElementById('databaseUserCount');
             const paginationControls = document.getElementById('pagination-controls');
+            const globalSearchInput = document.getElementById('globalSearchInput'); // New search input
+            const filterUntrustedCheckbox = document.getElementById('filterUntrustedCheckbox'); // New untrusted filter checkbox
             
             const statsContainer = document.getElementById('statsContainer');
             const detailsModal = document.getElementById('detailsModal');
@@ -1154,7 +1168,25 @@
                     academicYear: getAcademicYear(user).label
                 }));
 
+                const searchTerm = globalSearchTerm.toLowerCase();
+
                 const filteredUsers = usersWithYear.filter(user => {
+                    // Untrusted Filter
+                    if (showOnlyUntrusted && user.isTrusted) {
+                        return false;
+                    }
+
+                    // Global Search Filter
+                    const isGlobalMatch = searchTerm === '' ||
+                        (user.handle && user.handle.toLowerCase().includes(searchTerm)) ||
+                        (user.fullName && user.fullName.toLowerCase().includes(searchTerm)) ||
+                        (user.university && user.university.toLowerCase().includes(searchTerm));
+
+                    if (!isGlobalMatch) {
+                        return false;
+                    }
+
+                    // Column-specific Filters
                     return Object.entries(dbFilters).every(([key, value]) => {
                         const userValue = String(user[key] || '').toLowerCase();
                         return userValue.includes(value.toLowerCase());
@@ -2091,6 +2123,20 @@
                     profilePicFileLabel.textContent = "Choose File";
                 }
             });
+
+            // New Event Listeners for Search and Filter
+            globalSearchInput.addEventListener('input', (e) => {
+                globalSearchTerm = e.target.value;
+                currentPage = 1;
+                renderUserDatabaseTable();
+            });
+
+            filterUntrustedCheckbox.addEventListener('change', (e) => {
+                showOnlyUntrusted = e.target.checked;
+                currentPage = 1;
+                renderUserDatabaseTable();
+            });
+
 
             // --- LOCAL STORAGE PERSISTENCE ---
             function saveDataToLocalStorage() {
