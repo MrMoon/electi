@@ -363,6 +363,14 @@ self.onmessage = function(e) {
                     competitions: Object.keys(competitionDatabase)
                 };
                 break;
+            case 'GET_INITIAL_DATA':
+                result = {
+                    users: userDatabase.map(u => ({ handle: u.handle, fullName: u.fullName })),
+                    teams: teamDatabase.map(t => ({ name: t.name, id: t.id })),
+                    universities: universityDatabase,
+                    competitions: Object.keys(competitionDatabase)
+                };
+                break;
             case 'GET_INDIVIDUAL_ANALYTICS':
                 result = getIndividualAnalytics(payload);
                 break;
