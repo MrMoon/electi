@@ -188,7 +188,7 @@
                     <img src="https://i.ibb.co/JNyxxBv/logo.png" alt="Operation Electi Logo" class="h-16 w-16" onerror="this.onerror=null; this.src='https://placehold.co/64x64/e0e0e0/333?text=Logo';">
                     <h1 class="text-5xl font-bold text-gray-900">Operation Electi</h1>
                 </div>
-                <a href="index.html" class="file-input-label bg-gray-600 hover:bg-gray-700 text-sm !px-6 !py-3">Home</a>
+                <a href="analytics.html" class="file-input-label bg-gray-600 hover:bg-gray-700 text-sm !px-6 !py-3">Analytics</a>
             </div>
             <p class="text-center mt-2 text-lg text-gray-600">A data management and analytics tool.</p>
         </header>
@@ -293,9 +293,15 @@
                                 <label for="profilePicFile" id="profilePicFileLabel" class="file-input-label bg-gray-600 hover:bg-gray-700 text-sm !px-3 !py-2.5 whitespace-nowrap w-full text-center">Choose File</label>
                                 <input type="file" id="profilePicFile" accept="image/*">
                             </div>
-                            <div class="flex items-center pb-1">
-                                <input type="checkbox" name="isTrusted" id="isTrustedCheckbox" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
-                                <label for="isTrustedCheckbox" class="ml-2 !mb-0 block text-sm font-medium text-gray-900">Trusted</label>
+                            <div class="flex items-center pb-1 gap-4">
+                                <div class="flex items-center">
+                                    <input type="checkbox" name="isActive" id="isActiveCheckbox" class="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500" checked>
+                                    <label for="isActiveCheckbox" class="ml-2 !mb-0 block text-sm font-medium text-gray-900">Active</label>
+                                </div>
+                                <div class="flex items-center">
+                                    <input type="checkbox" name="isTrusted" id="isTrustedCheckbox" class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" checked>
+                                    <label for="isTrustedCheckbox" class="ml-2 !mb-0 block text-sm font-medium text-gray-900">Trusted</label>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -350,6 +356,10 @@
                 <div class="p-4 bg-gray-50 border-b border-gray-200 flex flex-wrap items-center gap-4">
                     <div class="flex-grow">
                         <input type="search" id="globalSearchInput" placeholder="Search by handle, name, university..." class="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="filterActiveCheckbox" class="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500" checked>
+                        <label for="filterActiveCheckbox" class="ml-2 block text-sm font-medium text-gray-700">Show only active</label>
                     </div>
                     <div class="flex items-center">
                         <input type="checkbox" id="filterUntrustedCheckbox" class="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500">
@@ -466,8 +476,9 @@
             let charts = {}; // Object to hold all chart instances
             let dbSortState = { key: 'updatedAt', direction: 'desc' };
             let dbFilters = {};
-            let globalSearchTerm = ''; // New state for global search
-            let showOnlyUntrusted = false; // New state for untrusted filter
+            let globalSearchTerm = '';
+            let showOnlyUntrusted = false;
+            let showOnlyActive = true; // New state for active filter
             let confirmCallback = null;
             let passwordCallback = null;
             let currentPage = 1;
@@ -493,8 +504,9 @@
             const detailedUserTableBody = document.getElementById('detailedUserTableBody');
             const databaseUserCount = document.getElementById('databaseUserCount');
             const paginationControls = document.getElementById('pagination-controls');
-            const globalSearchInput = document.getElementById('globalSearchInput'); // New search input
-            const filterUntrustedCheckbox = document.getElementById('filterUntrustedCheckbox'); // New untrusted filter checkbox
+            const globalSearchInput = document.getElementById('globalSearchInput');
+            const filterUntrustedCheckbox = document.getElementById('filterUntrustedCheckbox');
+            const filterActiveCheckbox = document.getElementById('filterActiveCheckbox'); // New active filter checkbox
             
             const statsContainer = document.getElementById('statsContainer');
             const detailsModal = document.getElementById('detailsModal');
@@ -965,22 +977,18 @@
                     return;
                 }
 
-                // Check for existing handle when ADDING a new user
                 if (!isEditing) {
                     const handleExists = userDatabase.some(u => u.id === handle.toLowerCase());
                     if (handleExists) {
                         showToast(`Error: A user with the handle "${handle}" already exists.`, 'error');
-                        return; // Stop execution
+                        return;
                     }
                 }
 
                 const proceedWithSave = () => {
                     const placementsData = [];
                     let placementError = false;
-                    
-                    // --- FIX START: Placement validation now checks for duplicates within the current submission ---
                     const allPlacementsSet = new Set();
-                    // --- FIX END ---
 
                     document.querySelectorAll('.placement-entry').forEach(entry => {
                         if (placementError) return;
@@ -1008,7 +1016,6 @@
                              placementError = true; return;
                         }
                         
-                        // --- FIX START: Placement validation check ---
                         const placementKey = `${name.toLowerCase()}|${rank}`;
                         if (allPlacementsSet.has(placementKey)) {
                             showToast(`Error: Duplicate placement for "${name}" with rank ${rank}. A user cannot have the same rank in the same competition twice.`, 'error');
@@ -1016,7 +1023,6 @@
                             return;
                         }
                         allPlacementsSet.add(placementKey);
-                        // --- FIX END ---
 
                         placementsData.push({ name, rank, total, teamId: isTeamPlacement ? teamId : null, date, link });
                     });
@@ -1042,14 +1048,12 @@
                                     total: parseInt(p.total, 10),
                                     date: p.date,
                                     link: p.link,
-                                    type: isTeam ? 'team' : 'solo' // Infer type for new comps
+                                    type: isTeam ? 'team' : 'solo'
                                 };
                             } else {
-                                // Only update type if it was previously unknown
                                 if (!existingComp.type || existingComp.type === 'unknown') {
                                     existingComp.type = isTeam ? 'team' : 'solo';
                                 }
-                                // Also update other data if it changed
                                 existingComp.total = parseInt(p.total, 10);
                                 existingComp.date = p.date;
                                 existingComp.link = p.link;
@@ -1069,6 +1073,7 @@
                             joinDate: formData.get('joinDate') || null,
                             universityStartDate: formData.get('universityStartDate') || null,
                             isTrusted: detailedUserForm.querySelector('#isTrustedCheckbox').checked,
+                            isActive: detailedUserForm.querySelector('#isActiveCheckbox').checked,
                             placements: placementsData.map(({name, rank, total, teamId}) => ({name, rank, total, teamId})),
                             updatedAt: new Date()
                         };
@@ -1084,8 +1089,7 @@
                     }, 50);
                 };
 
-                // Check for duplicate name
-                if (fullName) { // Only check if a name is provided
+                if (fullName) {
                     const existingUserWithSameName = userDatabase.find(
                         u => u.fullName && u.fullName.toLowerCase() === fullName.toLowerCase() && u.id !== handle.toLowerCase()
                     );
@@ -1094,13 +1098,13 @@
                         showConfirmationModal(
                             'Duplicate Name Warning',
                             `Another user ('${existingUserWithSameName.handle}') already has the name "${fullName}". Are you sure you want to save?`,
-                            proceedWithSave // The confirmation callback
+                            proceedWithSave
                         );
                     } else {
-                        proceedWithSave(); // No duplicate name, save directly
+                        proceedWithSave();
                     }
                 } else {
-                    proceedWithSave(); // No name provided, save directly
+                    proceedWithSave();
                 }
             }
 
@@ -1138,6 +1142,7 @@
                 placementsContainer.innerHTML = '';
                 detailedUserForm.querySelector('[name="handle"]').readOnly = false;
                 detailedUserForm.querySelector('#isTrustedCheckbox').checked = true;
+                detailedUserForm.querySelector('#isActiveCheckbox').checked = true;
                 universityInput.value = "";
                 profilePicUrlHiddenInput.value = "";
                 profilePicFileLabel.classList.remove('bg-green-600', 'hover:bg-green-700');
@@ -1166,12 +1171,13 @@
                 const searchTerm = globalSearchTerm.toLowerCase();
 
                 const filteredUsers = usersWithYear.filter(user => {
-                    // Untrusted Filter
+                    if (showOnlyActive && user.isActive === false) {
+                        return false;
+                    }
                     if (showOnlyUntrusted && user.isTrusted) {
                         return false;
                     }
 
-                    // Global Search Filter
                     const isGlobalMatch = searchTerm === '' ||
                         (user.handle && user.handle.toLowerCase().includes(searchTerm)) ||
                         (user.fullName && user.fullName.toLowerCase().includes(searchTerm)) ||
@@ -1181,7 +1187,6 @@
                         return false;
                     }
 
-                    // Column-specific Filters
                     return Object.entries(dbFilters).every(([key, value]) => {
                         const userValue = String(user[key] || '').toLowerCase();
                         return userValue.includes(value.toLowerCase());
@@ -1327,6 +1332,7 @@
                                 joinDate: newUserRow.joinDate || null,
                                 universityStartDate: newUserRow.universityStartDate || null,
                                 isTrusted: newUserRow.isTrusted ? newUserRow.isTrusted.toLowerCase() === 'true' : true,
+                                isActive: newUserRow.isActive ? newUserRow.isActive.toLowerCase() === 'true' : true,
                                 placements: placements,
                                 updatedAt: new Date()
                             };
@@ -1375,13 +1381,13 @@
             
             function downloadUsersCSV(usersToDownload) {
                 if (usersToDownload.length === 0) { showToast("No users selected to download.", 'error'); return; }
-                const headers = ['handle', 'fullName', 'linkedin', 'university', 'profilePicUrl', 'lunaNovaScore', 'lunaHardScore', 'acmLevel', 'joinDate', 'universityStartDate', 'isTrusted', 'placements_json'];
+                const headers = ['handle', 'fullName', 'linkedin', 'university', 'profilePicUrl', 'lunaNovaScore', 'lunaHardScore', 'acmLevel', 'joinDate', 'universityStartDate', 'isTrusted', 'isActive', 'placements_json'];
                 const rows = usersToDownload.map(user => {
                     const placementsStr = `"${JSON.stringify(user.placements).replace(/"/g, '""')}"`;
                     return [
                         user.handle, user.fullName, user.linkedin, user.university,
                         user.profilePicUrl || '', user.lunaNovaScore, user.lunaHardScore, user.acmLevel,
-                        user.joinDate || '', user.universityStartDate || '', user.isTrusted, placementsStr
+                        user.joinDate || '', user.universityStartDate || '', user.isTrusted, user.isActive !== false, placementsStr
                     ].join(',');
                 });
                 const csvString = [headers.join(','), ...rows].join('\n');
@@ -1709,82 +1715,69 @@
             }
 
             function showUserDetailsModal(handle) {
-                const dbData = userDatabase.find(d => d.id === handle.toLowerCase());
+                const user = userDatabase.find(d => d.id === handle.toLowerCase());
 
-                if (!dbData) { showToast('Could not find data for this user.', 'error'); return; }
+                if (!user) { showToast('Could not find data for this user.', 'error'); return; }
                 
-                let content = '';
-                const profilePicUrl = dbData?.profilePicUrl || `https://placehold.co/128x128/e0e0e0/333?text=${handle.charAt(0)}`;
-                const trustedBadge = dbData?.isTrusted ? '' : '<span class="ml-2 text-xs font-bold uppercase bg-red-100 text-red-700 px-2 py-1 rounded-full">Untrusted</span>';
+                const profilePicUrl = user.profilePicUrl || `https://placehold.co/128x128/e0e0e0/333?text=${handle.charAt(0)}`;
+                const trustedBadge = user.isTrusted ? '' : '<span class="ml-2 text-xs font-bold uppercase bg-red-100 text-red-700 px-2 py-1 rounded-full">Untrusted</span>';
+                const activeBadge = (user.isActive !== false) ? '<span class="ml-2 text-xs font-bold uppercase bg-green-100 text-green-700 px-2 py-1 rounded-full">Active</span>' : '<span class="ml-2 text-xs font-bold uppercase bg-gray-100 text-gray-700 px-2 py-1 rounded-full">Inactive</span>';
+                const levelMap = { '0': 'None', '-1': 'Codeability', '10': 'Level 0', '1': 'Level 1', '2': 'Level 2'};
+                const userTeams = teamDatabase.filter(t => t.members.map(m => m.toLowerCase()).includes(user.handle.toLowerCase()));
+                
+                const allPlacements = user.placements.map(p => {
+                    const team = p.teamId ? teamDatabase.find(t => t.id === p.teamId) : null;
+                    return {...p, teamName: team ? team.name : null};
+                }).sort((a,b) => {
+                    const dateA = competitionDatabase[a.name]?.date || '0000-00';
+                    const dateB = competitionDatabase[b.name]?.date || '0000-00';
+                    return dateB.localeCompare(dateA);
+                });
 
-                content += `
+                let content = `
                     <div class="flex flex-col md:flex-row gap-6 items-start">
                         <img src="${profilePicUrl}" alt="Profile Picture" class="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-md">
                         <div class="flex-grow">
-                            <h2 class="text-3xl font-bold mb-1 flex items-center">${dbData.handle} ${trustedBadge}</h2>
-                            <p class="text-lg text-gray-600 mb-2">${dbData?.fullName || ''}</p>
-                            ${createCodeforcesLink(dbData.handle)}
+                            <h2 class="text-3xl font-bold mb-1 flex items-center">${user.handle} ${activeBadge} ${trustedBadge}</h2>
+                            <p class="text-lg text-gray-600 mb-2">${user.fullName || ''}</p>
+                            <a href="https://codeforces.com/profile/${user.handle}" target="_blank" class="text-blue-600 hover:underline text-sm" title="View Codeforces Profile">
+                                View on Codeforces
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline-block ml-1" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                                    <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                                </svg>
+                            </a>
                         </div>
                     </div>
                     <hr class="my-6">
-                `;
+                    <div class="mb-6 p-4 bg-gray-50 rounded-lg grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div><strong class="block text-gray-500">University</strong> <span class="text-lg">${user.university || 'N/A'}</span></div>
+                        <div><strong class="block text-gray-500">ACM Level</strong> <span class="text-lg">${levelMap[user.acmLevel] || 'N/A'}</span></div>
+                        <div><strong class="block text-gray-500">Uni Start Date</strong> <span class="text-lg">${formatMonthYear(user.universityStartDate)}</span></div>
+                        <div><strong class="block text-gray-500">LinkedIn</strong> ${user.linkedin ? `<a href="${user.linkedin}" target="_blank" class="text-blue-600 hover:underline text-lg">Profile</a>` : '<span class="text-lg">N/A</span>'}</div>
+                    </div>
+                    ${userTeams.length > 0 ? `<h3 class="text-xl font-semibold mb-2">Teams</h3><div class="flex flex-wrap gap-2 mb-6">${userTeams.map(team => `<div class="p-2 bg-teal-50 text-teal-800 rounded text-sm font-medium">${createTeamLink(team.name, team.id)}</div>`).join('')}</div>` : ''}
 
-                const levelMap = { '0': 'None', '-1': 'Codeability', '10': 'Level 0', '1': 'Level 1', '2': 'Level 2'};
-                content += `
-                <div class="mb-6 p-4 bg-gray-50 rounded-lg grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div><strong class="block text-gray-500">University</strong> <span class="text-lg">${dbData.university || 'N/A'}</span></div>
-                    <div><strong class="block text-gray-500">ACM Level</strong> <span class="text-lg">${levelMap[dbData.acmLevel] || 'N/A'}</span></div>
-                    <div><strong class="block text-gray-500">Uni Start Date</strong> <span class="text-lg">${formatMonthYear(dbData.universityStartDate)}</span></div>
-                    <div><strong class="block text-gray-500">LinkedIn</strong> ${dbData.linkedin ? `<a href="${dbData.linkedin}" target="_blank" class="text-blue-600 hover:underline text-lg">Profile</a>` : '<span class="text-lg">N/A</span>'}</div>
-                </div>`;
-
-                const userTeams = teamDatabase.filter(t => t.members.map(m => m.toLowerCase()).includes(dbData.handle.toLowerCase()));
-                if (userTeams.length > 0) {
-                    content += `<h3 class="text-xl font-semibold mb-2">Teams</h3><div class="flex flex-wrap gap-2 mb-6">
-                        ${userTeams.map(team => `<div class="p-2 bg-teal-50 text-teal-800 rounded text-sm font-medium">${createTeamLink(team.name, team.id)}</div>`).join('')}
-                    </div>`;
-                }
-
-                const teamPlacements = dbData.placements.filter(p => p.teamId);
-                if (teamPlacements.length > 0) {
-                    content += `<h3 class="text-xl font-semibold mb-2">Team Placements</h3>
-                                <div class="overflow-x-auto mb-6 max-h-48 border rounded-lg">
-                                <table class="w-full text-sm text-left">
-                                    <thead class="bg-gray-100 text-xs uppercase sticky top-0"><tr>
-                                        <th class="p-2">Competition</th><th class="p-2">Team</th><th class="p-2">Rank</th><th class="p-2">Placement</th>
-                                    </tr></thead><tbody>`;
-                    teamPlacements.forEach(p => {
-                        const team = teamDatabase.find(t => t.id === p.teamId);
-                        const placementPercent = ((p.rank / p.total) * 100).toFixed(2);
-                        content += `<tr class="border-b">
+                    <h3 class="text-xl font-semibold mb-2">All Placements</h3>
+                    <div class="overflow-x-auto max-h-72 border rounded-lg">
+                        <table class="w-full text-sm text-left">
+                            <thead class="bg-gray-100 text-xs uppercase sticky top-0"><tr>
+                                <th class="p-2">Competition</th><th class="p-2">Type</th><th class="p-2">Rank</th><th class="p-2">Placement</th>
+                            </tr></thead>
+                            <tbody>
+                                ${allPlacements.length > 0 ? allPlacements.map(p => {
+                                    const placementPercent = p.total > 0 ? ((p.rank / p.total) * 100).toFixed(2) : 0;
+                                    return `<tr class="border-b">
                                         <td class="p-2 font-medium">${createCompetitionLink(p.name)}</td>
-                                        <td class="p-2">${team ? createTeamLink(team.name, team.id) : 'N/A'}</td>
+                                        <td class="p-2">${p.teamId ? `Team (${createTeamLink(p.teamName, p.teamId)})` : 'Solo'}</td>
                                         <td class="p-2">${p.rank}/${p.total}</td>
                                         <td class="p-2 font-bold">Top ${placementPercent}%</td>
                                     </tr>`;
-                    });
-                    content += `</tbody></table></div>`;
-                }
-
-                const soloPlacements = dbData.placements.filter(p => !p.teamId);
-                if (soloPlacements.length > 0) {
-                    content += `<h3 class="text-xl font-semibold mb-2">Solo Placements</h3>
-                                <div class="overflow-x-auto mb-6 max-h-48 border rounded-lg">
-                                <table class="w-full text-sm text-left">
-                                    <thead class="bg-gray-100 text-xs uppercase sticky top-0"><tr>
-                                        <th class="p-2">Competition</th><th class="p-2">Rank</th><th class="p-2">Total</th><th class="p-2">Placement</th>
-                                    </tr></thead><tbody>`;
-                    soloPlacements.forEach(p => {
-                        const placementPercent = ((p.rank / p.total) * 100).toFixed(2);
-                        content += `<tr class="border-b">
-                                        <td class="p-2 font-medium">${createCompetitionLink(p.name)}</td>
-                                        <td class="p-2">${p.rank}</td>
-                                        <td class="p-2">${p.total}</td>
-                                        <td class="p-2 font-bold">Top ${placementPercent}%</td>
-                                    </tr>`;
-                    });
-                    content += `</tbody></table></div>`;
-                }
+                                }).join('') : '<tr><td colspan="4" class="p-4 text-center text-gray-500">No placements recorded.</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
 
                 modalContentContainer.innerHTML = content;
                 detailsModal.classList.remove('hidden');
@@ -1955,7 +1948,6 @@
                     }
                 }
                 if (e.target.id === 'nextPageBtn') {
-                    // This logic is safe because renderUserDatabaseTable disables the button correctly.
                     currentPage++;
                     renderUserDatabaseTable();
                 }
@@ -2038,6 +2030,7 @@
                     detailedUserForm.querySelector('[name="joinDate"]').value = formatDateForInput(user.joinDate);
                     detailedUserForm.querySelector('[name="universityStartDate"]').value = formatDateForInput(user.universityStartDate);
                     detailedUserForm.querySelector('#isTrustedCheckbox').checked = user.isTrusted !== false;
+                    detailedUserForm.querySelector('#isActiveCheckbox').checked = user.isActive !== false;
                     placementsContainer.innerHTML = '';
                     user.placements.forEach(p => addPlacementInput(p));
                     handleField.dispatchEvent(new Event('input'));
@@ -2109,7 +2102,6 @@
                 }
             });
 
-            // New Event Listeners for Search and Filter
             globalSearchInput.addEventListener('input', (e) => {
                 globalSearchTerm = e.target.value;
                 currentPage = 1;
@@ -2118,6 +2110,12 @@
 
             filterUntrustedCheckbox.addEventListener('change', (e) => {
                 showOnlyUntrusted = e.target.checked;
+                currentPage = 1;
+                renderUserDatabaseTable();
+            });
+            
+            filterActiveCheckbox.addEventListener('change', (e) => {
+                showOnlyActive = e.target.checked;
                 currentPage = 1;
                 renderUserDatabaseTable();
             });
@@ -2143,7 +2141,7 @@
                 if (savedData) {
                     try {
                         const data = JSON.parse(savedData);
-                        userDatabase = data.users.map(u => ({...u, isTrusted: u.isTrusted !== false, updatedAt: new Date(u.updatedAt) })) || [];
+                        userDatabase = data.users.map(u => ({...u, isTrusted: u.isTrusted !== false, isActive: u.isActive !== false, updatedAt: new Date(u.updatedAt) })) || [];
                         teamDatabase = data.teams || [];
                         competitionDatabase = data.competitions || {};
                         universityDatabase = data.universities || [];
