@@ -183,7 +183,7 @@
         function formatMonthYear(dateString) {
             if (!dateString) return 'N/A';
             const date = new Date(dateString);
-            return date.toLocaleString('default', { month: 'short', year: 'numeric' });
+            return date.toLocaleString('default', { timeZone: 'UTC', month: 'short', year: 'numeric' });
         }
 
         // --- ANALYTICS VIEW RENDERERS ---
@@ -361,7 +361,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                         <div>
                             <h4 class="text-xl font-semibold mb-3">Top 5 Student Placements</h4>
-                            <div class="space-y-2">${topStudentPlacements.length > 0 ? topStudentPlacements.map(p => `<div class="p-3 bg-green-50 rounded text-sm"><div class="font-bold text-green-800">Top ${p.percentile.toFixed(1)}%</div><div class="text-green-700">${createUserLink(p.handle)} in ${createCompetitionLink(p.name)}</div></div>`).join('') : '<p class="text-gray-500 text-sm p-2">No solo placements.</p>'}</div>
+                            <div class="space-y-2">${topStudentPlacements.length > 0 ? topStudentPlacements.map(p => `<div class="p-3 bg-green-50 rounded text-sm"><div class="font-bold text-green-800">Top ${p.percentile.toFixed(1)}%</div><div class="text-green-700">${createUserLink(p.handle)} (${p.fullName || 'N/A'}) in ${createCompetitionLink(p.name)}</div></div>`).join('') : '<p class="text-gray-500 text-sm p-2">No solo placements.</p>'}</div>
                         </div>
                         <div>
                             <h4 class="text-xl font-semibold mb-3">Top 5 Team Placements</h4>
@@ -434,7 +434,7 @@
                     </div>
                     <div>
                         <h3 class="text-xl font-bold mb-3">Top 5 Individuals (by Top 10% Placements)</h3>
-                        <div class="space-y-3">${topIndividuals.length > 0 ? topIndividuals.map(([handle, count]) => `<div class="p-3 bg-green-50 rounded-lg"><div class="font-bold text-green-800">${createUserLink(handle)}</div><div class="text-sm text-green-600">${count} top 10% placements</div></div>`).join('') : '<p>Not enough data.</p>'}</div>
+                        <div class="space-y-3">${topIndividuals.length > 0 ? topIndividuals.map(([handle, count, fullName]) => `<div class="p-3 bg-green-50 rounded-lg"><div class="font-bold text-green-800">${createUserLink(handle)} (${fullName || 'N/A'})</div><div class="text-sm text-green-600">${count} top 10% placements</div></div>`).join('') : '<p>Not enough data.</p>'}</div>
                     </div>
                 </div>
                 <div class="mt-8"><h3 class="text-xl font-bold mb-3">Active Teams Growth</h3><div class="p-4 bg-white rounded-lg shadow-inner"><canvas id="activeTeamsGrowthChart"></canvas></div></div>
@@ -455,28 +455,50 @@
         function hideModal() { detailsModal.classList.add('hidden'); }
 
         async function showUserDetailsModal(handle) {
-            const { user, teams } = await postRequest('GET_USER_DETAILS', handle);
+            const { user, teams, placements } = await postRequest('GET_USER_DETAILS', handle);
             if (!user) { showToast('User not found', 'error'); return; }
             
             const profilePicUrl = user.profilePicUrl || `https://placehold.co/128x128/e0e0e0/333?text=${handle.charAt(0)}`;
             const levelMap = { '0': 'None', '-1': 'Codeability', '10': 'Level 0', '1': 'Level 1', '2': 'Level 2'};
+            const trustedBadge = user.isTrusted ? '' : '<span class="ml-2 text-xs font-bold uppercase bg-red-100 text-red-700 px-2 py-1 rounded-full">Untrusted</span>';
             
             let content = `
                 <div class="flex flex-col md:flex-row gap-6 items-start">
-                    <img src="${profilePicUrl}" alt="Profile Picture" class="w-32 h-32 rounded-full">
+                    <img src="${profilePicUrl}" alt="Profile Picture" class="w-32 h-32 rounded-full object-cover border-4 border-gray-200 shadow-md">
                     <div class="flex-grow">
-                        <h2 class="text-3xl font-bold mb-1">${user.handle}</h2>
+                        <h2 class="text-3xl font-bold mb-1 flex items-center">${user.handle} ${trustedBadge}</h2>
                         <p class="text-lg text-gray-600 mb-2">${user.fullName || ''}</p>
+                        <a href="https://codeforces.com/profile/${user.handle}" target="_blank" class="text-blue-600 hover:underline text-sm">View on Codeforces</a>
                     </div>
                 </div>
                 <hr class="my-6">
                 <div class="mb-6 p-4 bg-gray-50 rounded-lg grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div><strong>University</strong> <span class="text-lg">${user.university || 'N/A'}</span></div>
-                    <div><strong>ACM Level</strong> <span class="text-lg">${levelMap[user.acmLevel] || 'N/A'}</span></div>
-                    <div><strong>Uni Start</strong> <span class="text-lg">${formatMonthYear(user.universityStartDate)}</span></div>
-                    <div><strong>LinkedIn</strong> ${user.linkedin ? `<a href="${user.linkedin}" target="_blank" class="text-blue-600 hover:underline text-lg">Profile</a>` : '<span class="text-lg">N/A</span>'}</div>
+                    <div><strong class="block text-gray-500">University</strong> <span class="text-lg">${user.university || 'N/A'}</span></div>
+                    <div><strong class="block text-gray-500">ACM Level</strong> <span class="text-lg">${levelMap[user.acmLevel] || 'N/A'}</span></div>
+                    <div><strong class="block text-gray-500">Uni Start Date</strong> <span class="text-lg">${formatMonthYear(user.universityStartDate)}</span></div>
+                    <div><strong class="block text-gray-500">LinkedIn</strong> ${user.linkedin ? `<a href="${user.linkedin}" target="_blank" class="text-blue-600 hover:underline text-lg">Profile</a>` : '<span class="text-lg">N/A</span>'}</div>
                 </div>
-                ${teams.length > 0 ? `<h3 class="text-xl font-semibold mb-2">Teams</h3><div class="flex flex-wrap gap-2 mb-6">${teams.map(t => `<div class="p-2 bg-teal-50 text-teal-800 rounded text-sm">${createTeamLink(t.name, t.id)}</div>`).join('')}</div>` : ''}
+                ${teams.length > 0 ? `<h3 class="text-xl font-semibold mb-2">Teams</h3><div class="flex flex-wrap gap-2 mb-6">${teams.map(t => `<div class="p-2 bg-teal-50 text-teal-800 rounded text-sm font-medium">${createTeamLink(t.name, t.id)}</div>`).join('')}</div>` : ''}
+                
+                <h3 class="text-xl font-semibold mb-2">All Placements</h3>
+                <div class="overflow-x-auto max-h-72 border rounded-lg">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-gray-100 text-xs uppercase sticky top-0"><tr>
+                            <th class="p-2">Competition</th><th class="p-2">Type</th><th class="p-2">Rank</th><th class="p-2">Placement</th>
+                        </tr></thead>
+                        <tbody>
+                            ${placements.length > 0 ? placements.map(p => {
+                                const placementPercent = p.total > 0 ? ((p.rank / p.total) * 100).toFixed(2) : 0;
+                                return `<tr class="border-b">
+                                    <td class="p-2 font-medium">${createCompetitionLink(p.name)}</td>
+                                    <td class="p-2">${p.teamId ? `Team (${createTeamLink(p.teamName, p.teamId)})` : 'Solo'}</td>
+                                    <td class="p-2">${p.rank}/${p.total}</td>
+                                    <td class="p-2 font-bold">Top ${placementPercent}%</td>
+                                </tr>`;
+                            }).join('') : '<tr><td colspan="4" class="p-4 text-center text-gray-500">No placements recorded.</td></tr>'}
+                        </tbody>
+                    </table>
+                </div>
                 `;
             modalContentContainer.innerHTML = content;
             detailsModal.classList.remove('hidden');
@@ -532,7 +554,31 @@
         importFileInput.addEventListener('change', (e) => { loadJsonFile(e.target.files[0]); e.target.value = ''; });
 
         // --- DATA & INITIALIZATION ---
-        function loadJsonFile(file) { /* ... same as original, but calls loadDataIntoApp ... */ }
+        function loadJsonFile(file) {
+             if (!file) { return; }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const fileContent = e.target.result;
+                try {
+                    const data = JSON.parse(fileContent);
+                    if (data.salt && data.iv && data.data) {
+                        showPasswordModal('Enter Decryption Password', async (password) => {
+                            const decryptedJson = await decryptData(data, password);
+                            if (!decryptedJson) {
+                                showToast('Decryption failed.', 'error');
+                                return;
+                            }
+                            loadDataIntoApp(JSON.parse(decryptedJson), file.name);
+                        });
+                    } else {
+                        loadDataIntoApp(data, file.name);
+                    }
+                } catch (error) {
+                    showToast(`Error reading file: ${error.message}`, 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
 
         async function loadDataIntoApp(data, fileName) {
             if (!data.users || !data.competitions) {
@@ -549,8 +595,7 @@
             if (savedData) {
                 try {
                     const data = JSON.parse(savedData);
-                    const initialData = await postRequest('INIT_DATA', data);
-                    // Cache competition links for faster rendering
+                    await postRequest('INIT_DATA', data);
                     Object.keys(data.competitions).forEach(name => {
                         if (data.competitions[name].link) {
                             competitionLinks[name] = data.competitions[name].link;
